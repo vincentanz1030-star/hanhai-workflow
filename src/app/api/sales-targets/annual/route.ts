@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
+// 将蛇形命名转换为驼峰命名
+function toCamelCase(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(toCamelCase);
+  if (typeof obj !== 'object') return obj;
+
+  const newObj: any = {};
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      newObj[camelKey] = toCamelCase(obj[key]);
+    }
+  }
+  return newObj;
+}
+
 // 获取所有年度销售目标
 export async function GET() {
   try {
@@ -34,7 +50,7 @@ export async function GET() {
       })
     );
 
-    return NextResponse.json({ targets: targetsWithMonthly });
+    return NextResponse.json({ targets: toCamelCase(targetsWithMonthly) });
   } catch (error) {
     console.error('服务器错误:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });
@@ -117,7 +133,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ target, monthlyTargets: createdMonthlyTargets });
+    return NextResponse.json({ target: toCamelCase(target), monthlyTargets: toCamelCase(createdMonthlyTargets) });
   } catch (error) {
     console.error('服务器错误:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });
@@ -188,7 +204,7 @@ export async function PUT(request: NextRequest) {
       .eq('annual_target_id', id)
       .order('month', { ascending: true });
 
-    return NextResponse.json({ target, monthlyTargets: updatedMonthly || [] });
+    return NextResponse.json({ target: toCamelCase(target), monthlyTargets: toCamelCase(updatedMonthly) || [] });
   } catch (error) {
     console.error('服务器错误:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });

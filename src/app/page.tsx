@@ -2150,7 +2150,7 @@ export default function HomePage() {
                       transform: `scale(${projectZoom / 100})`
                     }}
                   >
-                    <div className="space-y-6" style={{ width: '1000px' }}>
+                    <div className="space-y-6" style={{ width: '3000px' }}>
                       {(CATEGORY_ROLES[selectedProject.category] || Object.keys(ROLE_NAMES)).map((role) => {
                         const roleTasks = (selectedProject.tasks || []).filter(t => t.role === role);
                         return (

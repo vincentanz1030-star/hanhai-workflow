@@ -1,0 +1,91 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
+
+// 更新任务
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const client = getSupabaseClient();
+    const { id } = await params;
+    const body = await request.json();
+    const { progress, status, actualCompletionDate } = body;
+
+    // 验证进度值
+    if (progress !== undefined && (progress < 0 || progress > 100)) {
+      return NextResponse.json(
+        { error: '进度值必须在 0-100 之间' },
+        { status: 400 }
+      );
+    }
+
+    // 更新数据
+    const updateData: any = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (progress !== undefined) {
+      updateData.progress = progress;
+    }
+
+    if (status) {
+      updateData.status = status;
+    }
+
+    if (actualCompletionDate) {
+      updateData.actual_completion_date = actualCompletionDate;
+    }
+
+    // 根据进度自动更新状态
+    if (progress === 100 && !status) {
+      updateData.status = 'completed';
+      updateData.actual_completion_date = new Date().toISOString();
+    } else if (progress > 0 && progress < 100 && !status) {
+      updateData.status = 'in_progress';
+    }
+
+    const { data, error } = await client
+      .from('tasks')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('更新任务失败:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ task: data });
+  } catch (error) {
+    console.error('服务器错误:', error);
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+  }
+}
+
+// 删除任务
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const client = getSupabaseClient();
+    const { id } = await params;
+
+    const { error } = await client
+      .from('tasks')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('删除任务失败:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('服务器错误:', error);
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+  }
+}

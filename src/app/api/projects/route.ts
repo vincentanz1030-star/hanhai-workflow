@@ -1,0 +1,178 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
+
+// 获取所有项目
+export async function GET() {
+  try {
+    const client = getSupabaseClient();
+
+    // 获取所有项目
+    const { data: projects, error } = await client
+      .from('projects')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('获取项目失败:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // 获取每个项目的任务
+    const projectsWithTasks = await Promise.all(
+      (projects || []).map(async (project) => {
+        const { data: tasks } = await client
+          .from('tasks')
+          .select('*')
+          .eq('project_id', project.id)
+          .order('role', { ascending: true })
+          .order('task_order', { ascending: true });
+
+        return {
+          ...project,
+          tasks: tasks || [],
+        };
+      })
+    );
+
+    return NextResponse.json({ projects: projectsWithTasks });
+  } catch (error) {
+    console.error('服务器错误:', error);
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+  }
+}
+
+// 创建新项目
+export async function POST(request: NextRequest) {
+  try {
+    const client = getSupabaseClient();
+    const body = await request.json();
+    const { name, salesDate, description } = body;
+
+    if (!name || !salesDate) {
+      return NextResponse.json(
+        { error: '项目名称和销售日期为必填项' },
+        { status: 400 }
+      );
+    }
+
+    // 计算项目确认日期（销售前3个月）
+    const salesDateObj = new Date(salesDate);
+    const projectConfirmDateObj = new Date(salesDateObj);
+    projectConfirmDateObj.setMonth(projectConfirmDateObj.getMonth() - 3);
+
+    // 创建项目
+    const { data: project, error: projectError } = await client
+      .from('projects')
+      .insert({
+        name,
+        sales_date: salesDate,
+        project_confirm_date: projectConfirmDateObj.toISOString(),
+        description: description || null,
+        status: 'pending',
+      })
+      .select()
+      .single();
+
+    if (projectError) {
+      console.error('创建项目失败:', projectError);
+      return NextResponse.json({ error: projectError.message }, { status: 500 });
+    }
+
+    // 创建各岗位任务
+    const tasks = await createTasksForProject(client, project.id, salesDate, projectConfirmDateObj);
+
+    return NextResponse.json({ project, tasks });
+  } catch (error) {
+    console.error('服务器错误:', error);
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+  }
+}
+
+// 为项目创建所有岗位的任务
+async function createTasksForProject(
+  client: any,
+  projectId: string,
+  salesDate: string,
+  projectConfirmDate: Date
+) {
+  // 计算关键时间点
+  const salesDateObj = new Date(salesDate);
+  const salesBefore3Days = new Date(salesDateObj);
+  salesBefore3Days.setDate(salesBefore3Days.getDate() - 3);
+
+  // 岗位任务定义
+  const roleTasks: Record<string, Array<{ name: string; description: string; order: number }>> = {
+    illustration: [
+      { name: '需求分析与风格确定', description: '分析产品需求，确定插画风格和表现方式', order: 1 },
+      { name: '草图绘制与构思', description: '绘制初步草图，确定构图和元素', order: 2 },
+      { name: '线稿绘制', description: '完成详细的线稿设计', order: 3 },
+      { name: '上色与细节完善', description: '进行上色处理，完善细节和光影效果', order: 4 },
+      { name: '最终调整与交付', description: '根据反馈进行调整，完成最终版本交付', order: 5 },
+    ],
+    product_design: [
+      { name: '市场调研与竞品分析', description: '调研市场需求，分析竞品特点', order: 1 },
+      { name: '产品概念设计与草图', description: '进行产品概念设计，绘制草图', order: 2 },
+      { name: '3D建模与效果图', description: '完成3D建模和效果图制作', order: 3 },
+      { name: '样品制作与测试', description: '制作样品并进行功能测试', order: 4 },
+      { name: '最终确认与量产准备', description: '确认设计方案，准备量产', order: 5 },
+    ],
+    detail_design: [
+      { name: '详情页架构规划', description: '规划详情页整体结构和内容布局', order: 1 },
+      { name: '主视觉设计', description: '设计主视觉Banner和关键展示图', order: 2 },
+      { name: '细节展示设计', description: '设计产品细节展示和功能说明', order: 3 },
+      { name: '交互与动效制作', description: '制作交互效果和动画展示', order: 4 },
+      { name: '适配与最终交付', description: '进行多端适配，完成最终交付', order: 5 },
+    ],
+    copywriting: [
+      { name: '文案策略制定', description: '制定文案风格和传播策略', order: 1 },
+      { name: '卖点提炼', description: '提炼产品核心卖点和优势', order: 2 },
+      { name: '详情文案撰写', description: '撰写详情页介绍和产品说明', order: 3 },
+      { name: '宣传文案创作', description: '创作宣传推广文案', order: 4 },
+      { name: '文案优化与定稿', description: '根据反馈优化，完成最终文案', order: 5 },
+    ],
+    procurement: [
+      { name: '需求分析与供应商筛选', description: '分析采购需求，筛选合适供应商', order: 1 },
+      { name: '询价与比价', description: '进行询价和价格对比', order: 2 },
+      { name: '合同签订', description: '签订采购合同', order: 3 },
+      { name: '样品测试与确认', description: '接收样品进行测试和质量确认', order: 4 },
+      { name: '批量采购与入库', description: '完成批量采购和产品入库', order: 5 },
+    ],
+  };
+
+  const tasks = [];
+  const roleKeys = ['illustration', 'product_design', 'detail_design', 'copywriting', 'procurement'] as const;
+
+  for (const role of roleKeys) {
+    const taskList = roleTasks[role];
+    const startDate = role === 'illustration' || role === 'product_design'
+      ? new Date(projectConfirmDate)
+      : new Date(salesBefore3Days);
+
+    for (const task of taskList) {
+      // 计算预计完成时间（每个任务间隔1周）
+      const estimatedDate = new Date(startDate);
+      estimatedDate.setDate(estimatedDate.getDate() + (task.order - 1) * 7);
+
+      const { data, error } = await client
+        .from('tasks')
+        .insert({
+          project_id: projectId,
+          role,
+          task_name: task.name,
+          task_order: task.order,
+          description: task.description,
+          progress: 0,
+          estimated_completion_date: estimatedDate.toISOString(),
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        tasks.push(data);
+      }
+    }
+  }
+
+  return tasks;
+}

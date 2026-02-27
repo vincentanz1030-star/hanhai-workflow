@@ -21,7 +21,9 @@ export async function PATCH(
       estimatedCompletionDate,
       rating,
       reminderCount,
-      lastReminderAt
+      lastReminderAt,
+      taskName,
+      description
     } = body;
 
     // 验证进度值
@@ -87,6 +89,14 @@ export async function PATCH(
 
     if (lastReminderAt !== undefined) {
       updateData.last_reminder_at = lastReminderAt;
+    }
+
+    if (taskName !== undefined) {
+      updateData.task_name = taskName;
+    }
+
+    if (description !== undefined) {
+      updateData.description = description;
     }
 
     // 根据进度自动更新状态

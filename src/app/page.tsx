@@ -213,6 +213,31 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
   const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
   const [selectedRating, setSelectedRating] = useState(task.rating || 0);
   const [isReminding, setIsReminding] = useState(false);
+  const [isEditingContent, setIsEditingContent] = useState(false);
+  const [editingTaskName, setEditingTaskName] = useState(task.taskName);
+  const [editingTaskDescription, setEditingTaskDescription] = useState(task.description || '');
+
+  // 编辑任务内容
+  const handleUpdateContent = async () => {
+    try {
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskName: editingTaskName,
+          description: editingTaskDescription,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        onUpdate(data.task);
+        setIsEditingContent(false);
+      }
+    } catch (error) {
+      console.error('更新任务内容失败:', error);
+    }
+  };
 
   // 催促功能
   const handleRemind = async () => {
@@ -378,26 +403,78 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
       {/* 任务头部 */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <Badge variant="outline" className="text-lg px-3 py-1">
-              {task.taskOrder}
-            </Badge>
-            <h4 className="text-lg font-semibold">{task.taskName}</h4>
-            <Badge className={`${STATUS_COLORS[task.status]} text-white`}>
-              {STATUS_NAMES[task.status]}
-            </Badge>
-          </div>
-          {task.description && (
-            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 mt-3">
-              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                {task.description}
-              </p>
+          {isEditingContent ? (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="task-name">任务名称</Label>
+                <Input
+                  id="task-name"
+                  value={editingTaskName}
+                  onChange={(e) => setEditingTaskName(e.target.value)}
+                  placeholder="输入任务名称"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="task-description">任务描述</Label>
+                <Textarea
+                  id="task-description"
+                  value={editingTaskDescription}
+                  onChange={(e) => setEditingTaskDescription(e.target.value)}
+                  placeholder="输入任务描述"
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleUpdateContent}>
+                  保存
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => {
+                  setIsEditingContent(false);
+                  setEditingTaskName(task.taskName);
+                  setEditingTaskDescription(task.description || '');
+                }}>
+                  取消
+                </Button>
+              </div>
             </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 mb-2">
+                <Badge variant="outline" className="text-lg px-3 py-1">
+                  {task.taskOrder}
+                </Badge>
+                <h4 className="text-lg font-semibold">{task.taskName}</h4>
+                <Badge className={`${STATUS_COLORS[task.status]} text-white`}>
+                  {STATUS_NAMES[task.status]}
+                </Badge>
+              </div>
+              {task.description && (
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 mt-3">
+                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                    {task.description}
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
 
         {/* 操作按钮 */}
         <div className="flex gap-2 ml-4">
+          {!isEditingContent && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setEditingTaskName(task.taskName);
+                setEditingTaskDescription(task.description || '');
+                setIsEditingContent(true);
+              }}
+            >
+              <span className="mr-1">✏️</span>
+              编辑内容
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -1997,7 +2074,7 @@ export default function HomePage() {
         {/* 项目详情弹窗 */}
         {selectedProject && (
           <Dialog open={!!selectedProject} onOpenChange={() => setSelectedProject(null)}>
-            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-2xl">{selectedProject.name}</DialogTitle>
                 <DialogDescription>

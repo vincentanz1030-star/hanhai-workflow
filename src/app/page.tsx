@@ -124,6 +124,12 @@ const CATEGORY_NAMES: Record<string, string> = {
   operations_activity: '运营活动',
 };
 
+// 项目分类对应的岗位
+const CATEGORY_ROLES: Record<string, string[]> = {
+  product_development: ['illustration', 'product_design', 'packaging_design', 'procurement', 'finance', 'warehouse'],
+  operations_activity: ['copywriting', 'detail_design', 'operations', 'customer_service'],
+};
+
 // 状态映射
 const STATUS_NAMES: Record<string, string> = {
   pending: '待开始',
@@ -2127,7 +2133,7 @@ export default function HomePage() {
                 </DialogHeader>
                 <div className="flex-1 overflow-y-auto px-6 py-4" style={{ transform: `scale(${projectZoom / 100})`, transformOrigin: 'top left' }}>
                   <div className="space-y-6">
-                    {Object.keys(ROLE_NAMES).map((role) => {
+                    {(CATEGORY_ROLES[selectedProject.category] || Object.keys(ROLE_NAMES)).map((role) => {
                       const roleTasks = (selectedProject.tasks || []).filter(t => t.role === role);
                       return (
                         <Card key={role}>

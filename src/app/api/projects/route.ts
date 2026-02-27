@@ -80,8 +80,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: projectError.message }, { status: 500 });
     }
 
-    // 创建各岗位任务
-    const tasks = await createTasksForProject(client, project.id, salesDate, projectConfirmDateObj);
+    // 创建各岗位任务（根据项目类型）
+    const tasks = await createTasksForProject(
+      client, 
+      project.id, 
+      salesDate, 
+      projectConfirmDateObj, 
+      category
+    );
 
     // 计算项目整体预计完成时间（取所有任务中最晚的预计完成时间）
     const estimatedDates = tasks
@@ -146,12 +152,13 @@ export async function DELETE(request: NextRequest) {
 }
 
 
-// 为项目创建所有岗位的任务
+// 为项目创建任务（根据项目类型）
 async function createTasksForProject(
   client: any,
   projectId: string,
   salesDate: string,
-  projectConfirmDate: Date
+  projectConfirmDate: Date,
+  category: string
 ) {
   // 计算关键时间点
   const salesDateObj = new Date(salesDate);
@@ -233,7 +240,26 @@ async function createTasksForProject(
   };
 
   const tasks = [];
-  const roleKeys = ['illustration', 'product_design', 'detail_design', 'copywriting', 'procurement', 'packaging_design', 'finance', 'customer_service', 'warehouse', 'operations'] as const;
+  
+  // 根据项目类型确定需要创建的岗位
+  const allRoles = ['illustration', 'product_design', 'detail_design', 'copywriting', 'procurement', 'packaging_design', 'finance', 'customer_service', 'warehouse', 'operations'] as const;
+  
+  // 产品开发项目包含的岗位
+  const productDevelopmentRoles = ['illustration', 'product_design', 'packaging_design', 'procurement', 'finance', 'warehouse'] as const;
+  
+  // 运营活动项目包含的岗位
+  const operationsActivityRoles = ['copywriting', 'detail_design', 'operations', 'customer_service'] as const;
+  
+  // 根据项目分类确定要创建的岗位
+  let roleKeys: readonly string[];
+  if (category === 'product_development') {
+    roleKeys = productDevelopmentRoles;
+  } else if (category === 'operations_activity') {
+    roleKeys = operationsActivityRoles;
+  } else {
+    // 默认创建所有岗位（向后兼容）
+    roleKeys = allRoles;
+  }
 
   for (const role of roleKeys) {
     const taskList = roleTasks[role];

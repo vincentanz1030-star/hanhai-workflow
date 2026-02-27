@@ -18,13 +18,24 @@ export async function PATCH(
       imageUrl2, 
       imageUrl3, 
       customProgressLabels,
-      estimatedCompletionDate 
+      estimatedCompletionDate,
+      rating,
+      reminderCount,
+      lastReminderAt
     } = body;
 
     // 验证进度值
     if (progress !== undefined && (progress < 0 || progress > 100)) {
       return NextResponse.json(
         { error: '进度值必须在 0-100 之间' },
+        { status: 400 }
+      );
+    }
+
+    // 验证评分值
+    if (rating !== undefined && (rating < 1 || rating > 5)) {
+      return NextResponse.json(
+        { error: '评分值必须在 1-5 之间' },
         { status: 400 }
       );
     }
@@ -64,6 +75,18 @@ export async function PATCH(
 
     if (estimatedCompletionDate !== undefined) {
       updateData.estimated_completion_date = estimatedCompletionDate;
+    }
+
+    if (rating !== undefined) {
+      updateData.rating = rating;
+    }
+
+    if (reminderCount !== undefined) {
+      updateData.reminder_count = reminderCount;
+    }
+
+    if (lastReminderAt !== undefined) {
+      updateData.last_reminder_at = lastReminderAt;
     }
 
     // 根据进度自动更新状态

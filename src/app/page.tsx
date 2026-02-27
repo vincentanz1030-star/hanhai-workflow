@@ -21,8 +21,10 @@ interface Project {
   id: string;
   name: string;
   brand: 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan' | 'all';
+  category: 'product_development' | 'operations_activity';
   salesDate: string;
   projectConfirmDate: string;
+  overallCompletionDate: string | null;
   status: 'pending' | 'in_progress' | 'completed' | 'delayed';
   description: string | null;
   createdAt: string;
@@ -32,7 +34,7 @@ interface Project {
 interface Task {
   id: string;
   projectId: string;
-  role: 'illustration' | 'product_design' | 'detail_design' | 'copywriting' | 'procurement' | 'packaging_design' | 'finance' | 'customer_service' | 'warehouse';
+  role: 'illustration' | 'product_design' | 'detail_design' | 'copywriting' | 'procurement' | 'packaging_design' | 'finance' | 'customer_service' | 'warehouse' | 'operations';
   taskName: string;
   taskOrder: number;
   description: string | null;
@@ -44,6 +46,9 @@ interface Task {
   estimatedCompletionDate: string | null;
   actualCompletionDate: string | null;
   status: 'pending' | 'in_progress' | 'completed' | 'delayed';
+  rating: number | null;
+  reminderCount: number;
+  lastReminderAt: string | null;
   created_at: string;
   updated_at: string | null;
 }
@@ -74,6 +79,7 @@ const ROLE_NAMES: Record<string, string> = {
   finance: '财务出纳',
   customer_service: '客服团队',
   warehouse: '仓储管理',
+  operations: '运营团队',
 };
 
 // 品牌映射
@@ -83,6 +89,12 @@ const BRAND_NAMES: Record<string, string> = {
   ai_he: '爱禾',
   bao_deng_yuan: '宝登源',
   all: '全部',
+};
+
+// 项目分类映射
+const CATEGORY_NAMES: Record<string, string> = {
+  product_development: '产品开发',
+  operations_activity: '运营活动',
 };
 
 // 状态映射
@@ -171,6 +183,49 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
   const [editingDate, setEditingDate] = useState('');
   const [isEditingLabels, setIsEditingLabels] = useState(false);
   const [customLabels, setCustomLabels] = useState<Record<string, string>>(task.customProgressLabels || {});
+  const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
+  const [selectedRating, setSelectedRating] = useState(task.rating || 0);
+  const [isReminding, setIsReminding] = useState(false);
+
+  // 催促功能
+  const handleRemind = async () => {
+    setIsReminding(true);
+    try {
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reminderCount: (task.reminderCount || 0) + 1 }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        onUpdate(data.task);
+      }
+    } catch (error) {
+      console.error('催促失败:', error);
+    } finally {
+      setIsReminding(false);
+    }
+  };
+
+  // 评分功能
+  const handleRating = async (rating: number) => {
+    try {
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        onUpdate(data.task);
+        setIsRatingDialogOpen(false);
+      }
+    } catch (error) {
+      console.error('评分失败:', error);
+    }
+  };
 
   const handleProgressChange = async (value: number[]) => {
     const newProgress = value[0];
@@ -331,6 +386,32 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
           >
             <Users className="h-4 w-4 mr-1" />
             自定义标签
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsRatingDialogOpen(true)}
+          >
+            <span className="mr-1">⭐</span>
+            评分
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRemind}
+            disabled={isReminding}
+          >
+            {isReminding ? (
+              <>
+                <div className="mr-1 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                催促中...
+              </>
+            ) : (
+              <>
+                <AlertCircle className="h-4 w-4 mr-1" />
+                催促
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -545,6 +626,34 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 评分对话框 */}
+      <Dialog open={isRatingDialogOpen} onOpenChange={setIsRatingDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>为任务评分</DialogTitle>
+            <DialogDescription>
+              请为 {task.taskName} 的完成质量评分（1-5星）
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6">
+            <div className="flex justify-center gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => handleRating(star)}
+                  className="text-4xl transition-transform hover:scale-110 focus:outline-none"
+                >
+                  {star <= (task.rating || selectedRating) ? '⭐' : '☆'}
+                </button>
+              ))}
+            </div>
+            <div className="text-center mt-4 text-sm text-muted-foreground">
+              当前评分：{task.rating || 0} 星
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -556,10 +665,12 @@ export default function HomePage() {
   const [newProject, setNewProject] = useState({
     name: '',
     brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan' | 'all',
+    category: '' as 'product_development' | 'operations_activity',
     salesDate: '',
     description: '',
   });
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'product_development' | 'operations_activity'>('all');
   
   // 时间线编辑状态
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
@@ -609,6 +720,7 @@ export default function HomePage() {
         setNewProject({ 
           name: '', 
           brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan' | 'all',
+          category: '' as 'product_development' | 'operations_activity',
           salesDate: '', 
           description: '' 
         });
@@ -864,6 +976,20 @@ export default function HomePage() {
                     </select>
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="category">项目分类 *</Label>
+                    <select
+                      id="category"
+                      value={newProject.category}
+                      onChange={(e) => setNewProject({ ...newProject, category: e.target.value as any })}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="">请选择分类...</option>
+                      {Object.keys(CATEGORY_NAMES).map(key => (
+                        <option key={key} value={key}>{CATEGORY_NAMES[key]}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="salesDate">销售日期 *</Label>
                     <Input
                       id="salesDate"
@@ -885,7 +1011,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleCreateProject} disabled={!newProject.name || !newProject.salesDate || !newProject.brand}>
+                  <Button onClick={handleCreateProject} disabled={!newProject.name || !newProject.salesDate || !newProject.brand || !newProject.category}>
                     创建项目
                   </Button>
                 </DialogFooter>
@@ -1164,6 +1290,25 @@ export default function HomePage() {
 
           {/* 项目列表 */}
           <TabsContent value="projects" className="space-y-6">
+            {/* 项目分类筛选 */}
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant={categoryFilter === 'all' ? "default" : "outline"}
+                onClick={() => setCategoryFilter('all')}
+              >
+                全部项目
+              </Button>
+              {Object.keys(CATEGORY_NAMES).map(categoryKey => (
+                <Button
+                  key={categoryKey}
+                  variant={categoryFilter === categoryKey ? "default" : "outline"}
+                  onClick={() => setCategoryFilter(categoryKey as any)}
+                >
+                  {CATEGORY_NAMES[categoryKey]}
+                </Button>
+              ))}
+            </div>
+
             {projects.length === 0 ? (
               <Card>
                 <CardContent className="py-16 text-center">
@@ -1178,7 +1323,9 @@ export default function HomePage() {
               </Card>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {projects.map((project) => (
+                {projects
+                  .filter(project => categoryFilter === 'all' || project.category === categoryFilter)
+                  .map((project) => (
                   <Card key={project.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => loadProjectDetails(project.id)}>
                     <CardHeader>
                       <div className="flex items-start justify-between">

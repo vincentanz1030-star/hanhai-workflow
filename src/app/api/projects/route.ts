@@ -46,11 +46,11 @@ export async function POST(request: NextRequest) {
   try {
     const client = getSupabaseClient();
     const body = await request.json();
-    const { name, brand, salesDate, description } = body;
+    const { name, brand, category, salesDate, description } = body;
 
-    if (!name || !salesDate || !brand) {
+    if (!name || !salesDate || !brand || !category) {
       return NextResponse.json(
-        { error: '项目名称、品牌和销售日期为必填项' },
+        { error: '项目名称、品牌、分类和销售日期为必填项' },
         { status: 400 }
       );
     }
@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
       .insert({
         name,
         brand,
+        category,
         sales_date: salesDate,
         project_confirm_date: projectConfirmDateObj.toISOString(),
         description: description || null,
@@ -81,6 +82,21 @@ export async function POST(request: NextRequest) {
 
     // 创建各岗位任务
     const tasks = await createTasksForProject(client, project.id, salesDate, projectConfirmDateObj);
+
+    // 计算项目整体预计完成时间（取所有任务中最晚的预计完成时间）
+    const estimatedDates = tasks
+      .filter(t => t.estimated_completion_date)
+      .map(t => new Date(t.estimated_completion_date));
+    
+    if (estimatedDates.length > 0) {
+      const maxDate = new Date(Math.max(...estimatedDates.map(d => d.getTime())));
+      await client
+        .from('projects')
+        .update({ overall_completion_date: maxDate.toISOString() })
+        .eq('id', project.id);
+      
+      project.overall_completion_date = maxDate.toISOString();
+    }
 
     return NextResponse.json({ project, tasks });
   } catch (error) {
@@ -166,10 +182,17 @@ async function createTasksForProject(
       { name: '入库准备与系统录入', description: '准备入库流程，完成系统数据录入', order: 4 },
       { name: '出库流程测试', description: '测试出库流程，确保销售前准备就绪', order: 5 },
     ],
+    operations: [
+      { name: '运营策略制定', description: '制定活动运营策略和执行计划', order: 1 },
+      { name: '资源协调与准备', description: '协调各方资源，做好活动准备', order: 2 },
+      { name: '活动执行监控', description: '实时监控活动执行情况', order: 3 },
+      { name: '数据分析与优化', description: '分析活动数据，持续优化', order: 4 },
+      { name: '效果评估与总结', description: '评估活动效果，完成总结报告', order: 5 },
+    ],
   };
 
   const tasks = [];
-  const roleKeys = ['illustration', 'product_design', 'detail_design', 'copywriting', 'procurement', 'packaging_design', 'finance', 'customer_service', 'warehouse'] as const;
+  const roleKeys = ['illustration', 'product_design', 'detail_design', 'copywriting', 'procurement', 'packaging_design', 'finance', 'customer_service', 'warehouse', 'operations'] as const;
 
   for (const role of roleKeys) {
     const taskList = roleTasks[role];
@@ -186,6 +209,10 @@ async function createTasksForProject(
       // 包装设计：产品确认后两周内完成
       startDate = new Date(projectConfirmDate);
       taskIntervalDays = 3; // 2周内完成5个任务，每个任务间隔3天
+    } else if (role === 'operations') {
+      // 运营团队：贯穿整个项目，配合其他团队
+      startDate = new Date(projectConfirmDate);
+      taskIntervalDays = 10; // 每10天一个关键节点
     } else if (role === 'finance') {
       // 财务：贯穿整个项目，需要及时付款
       startDate = new Date(projectConfirmDate);
@@ -216,6 +243,7 @@ async function createTasksForProject(
           progress: 0,
           estimated_completion_date: estimatedDate.toISOString(),
           status: 'pending',
+          reminder_count: 0,
         })
         .select()
         .single();

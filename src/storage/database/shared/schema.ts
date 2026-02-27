@@ -14,6 +14,9 @@ export const healthCheck = pgTable("health_check", {
 // 项目状态枚举
 export const projectStatusEnum = pgEnum("project_status", ["pending", "in_progress", "completed", "delayed"]);
 
+// 项目分类枚举
+export const projectCategoryEnum = pgEnum("project_category", ["product_development", "operations_activity"]);
+
 // 任务状态枚举
 export const taskStatusEnum = pgEnum("task_status", ["pending", "in_progress", "completed", "delayed"]);
 
@@ -28,6 +31,7 @@ export const roleEnum = pgEnum("role_type", [
   "finance",
   "customer_service",
   "warehouse",
+  "operations", // 运营团队
 ]);
 
 // 品牌枚举
@@ -49,8 +53,10 @@ export const projects = pgTable(
 			.default(sql`gen_random_uuid()`),
 		name: varchar("name", { length: 255 }).notNull(),
 		brand: brandEnum("brand").notNull(), // 品牌：禾哲、BAOBAO、爱禾、宝登源
+		category: projectCategoryEnum("category").notNull(), // 项目分类：产品开发、运营活动
 		salesDate: timestamp("sales_date", { withTimezone: true, mode: 'string' }).notNull(), // 销售日期
 		projectConfirmDate: timestamp("project_confirm_date", { withTimezone: true, mode: 'string' }).notNull(), // 项目确认日期
+		overallCompletionDate: timestamp("overall_completion_date", { withTimezone: true, mode: 'string' }), // 项目整体预计完成时间（按最后一个任务节点）
 		status: projectStatusEnum("status").default("pending").notNull(),
 		description: text("description"),
 		metadata: jsonb("metadata"),
@@ -63,6 +69,7 @@ export const projects = pgTable(
 		index("projects_sales_date_idx").on(table.salesDate),
 		index("projects_status_idx").on(table.status),
 		index("projects_brand_idx").on(table.brand),
+		index("projects_category_idx").on(table.category),
 	]
 );
 
@@ -87,6 +94,9 @@ export const tasks = pgTable(
 		estimatedCompletionDate: timestamp("estimated_completion_date", { withTimezone: true, mode: 'string' }), // 预计完成时间
 		actualCompletionDate: timestamp("actual_completion_date", { withTimezone: true, mode: 'string' }), // 实际完成时间
 		status: taskStatusEnum("status").default("pending").notNull(),
+		rating: integer("rating"), // 任务评分 1-5星
+		reminderCount: integer("reminder_count").default(0).notNull(), // 催促次数
+		lastReminderAt: timestamp("last_reminder_at", { withTimezone: true, mode: 'string' }), // 最后催促时间
 		createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' })
 			.defaultNow()
 			.notNull(),
@@ -142,6 +152,7 @@ const { createInsertSchema: createCoercedInsertSchema } = createSchemaFactory({
 export const insertProjectSchema = createCoercedInsertSchema(projects).pick({
   name: true,
   brand: true,
+  category: true,
   salesDate: true,
   projectConfirmDate: true,
   description: true,
@@ -151,10 +162,12 @@ export const updateProjectSchema = createCoercedInsertSchema(projects)
   .pick({
     name: true,
     brand: true,
+    category: true,
     salesDate: true,
     projectConfirmDate: true,
     status: true,
     description: true,
+    overallCompletionDate: true,
   })
   .partial();
 
@@ -187,6 +200,9 @@ export const updateTaskSchema = createCoercedInsertSchema(tasks)
     estimatedCompletionDate: true,
     actualCompletionDate: true,
     status: true,
+    rating: true,
+    reminderCount: true,
+    lastReminderAt: true,
   })
   .partial();
 

@@ -48,6 +48,10 @@ const ROLE_NAMES: Record<string, string> = {
   detail_design: '详情页设计',
   copywriting: '文案宣传',
   procurement: '产品采购',
+  packaging_design: '包装设计',
+  finance: '财务出纳',
+  customer_service: '客服培训',
+  warehouse: '仓储管理',
 };
 
 // 状态映射
@@ -65,6 +69,23 @@ const STATUS_COLORS: Record<string, string> = {
   completed: 'bg-green-500',
   delayed: 'bg-red-500',
 };
+
+// 安全的日期格式化函数
+function formatDateSafely(dateString: string | null | undefined, formatStr: string = 'yyyy-MM-dd'): string {
+  if (!dateString || dateString.trim() === '') {
+    return '';
+  }
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+    return format(date, formatStr, { locale: zhCN });
+  } catch (error) {
+    console.error('日期格式化失败:', dateString, error);
+    return '';
+  }
+}
 
 // 任务卡片组件
 function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Task>) => void }) {
@@ -124,16 +145,16 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
             <span className="text-xs text-muted-foreground w-8 text-right">{localProgress}%</span>
           </div>
         </div>
-        {task.estimatedCompletionDate && (
+        {formatDateSafely(task.estimatedCompletionDate) && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" />
-            <span>预计完成: {format(new Date(task.estimatedCompletionDate), 'yyyy-MM-dd', { locale: zhCN })}</span>
+            <span>预计完成: {formatDateSafely(task.estimatedCompletionDate)}</span>
           </div>
         )}
-        {task.actualCompletionDate && (
+        {formatDateSafely(task.actualCompletionDate) && (
           <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
             <CheckCircle className="h-3 w-3" />
-            <span>实际完成: {format(new Date(task.actualCompletionDate), 'yyyy-MM-dd', { locale: zhCN })}</span>
+            <span>实际完成: {formatDateSafely(task.actualCompletionDate)}</span>
           </div>
         )}
       </div>
@@ -404,7 +425,7 @@ export default function HomePage() {
                           <div>
                             <h3 className="font-medium">{project.name}</h3>
                             <p className="text-sm text-muted-foreground">
-                              销售日期: {format(new Date(project.salesDate), 'yyyy-MM-dd', { locale: zhCN })}
+                              销售日期: {formatDateSafely(project.salesDate)}
                             </p>
                           </div>
                         </div>
@@ -522,11 +543,11 @@ export default function HomePage() {
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
-                          <span>销售: {format(new Date(project.salesDate), 'yyyy-MM-dd', { locale: zhCN })}</span>
+                          <span>销售: {formatDateSafely(project.salesDate)}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Clock className="h-4 w-4" />
-                          <span>确认: {format(new Date(project.projectConfirmDate), 'yyyy-MM-dd', { locale: zhCN })}</span>
+                          <span>确认: {formatDateSafely(project.projectConfirmDate)}</span>
                         </div>
                         <div className="pt-3 border-t">
                           <p className="text-xs text-muted-foreground mb-2">
@@ -564,21 +585,40 @@ export default function HomePage() {
                           <div className="flex flex-wrap gap-4 mt-2 text-sm text-muted-foreground">
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4" />
-                              <span>项目确认: {format(new Date(project.projectConfirmDate), 'yyyy-MM-dd', { locale: zhCN })}</span>
+                              <span>项目确认: {formatDateSafely(project.projectConfirmDate)}</span>
                             </div>
                             <ArrowRight className="h-4 w-4" />
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-green-600" />
-                              <span className="text-green-600 font-medium">销售日期: {format(new Date(project.salesDate), 'yyyy-MM-dd', { locale: zhCN })}</span>
+                              <span className="text-green-600 font-medium">销售日期: {formatDateSafely(project.salesDate)}</span>
                             </div>
                           </div>
                         </div>
 
                         {/* 时间线节点 */}
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                           <div className="space-y-2">
-                            <h4 className="font-medium text-sm text-muted-foreground">前期阶段 (项目确认前)</h4>
-                            {['illustration', 'product_design'].map((role) => {
+                            <h4 className="font-medium text-sm text-muted-foreground">前期阶段 (项目确认后)</h4>
+                            {['illustration', 'product_design', 'packaging_design'].map((role) => {
+                              const roleTasks = (project.tasks || []).filter(t => t.role === role);
+                              const avgProgress = roleTasks.length > 0
+                                ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)
+                                : 0;
+                              return (
+                                <div key={role} className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="font-medium text-sm">{ROLE_NAMES[role]}</span>
+                                    <span className="text-xs font-medium">{avgProgress}%</span>
+                                  </div>
+                                  <Progress value={avgProgress} className="h-2" />
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          <div className="space-y-2">
+                            <h4 className="font-medium text-sm text-muted-foreground">中期阶段 (财务支持)</h4>
+                            {['finance'].map((role) => {
                               const roleTasks = (project.tasks || []).filter(t => t.role === role);
                               const avgProgress = roleTasks.length > 0
                                 ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)
@@ -597,7 +637,7 @@ export default function HomePage() {
 
                           <div className="space-y-2">
                             <h4 className="font-medium text-sm text-muted-foreground">后期阶段 (销售前3天)</h4>
-                            {['detail_design', 'copywriting', 'procurement'].map((role) => {
+                            {['detail_design', 'copywriting', 'procurement', 'customer_service', 'warehouse'].map((role) => {
                               const roleTasks = (project.tasks || []).filter(t => t.role === role);
                               const avgProgress = roleTasks.length > 0
                                 ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)
@@ -664,8 +704,8 @@ export default function HomePage() {
               <DialogHeader>
                 <DialogTitle className="text-2xl">{selectedProject.name}</DialogTitle>
                 <DialogDescription>
-                  销售日期: {format(new Date(selectedProject.salesDate), 'yyyy年MM月dd日', { locale: zhCN })} | 
-                  项目确认: {format(new Date(selectedProject.projectConfirmDate), 'yyyy年MM月dd日', { locale: zhCN })}
+                  销售日期: {formatDateSafely(selectedProject.salesDate, 'yyyy年MM月dd日')} |
+                  项目确认: {formatDateSafely(selectedProject.projectConfirmDate, 'yyyy年MM月dd日')}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-6 mt-4">

@@ -137,21 +137,72 @@ async function createTasksForProject(
       { name: '样品测试与确认', description: '接收样品进行测试和质量确认', order: 4 },
       { name: '批量采购与入库', description: '完成批量采购和产品入库', order: 5 },
     ],
+    packaging_design: [
+      { name: '包装风格与材质确定', description: '确定包装设计风格和材质选择', order: 1 },
+      { name: '包装结构设计', description: '设计包装结构和尺寸规格', order: 2 },
+      { name: '包装视觉设计', description: '完成包装平面视觉设计', order: 3 },
+      { name: '打样与效果确认', description: '制作包装打样，确认最终效果', order: 4 },
+      { name: '生产文件交付', description: '输出生产文件，准备批量生产', order: 5 },
+    ],
+    finance: [
+      { name: '预算编制与审批', description: '制定项目预算，完成审批流程', order: 1 },
+      { name: '款项支付审核', description: '审核各项款项支付的合规性', order: 2 },
+      { name: '供应商付款执行', description: '及时支付供应商款项，避免影响出货', order: 3 },
+      { name: '费用核算与记账', description: '核算项目费用，完成记账工作', order: 4 },
+      { name: '财务报表与总结', description: '编制财务报表，总结项目成本', order: 5 },
+    ],
+    customer_service: [
+      { name: '产品知识培训', description: '培训客服人员产品知识和特点', order: 1 },
+      { name: '销售流程培训', description: '培训销售流程和订单处理流程', order: 2 },
+      { name: '话术与沟通技巧', description: '培训客服话术和客户沟通技巧', order: 3 },
+      { name: '常见问题应对', description: '准备常见问题解答和应对方案', order: 4 },
+      { name: '模拟演练与考核', description: '进行模拟销售演练，通过考核上岗', order: 5 },
+    ],
+    warehouse: [
+      { name: '仓储规划与布局', description: '规划仓储空间，确定货物存放位置', order: 1 },
+      { name: '库存盘点与清点', description: '盘点现有库存，清点货物数量', order: 2 },
+      { name: '货物整理与分类', description: '整理货物，进行分类标记', order: 3 },
+      { name: '入库准备与系统录入', description: '准备入库流程，完成系统数据录入', order: 4 },
+      { name: '出库流程测试', description: '测试出库流程，确保销售前准备就绪', order: 5 },
+    ],
   };
 
   const tasks = [];
-  const roleKeys = ['illustration', 'product_design', 'detail_design', 'copywriting', 'procurement'] as const;
+  const roleKeys = ['illustration', 'product_design', 'detail_design', 'copywriting', 'procurement', 'packaging_design', 'finance', 'customer_service', 'warehouse'] as const;
 
   for (const role of roleKeys) {
     const taskList = roleTasks[role];
-    const startDate = role === 'illustration' || role === 'product_design'
-      ? new Date(projectConfirmDate)
-      : new Date(salesBefore3Days);
+
+    // 根据岗位类型确定开始时间
+    let startDate: Date;
+    let taskIntervalDays: number; // 任务间隔天数
+
+    if (role === 'illustration' || role === 'product_design') {
+      // 插画设计和产品设计：项目确认后开始
+      startDate = new Date(projectConfirmDate);
+      taskIntervalDays = 7; // 每周一个任务
+    } else if (role === 'packaging_design') {
+      // 包装设计：产品确认后两周内完成
+      startDate = new Date(projectConfirmDate);
+      taskIntervalDays = 3; // 2周内完成5个任务，每个任务间隔3天
+    } else if (role === 'finance') {
+      // 财务：贯穿整个项目，需要及时付款
+      startDate = new Date(projectConfirmDate);
+      taskIntervalDays = 14; // 付款节点可能间隔较长
+    } else if (role === 'customer_service' || role === 'warehouse') {
+      // 客服培训和仓储：销售前完成
+      startDate = new Date(salesBefore3Days);
+      taskIntervalDays = 5; // 销售前快速完成
+    } else {
+      // 详情设计、文案、采购：销售前3天开始
+      startDate = new Date(salesBefore3Days);
+      taskIntervalDays = 7;
+    }
 
     for (const task of taskList) {
-      // 计算预计完成时间（每个任务间隔1周）
+      // 计算预计完成时间
       const estimatedDate = new Date(startDate);
-      estimatedDate.setDate(estimatedDate.getDate() + (task.order - 1) * 7);
+      estimatedDate.setDate(estimatedDate.getDate() + (task.order - 1) * taskIntervalDays);
 
       const { data, error } = await client
         .from('tasks')

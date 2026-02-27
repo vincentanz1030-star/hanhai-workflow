@@ -18,7 +18,17 @@ export const projectStatusEnum = pgEnum("project_status", ["pending", "in_progre
 export const taskStatusEnum = pgEnum("task_status", ["pending", "in_progress", "completed", "delayed"]);
 
 // 岗位枚举
-export const roleEnum = pgEnum("role_type", ["illustration", "product_design", "detail_design", "copywriting", "procurement"]);
+export const roleEnum = pgEnum("role_type", [
+  "illustration",
+  "product_design",
+  "detail_design",
+  "copywriting",
+  "procurement",
+  "packaging_design",
+  "finance",
+  "customer_service",
+  "warehouse",
+]);
 
 // ========== 项目表 ==========
 

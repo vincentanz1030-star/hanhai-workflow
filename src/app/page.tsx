@@ -499,9 +499,9 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
       </div>
 
       {/* 进度控制 */}
-      <div className="space-y-3 sm:space-y-4 mt-3 sm:mt-4 w-full">
+      <div className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
         {/* 进度百分比和进度条 */}
-        <div className="space-y-2 w-full">
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs sm:text-sm font-medium text-muted-foreground">完成进度</span>
             <div className="flex items-center gap-2">
@@ -515,15 +515,15 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4 w-full">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Slider
               value={[localProgress]}
               onValueChange={handleProgressChange}
               max={100}
               step={5}
-              className="flex-1 min-w-0"
+              className="flex-1 min-w-0 max-w-[200px] sm:max-w-[300px]"
             />
-            <div className="w-12 sm:w-16 text-right flex-shrink-0">
+            <div className="w-10 sm:w-12 text-right flex-shrink-0">
               <span className="text-xs sm:text-sm font-medium">{localProgress}%</span>
             </div>
           </div>
@@ -534,9 +534,9 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
         </div>
 
         {/* 时间信息 */}
-        <div className="space-y-2 sm:space-y-3 mt-3 sm:mt-4 w-full">
+        <div className="space-y-2 sm:space-y-3 mt-3 sm:mt-4">
           {isEditingDate ? (
-            <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-2 border-blue-300 dark:border-blue-700 w-full">
+            <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-2 border-blue-300 dark:border-blue-700">
               <div className="flex items-center gap-2 mb-2 sm:mb-3">
                 <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                 <span className="text-sm sm:text-base font-bold text-blue-700 dark:text-blue-300">编辑预计完成时间</span>
@@ -545,7 +545,7 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
                 type="date"
                 value={editingDate}
                 onChange={(e) => setEditingDate(e.target.value)}
-                className="flex-1 mb-2 sm:mb-3 h-9 sm:h-10 w-full"
+                className="flex-1 mb-2 sm:mb-3 h-9 sm:h-10"
               />
               <div className="flex gap-2">
                 <Button onClick={handleDateUpdate} className="flex-1">
@@ -562,9 +562,9 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
                 remaining.isOverdue 
                   ? 'bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 border-red-400 dark:border-red-600' 
                   : 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-blue-300 dark:border-blue-600'
-              } w-full`}>
-                <div className="flex flex-col gap-1.5 sm:gap-3 w-full">
-                  <div className="flex items-center gap-2 sm:gap-3 w-full">
+              }`}>
+                <div className="flex flex-col gap-1.5 sm:gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <Calendar className={`h-4 w-4 sm:h-6 sm:w-6 flex-shrink-0 ${remaining.isOverdue ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`} />
                     <div className="flex-1 min-w-0">
                       <div className={`text-xs sm:text-sm font-medium ${
@@ -583,7 +583,7 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 w-full">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
                     <div className={`inline-block px-2.5 py-1 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold w-fit ${
                       remaining.isOverdue 
                         ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-100' 
@@ -613,7 +613,7 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
           )}
 
           {task.actualCompletionDate && task.actualCompletionDate.trim() !== '' && (
-            <div className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 w-full">
+            <div className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
               <div className="flex items-center gap-2 flex-shrink-0">
                 <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
                 <span className="text-xs sm:text-sm font-medium">实际完成时间</span>
@@ -626,14 +626,14 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
 
           {/* 催促提醒显示 */}
           {task.reminderCount && task.reminderCount > 0 && (
-            <div className={`p-2 sm:p-3 rounded-lg border w-full ${
+            <div className={`p-2 sm:p-3 rounded-lg border ${
               task.reminderCount >= 3 
                 ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' 
                 : task.reminderCount >= 2 
                   ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700' 
                   : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
             }`}>
-              <div className="flex items-start gap-2 w-full">
+              <div className="flex items-start gap-2">
                 <AlertCircle className={`h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5 ${
                   task.reminderCount >= 3 ? 'text-red-600 dark:text-red-400' :
                   task.reminderCount >= 2 ? 'text-orange-600 dark:text-orange-400' :

@@ -468,11 +468,11 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
             <span className="hidden sm:inline">评分</span>
           </Button>
           <Button
-            variant="outline"
+            variant={task.reminderCount && task.reminderCount > 0 ? "destructive" : "outline"}
             size="sm"
             onClick={handleRemind}
             disabled={isReminding}
-            className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
+            className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm relative"
           >
             {isReminding ? (
               <>
@@ -483,6 +483,15 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
               <>
                 <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                 <span className="hidden sm:inline">催促</span>
+                {task.reminderCount && task.reminderCount > 0 && (
+                  <span className={`absolute -top-1 -right-1 flex items-center justify-center h-4 w-4 sm:h-5 sm:w-5 text-[10px] sm:text-xs font-bold rounded-full ${
+                    task.reminderCount >= 3 ? 'bg-red-600 text-white animate-pulse' :
+                    task.reminderCount >= 2 ? 'bg-orange-500 text-white' :
+                    'bg-yellow-500 text-white'
+                  }`}>
+                    {task.reminderCount}
+                  </span>
+                )}
               </>
             )}
           </Button>
@@ -490,13 +499,13 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
       </div>
 
       {/* 进度控制 */}
-      <div className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
+      <div className="space-y-3 sm:space-y-4 mt-3 sm:mt-4 w-full">
         {/* 进度百分比和进度条 */}
-        <div className="space-y-2">
+        <div className="space-y-2 w-full">
           <div className="flex items-center justify-between">
             <span className="text-xs sm:text-sm font-medium text-muted-foreground">完成进度</span>
             <div className="flex items-center gap-2">
-              <span className={`text-xl sm:text-2xl font-bold ${
+              <span className={`text-lg sm:text-2xl font-bold ${
                 localProgress === 0 ? 'text-muted-foreground' :
                 localProgress < 50 ? 'text-blue-600' :
                 localProgress < 100 ? 'text-yellow-600' :
@@ -506,16 +515,16 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 w-full">
             <Slider
               value={[localProgress]}
               onValueChange={handleProgressChange}
               max={100}
               step={5}
-              className="flex-1"
+              className="flex-1 min-w-0"
             />
-            <div className="w-16 text-right">
-              <span className="text-sm font-medium">{localProgress}%</span>
+            <div className="w-12 sm:w-16 text-right flex-shrink-0">
+              <span className="text-xs sm:text-sm font-medium">{localProgress}%</span>
             </div>
           </div>
           {/* 进度阶段描述 */}
@@ -525,18 +534,18 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
         </div>
 
         {/* 时间信息 */}
-        <div className="space-y-2 sm:space-y-3 mt-3 sm:mt-4">
+        <div className="space-y-2 sm:space-y-3 mt-3 sm:mt-4 w-full">
           {isEditingDate ? (
-            <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-2 border-blue-300 dark:border-blue-700">
+            <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-2 border-blue-300 dark:border-blue-700 w-full">
               <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
+                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                 <span className="text-sm sm:text-base font-bold text-blue-700 dark:text-blue-300">编辑预计完成时间</span>
               </div>
               <Input
                 type="date"
                 value={editingDate}
                 onChange={(e) => setEditingDate(e.target.value)}
-                className="flex-1 mb-2 sm:mb-3 h-9 sm:h-10"
+                className="flex-1 mb-2 sm:mb-3 h-9 sm:h-10 w-full"
               />
               <div className="flex gap-2">
                 <Button onClick={handleDateUpdate} className="flex-1">
@@ -549,15 +558,15 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
             </div>
           ) : (
             task.estimatedCompletionDate && task.estimatedCompletionDate.trim() !== '' && (
-              <div className={`p-3 sm:p-4 rounded-lg border-2 ${
+              <div className={`p-2.5 sm:p-4 rounded-lg border-2 ${
                 remaining.isOverdue 
                   ? 'bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 border-red-400 dark:border-red-600' 
                   : 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-blue-300 dark:border-blue-600'
-              }`}>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <Calendar className={`h-5 w-5 sm:h-6 sm:w-6 ${remaining.isOverdue ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`} />
-                    <div>
+              } w-full`}>
+                <div className="flex flex-col gap-1.5 sm:gap-3 w-full">
+                  <div className="flex items-center gap-2 sm:gap-3 w-full">
+                    <Calendar className={`h-4 w-4 sm:h-6 sm:w-6 flex-shrink-0 ${remaining.isOverdue ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`} />
+                    <div className="flex-1 min-w-0">
                       <div className={`text-xs sm:text-sm font-medium ${
                         remaining.isOverdue 
                           ? 'text-red-700 dark:text-red-300' 
@@ -565,7 +574,7 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
                       }`}>
                         预计完成时间
                       </div>
-                      <div className={`text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1 ${
+                      <div className={`text-base sm:text-2xl font-bold mt-0.5 sm:mt-1 ${
                         remaining.isOverdue 
                           ? 'text-red-800 dark:text-red-200' 
                           : 'text-blue-800 dark:text-blue-200'
@@ -574,8 +583,8 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
                       </div>
                     </div>
                   </div>
-                  <div className="text-right w-full sm:w-auto">
-                    <div className={`inline-block px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold ${
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 w-full">
+                    <div className={`inline-block px-2.5 py-1 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold w-fit ${
                       remaining.isOverdue 
                         ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-100' 
                         : 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-100'
@@ -586,7 +595,7 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
                           ? '⚠️ 今天截止' 
                           : '🚨 已延期'}
                     </div>
-                    <div className={`text-[10px] sm:text-xs mt-1 sm:mt-2 font-medium ${
+                    <div className={`text-[10px] sm:text-xs font-medium w-fit ${
                       remaining.isOverdue 
                         ? 'text-red-600 dark:text-red-400' 
                         : 'text-blue-600 dark:text-blue-400'
@@ -604,13 +613,52 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
           )}
 
           {task.actualCompletionDate && task.actualCompletionDate.trim() !== '' && (
-            <div className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 w-full">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
                 <span className="text-xs sm:text-sm font-medium">实际完成时间</span>
               </div>
-              <div className="text-xs sm:text-sm font-semibold text-green-700 dark:text-green-400">
+              <div className="text-xs sm:text-sm font-semibold text-green-700 dark:text-green-400 truncate ml-2">
                 {formatDateSafely(task.actualCompletionDate)}
+              </div>
+            </div>
+          )}
+
+          {/* 催促提醒显示 */}
+          {task.reminderCount && task.reminderCount > 0 && (
+            <div className={`p-2 sm:p-3 rounded-lg border w-full ${
+              task.reminderCount >= 3 
+                ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' 
+                : task.reminderCount >= 2 
+                  ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700' 
+                  : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+            }`}>
+              <div className="flex items-start gap-2 w-full">
+                <AlertCircle className={`h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5 ${
+                  task.reminderCount >= 3 ? 'text-red-600 dark:text-red-400' :
+                  task.reminderCount >= 2 ? 'text-orange-600 dark:text-orange-400' :
+                  'text-yellow-600 dark:text-yellow-400'
+                } ${task.reminderCount >= 3 ? 'animate-pulse' : ''}`} />
+                <div className="flex-1 min-w-0">
+                  <div className={`font-medium text-xs sm:text-sm ${
+                    task.reminderCount >= 3 ? 'text-red-700 dark:text-red-300' :
+                    task.reminderCount >= 2 ? 'text-orange-700 dark:text-orange-300' :
+                    'text-yellow-700 dark:text-yellow-300'
+                  }`}>
+                    {task.reminderCount >= 3 ? '🚨 紧急！已催促3次' :
+                    task.reminderCount >= 2 ? '⚠️ 已催促2次，请注意' :
+                    '📢 已催促1次'}
+                  </div>
+                  <div className={`text-[10px] sm:text-xs mt-0.5 ${
+                    task.reminderCount >= 3 ? 'text-red-600 dark:text-red-400' :
+                    task.reminderCount >= 2 ? 'text-orange-600 dark:text-orange-400' :
+                    'text-yellow-600 dark:text-yellow-400'
+                  }`}>
+                    {task.reminderCount >= 3 ? '任务已严重延误，请立即处理' :
+                    task.reminderCount >= 2 ? '任务进度较慢，请加快进度' :
+                    '请尽快推进任务'}
+                  </div>
+                </div>
               </div>
             </div>
           )}

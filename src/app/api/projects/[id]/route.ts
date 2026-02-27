@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
+// 将蛇形命名转换为驼峰命名
+function toCamelCase(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(toCamelCase);
+  if (typeof obj !== 'object') return obj;
+
+  const newObj: any = {};
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      newObj[camelKey] = toCamelCase(obj[key]);
+    }
+  }
+  return newObj;
+}
+
 // 获取单个项目详情
 export async function GET(
   request: NextRequest,
@@ -35,10 +51,10 @@ export async function GET(
       .order('task_order', { ascending: true });
 
     return NextResponse.json({
-      project: {
+      project: toCamelCase({
         ...project,
         tasks: tasks || [],
-      },
+      }),
     });
   } catch (error) {
     console.error('服务器错误:', error);

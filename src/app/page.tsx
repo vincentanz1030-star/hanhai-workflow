@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, Users, CheckCircle, AlertCircle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2 } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, AlertCircle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 import { format, differenceInDays, isBefore, isAfter, isToday } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Slider } from '@/components/ui/slider';
@@ -689,6 +689,7 @@ export default function HomePage() {
   });
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectZoom, setProjectZoom] = useState(100);
+  const [isProjectDialogMaximized, setIsProjectDialogMaximized] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'product_development' | 'operations_activity'>('all');
   const [brandFilter, setBrandFilter] = useState<'all' | 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan'>('all');
   const [deleteConfirmProject, setDeleteConfirmProject] = useState<Project | null>(null);
@@ -2145,8 +2146,15 @@ export default function HomePage() {
 
         {/* 项目详情弹窗 */}
         {selectedProject && (
-          <Dialog open={!!selectedProject} onOpenChange={() => setSelectedProject(null)}>
-            <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 overflow-hidden flex flex-col">
+          <Dialog open={!!selectedProject} onOpenChange={() => {
+            setSelectedProject(null);
+            setIsProjectDialogMaximized(false);
+          }}>
+            <DialogContent className={`p-0 overflow-hidden flex flex-col transition-all duration-300 ${
+              isProjectDialogMaximized 
+                ? 'w-screen h-screen max-w-none max-h-none rounded-none' 
+                : 'max-w-[95vw] max-h-[95vh]'
+            }`}>
               <DialogHeader className="px-6 py-4 border-b shrink-0">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -2159,6 +2167,14 @@ export default function HomePage() {
                     </DialogDescription>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setIsProjectDialogMaximized(!isProjectDialogMaximized)}
+                      title={isProjectDialogMaximized ? '还原' : '最大化'}
+                    >
+                      {isProjectDialogMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"

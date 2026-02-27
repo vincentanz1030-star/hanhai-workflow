@@ -1104,37 +1104,37 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* 头部 */}
       <header className="border-b bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <FolderOpen className="h-6 w-6 text-white" />
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
+                <FolderOpen className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">电商工作流程管理系统</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">以销售为驱动的项目进度管理</p>
+                <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">电商工作流程管理系统</h1>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">以销售为驱动的项目进度管理</p>
               </div>
             </div>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
+                <Button className="gap-2 h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full sm:w-auto">
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                   创建项目
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="w-[95vw] sm:w-auto">
                 <DialogHeader>
-                  <DialogTitle>创建新项目</DialogTitle>
-                  <DialogDescription>填写项目信息，系统将自动生成各岗位任务</DialogDescription>
+                  <DialogTitle className="text-base sm:text-lg">创建新项目</DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm">填写项目信息，系统将自动生成各岗位任务</DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
+                <div className="space-y-3 sm:space-y-4 py-3 sm:py-4 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
                   <div className="space-y-2">
-                    <Label htmlFor="brand">选择品牌 *</Label>
+                    <Label htmlFor="brand" className="text-xs sm:text-sm">选择品牌 *</Label>
                     <select
                       id="brand"
                       value={newProject.brand}
                       onChange={(e) => setNewProject({ ...newProject, brand: e.target.value as any })}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      className="flex h-9 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs sm:text-sm"
                     >
                       <option value="">请选择品牌...</option>
                       {Object.keys(BRAND_NAMES).map(key => {
@@ -1146,12 +1146,12 @@ export default function HomePage() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="category">项目分类 *</Label>
+                    <Label htmlFor="category" className="text-xs sm:text-sm">项目分类 *</Label>
                     <select
                       id="category"
                       value={newProject.category}
                       onChange={(e) => setNewProject({ ...newProject, category: e.target.value as any })}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      className="flex h-9 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs sm:text-sm"
                     >
                       <option value="">请选择分类...</option>
                       {Object.keys(CATEGORY_NAMES).map(key => (
@@ -1160,37 +1160,40 @@ export default function HomePage() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="name">项目名称 *</Label>
+                    <Label htmlFor="name" className="text-xs sm:text-sm">项目名称 *</Label>
                     <Input
                       id="name"
                       value={newProject.name}
                       onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
                       placeholder="例如：夏季新品推广"
+                      className="h-9 sm:h-10"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="salesDate">销售日期 *</Label>
+                    <Label htmlFor="salesDate" className="text-xs sm:text-sm">销售日期 *</Label>
                     <Input
                       id="salesDate"
                       type="date"
                       value={newProject.salesDate}
                       onChange={(e) => setNewProject({ ...newProject, salesDate: e.target.value })}
+                      className="h-9 sm:h-10"
                     />
-                    <p className="text-sm text-muted-foreground">系统将自动向前推3个月作为项目确认时间</p>
+                    <p className="text-[10px] sm:text-sm text-muted-foreground">系统将自动向前推3个月作为项目确认时间</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="description">项目描述</Label>
+                    <Label htmlFor="description" className="text-xs sm:text-sm">项目描述</Label>
                     <Textarea
                       id="description"
                       value={newProject.description}
                       onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
                       placeholder="简要描述项目内容和目标"
                       rows={3}
+                      className="text-xs sm:text-sm"
                     />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleCreateProject} disabled={!newProject.name || !newProject.salesDate || !newProject.brand || !newProject.category}>
+                  <Button onClick={handleCreateProject} disabled={!newProject.name || !newProject.salesDate || !newProject.brand || !newProject.category} className="h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full">
                     创建项目
                   </Button>
                 </DialogFooter>
@@ -1201,31 +1204,31 @@ export default function HomePage() {
       </header>
 
       {/* 主内容 */}
-      <main className="container mx-auto px-4 py-6">
-        <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-5">
-            <TabsTrigger value="dashboard">数据看板</TabsTrigger>
-            <TabsTrigger value="projects">项目列表</TabsTrigger>
-            <TabsTrigger value="timeline">时间线</TabsTrigger>
-            <TabsTrigger value="roles">岗位进度</TabsTrigger>
-            <TabsTrigger value="feedback">支持协助</TabsTrigger>
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <Tabs defaultValue="dashboard" className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 gap-1 h-auto">
+            <TabsTrigger value="dashboard" className="text-xs sm:text-sm py-2 px-2">数据看板</TabsTrigger>
+            <TabsTrigger value="projects" className="text-xs sm:text-sm py-2 px-2">项目列表</TabsTrigger>
+            <TabsTrigger value="timeline" className="text-xs sm:text-sm py-2 px-2">时间线</TabsTrigger>
+            <TabsTrigger value="roles" className="text-xs sm:text-sm py-2 px-2">岗位进度</TabsTrigger>
+            <TabsTrigger value="feedback" className="text-xs sm:text-sm py-2 px-2">支持协助</TabsTrigger>
           </TabsList>
 
           {/* 全局品牌筛选 - 在所有Tab上方 */}
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4 flex-wrap">
-                <span className="text-sm font-medium text-muted-foreground">品牌筛选:</span>
-                <div className="flex gap-2 flex-wrap">
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+                <span className="text-xs sm:text-sm font-medium text-muted-foreground">品牌筛选:</span>
+                <div className="flex gap-1 sm:gap-2 flex-wrap">
                   {Object.keys(BRAND_NAMES).map(brandKey => (
                     <Button
                       key={brandKey}
                       variant={brandFilter === brandKey ? "default" : "outline"}
                       size="sm"
                       onClick={() => setBrandFilter(brandKey as any)}
-                      className={brandFilter === brandKey ? 'gap-2' : 'gap-2'}
+                      className={`gap-1 sm:gap-2 text-xs sm:text-sm ${brandFilter === brandKey ? 'gap-1 sm:gap-2' : 'gap-1 sm:gap-2'}`}
                     >
-                      {brandFilter === brandKey && <CheckCircle className="h-4 w-4" />}
+                      {brandFilter === brandKey && <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />}
                       {BRAND_NAMES[brandKey]}
                     </Button>
                   ))}
@@ -1238,58 +1241,58 @@ export default function HomePage() {
           <TabsContent value="dashboard" className="space-y-6">
 
             {/* 统计卡片 */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-5">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">总项目数</CardTitle>
-                  <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-xs sm:text-sm font-medium">总项目数</CardTitle>
+                  <FolderOpen className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.total}</div>
+                  <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
                   <p className="text-xs text-muted-foreground">当前在管项目</p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">待开始</CardTitle>
-                  <Clock className="h-4 w-4 text-gray-500" />
+                  <CardTitle className="text-xs sm:text-sm font-medium">待开始</CardTitle>
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.pending}</div>
+                  <div className="text-xl sm:text-2xl font-bold">{stats.pending}</div>
                   <p className="text-xs text-muted-foreground">等待启动</p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">进行中</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-blue-500" />
+                  <CardTitle className="text-xs sm:text-sm font-medium">进行中</CardTitle>
+                  <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.inProgress}</div>
+                  <div className="text-xl sm:text-2xl font-bold">{stats.inProgress}</div>
                   <p className="text-xs text-muted-foreground">正在推进</p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">已完成</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <CardTitle className="text-xs sm:text-sm font-medium">已完成</CardTitle>
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.completed}</div>
+                  <div className="text-xl sm:text-2xl font-bold">{stats.completed}</div>
                   <p className="text-xs text-muted-foreground">成功交付</p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">已延期</CardTitle>
-                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <CardTitle className="text-xs sm:text-sm font-medium">已延期</CardTitle>
+                  <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-red-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.delayed}</div>
+                  <div className="text-xl sm:text-2xl font-bold">{stats.delayed}</div>
                   <p className="text-xs text-muted-foreground">需要关注</p>
                 </CardContent>
               </Card>
@@ -1298,13 +1301,13 @@ export default function HomePage() {
             {/* 销售目标 */}
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <div>
-                    <CardTitle>销售目标</CardTitle>
-                    <CardDescription>年度和月度销售目标跟踪</CardDescription>
+                    <CardTitle className="text-lg sm:text-xl">销售目标</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">年度和月度销售目标跟踪</CardDescription>
                   </div>
-                  <Button onClick={() => setIsSalesTargetDialogOpen(true)} size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
+                  <Button onClick={() => setIsSalesTargetDialogOpen(true)} size="sm" className="w-full sm:w-auto">
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     新建目标
                   </Button>
                 </div>
@@ -1358,15 +1361,15 @@ export default function HomePage() {
                           
                           {/* 月度目标详情 */}
                           {target.monthlyTargets && target.monthlyTargets.length > 0 && (
-                            <div className="mt-4 pt-4 border-t">
-                              <h4 className="text-sm font-medium mb-3">月度目标和实际完成（可编辑实际完成额）</h4>
+                            <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t">
+                              <h4 className="text-xs sm:text-sm font-medium mb-2 sm:mb-3">月度目标和实际完成（可编辑实际完成额）</h4>
                               <div className="border rounded-lg overflow-x-auto">
-                                <table className="w-full text-xs">
+                                <table className="w-full text-[10px] sm:text-xs">
                                   <thead>
                                     <tr className="bg-muted">
-                                      <th className="px-3 py-2 text-left font-medium whitespace-nowrap">月份</th>
+                                      <th className="px-2 sm:px-3 py-1 sm:py-2 text-left font-medium whitespace-nowrap">月份</th>
                                       {target.monthlyTargets.map((monthly) => (
-                                        <th key={monthly.month} className="px-2 py-2 text-center font-medium whitespace-nowrap min-w-[50px]">
+                                        <th key={monthly.month} className="px-1 sm:px-2 py-1 sm:py-2 text-center font-medium whitespace-nowrap min-w-[40px] sm:min-w-[50px]">
                                           {monthly.month}月
                                         </th>
                                       ))}
@@ -1374,20 +1377,20 @@ export default function HomePage() {
                                   </thead>
                                   <tbody>
                                     <tr className="border-b">
-                                      <td className="px-3 py-2 font-medium whitespace-nowrap">目标（万元）</td>
+                                      <td className="px-2 sm:px-3 py-1 sm:py-2 font-medium whitespace-nowrap">目标（万元）</td>
                                       {target.monthlyTargets.map((monthly) => (
-                                        <td key={`target-${monthly.month}`} className="px-2 py-2 text-center">
+                                        <td key={`target-${monthly.month}`} className="px-1 sm:px-2 py-1 sm:py-2 text-center">
                                           <Input
                                             type="number"
                                             value={monthly.targetAmount}
                                             disabled
-                                            className="bg-muted text-xs h-7 w-full text-center"
+                                            className="bg-muted text-[10px] sm:text-xs h-6 sm:h-7 w-full text-center"
                                           />
                                         </td>
                                       ))}
                                     </tr>
                                     <tr className="border-b">
-                                      <td className="px-3 py-2 font-medium whitespace-nowrap">实际（万元）</td>
+                                      <td className="px-2 sm:px-3 py-1 sm:py-2 font-medium whitespace-nowrap">实际（万元）</td>
                                       {target.monthlyTargets.map((monthly) => {
                                         const monthlyRate = monthly.targetAmount > 0
                                           ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(1)
@@ -1399,22 +1402,22 @@ export default function HomePage() {
                                               type="number"
                                               value={monthly.actualAmount}
                                               onChange={(e) => handleUpdateMonthlyTarget(monthly.id, parseInt(e.target.value) || 0)}
-                                              className={`text-xs h-7 w-full text-center ${isComplete ? 'border-green-500' : ''}`}
+                                              className={`text-[10px] sm:text-xs h-6 sm:h-7 w-full text-center ${isComplete ? 'border-green-500' : ''}`}
                                             />
                                           </td>
                                         );
                                       })}
                                     </tr>
                                     <tr>
-                                      <td className="px-3 py-2 font-medium whitespace-nowrap">完成率</td>
+                                      <td className="px-2 sm:px-3 py-1 sm:py-2 font-medium whitespace-nowrap">完成率</td>
                                       {target.monthlyTargets.map((monthly) => {
                                         const monthlyRate = monthly.targetAmount > 0
                                           ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(1)
                                           : '0.0';
                                         const isComplete = parseFloat(monthlyRate) >= 100;
                                         return (
-                                          <td key={`rate-${monthly.month}`} className="px-2 py-2 text-center">
-                                            <div className={`text-xs px-2 py-1 rounded font-medium ${
+                                          <td key={`rate-${monthly.month}`} className="px-1 sm:px-2 py-1 sm:py-2 text-center">
+                                            <div className={`text-[10px] sm:text-xs px-1 sm:px-2 py-1 rounded font-medium ${
                                               isComplete ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                                             }`}>
                                               {monthlyRate}%
@@ -1449,29 +1452,29 @@ export default function HomePage() {
                     <p>暂无项目，点击上方按钮创建新项目</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {projects.slice(0, 5).map((project) => (
                       <div
                         key={project.id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors gap-2 sm:gap-4"
                         onClick={() => {
                           loadProjectDetails(project.id);
                           setSelectedProject(project);
                         }}
                       >
-                        <div className="flex items-center gap-4">
-                          <div className={`h-3 w-3 rounded-full ${STATUS_COLORS[project.status]}`} />
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-medium">{project.name}</h3>
-                              <Badge variant="outline" className="text-xs">{BRAND_NAMES[project.brand]}</Badge>
+                        <div className="flex items-center gap-2 sm:gap-4 flex-1">
+                          <div className={`h-2 w-2 sm:h-3 sm:w-3 rounded-full shrink-0 ${STATUS_COLORS[project.status]}`} />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1">
+                              <h3 className="text-sm sm:text-base font-medium truncate">{project.name}</h3>
+                              <Badge variant="outline" className="text-[10px] sm:text-xs">{BRAND_NAMES[project.brand]}</Badge>
                             </div>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               销售日期: {formatDateSafely(project.salesDate)}
                             </p>
                           </div>
                         </div>
-                        <Badge variant="outline">{STATUS_NAMES[project.status]}</Badge>
+                        <Badge variant="outline" className="text-[10px] sm:text-xs shrink-0">{STATUS_NAMES[project.status]}</Badge>
                       </div>
                     ))}
                   </div>
@@ -1484,11 +1487,11 @@ export default function HomePage() {
               {/* 项目状态分布饼图 */}
               <Card>
                 <CardHeader>
-                  <CardTitle>项目状态分布</CardTitle>
-                  <CardDescription>各状态项目数量占比</CardDescription>
+                  <CardTitle className="text-base sm:text-lg">项目状态分布</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">各状态项目数量占比</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={250}>
+                  <ResponsiveContainer width="100%" height={200}>
                     <PieChart>
                       <Pie
                         data={[
@@ -1523,11 +1526,11 @@ export default function HomePage() {
               {/* 各岗位进度柱状图 */}
               <Card>
                 <CardHeader>
-                  <CardTitle>各岗位平均进度</CardTitle>
-                  <CardDescription>所有项目中各岗位的平均完成进度</CardDescription>
+                  <CardTitle className="text-base sm:text-lg">各岗位平均进度</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">所有项目中各岗位的平均完成进度</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={220}>
                     <BarChart 
                       data={Object.keys(ROLE_NAMES).map(role => {
                         const roleTasks = filteredProjects.flatMap(p => p.tasks || []).filter(t => t.role === role);
@@ -1541,17 +1544,18 @@ export default function HomePage() {
                           taskCount: roleTasks.length,
                         };
                       })}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                      margin={{ top: 10, right: 20, left: 10, bottom: 50 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="role" 
                         angle={-45}
                         textAnchor="end"
-                        height={80}
+                        height={60}
                         interval={0}
+                        tick={{ fontSize: 10 }}
                       />
-                      <YAxis domain={[0, 100]} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
                       <Tooltip 
                         formatter={(value: number, name: string, props: any) => [
                           `${value}%`,
@@ -1563,6 +1567,7 @@ export default function HomePage() {
                           }
                           return label;
                         }}
+                        contentStyle={{ fontSize: 12 }}
                       />
                       <Bar 
                         dataKey="progress" 
@@ -1580,8 +1585,8 @@ export default function HomePage() {
                   </ResponsiveContainer>
                   
                   {/* 进度统计表格 */}
-                  <div className="mt-4 space-y-2">
-                    <h4 className="text-sm font-medium mb-2">岗位进度详情</h4>
+                  <div className="mt-3 sm:mt-4 space-y-2">
+                    <h4 className="text-xs sm:text-sm font-medium mb-2">岗位进度详情</h4>
                     {Object.keys(ROLE_NAMES).map((role) => {
                       const roleTasks = filteredProjects.flatMap(p => p.tasks || []).filter(t => t.role === role);
                       const avgProgress = roleTasks.length > 0
@@ -1589,15 +1594,15 @@ export default function HomePage() {
                         : 0;
                       const completedTasks = roleTasks.filter(t => t.progress === 100).length;
                       return (
-                        <div key={role} className="flex items-center justify-between text-sm">
-                          <span className="flex-1">{ROLE_NAMES[role]}</span>
-                          <div className="flex items-center gap-2 flex-[2]">
-                            <Progress value={avgProgress} className="h-2" />
-                            <span className="w-12 text-right font-medium">
+                        <div key={role} className="flex items-center justify-between text-xs sm:text-sm">
+                          <span className="flex-1 truncate pr-2">{ROLE_NAMES[role]}</span>
+                          <div className="flex items-center gap-1 sm:gap-2 flex-[2]">
+                            <Progress value={avgProgress} className="h-1.5 sm:h-2" />
+                            <span className="w-8 sm:w-12 text-right font-medium">
                               {avgProgress}%
                             </span>
                           </div>
-                          <span className="w-24 text-right text-muted-foreground">
+                          <span className="w-16 sm:w-24 text-right text-muted-foreground text-[10px] sm:text-xs">
                             {completedTasks}/{roleTasks.length}
                           </span>
                         </div>
@@ -2153,42 +2158,45 @@ export default function HomePage() {
             <DialogContent className={`p-0 overflow-hidden flex flex-col transition-all duration-300 ${
               isProjectDialogMaximized 
                 ? '!w-screen !h-screen !max-w-none !max-h-none !rounded-none sm:!max-w-none sm:!w-screen !translate-x-0 !translate-y-0 !top-0 !left-0' 
-                : 'max-w-[95vw] max-h-[95vh]'
+                : 'w-[95vw] h-[90vh] sm:max-w-[95vw] sm:max-h-[95vh]'
             }`}>
-              <DialogHeader className="px-6 py-4 border-b shrink-0">
-                <div className="flex items-start justify-between gap-4">
+              <DialogHeader className="px-3 sm:px-6 py-2 sm:py-4 border-b shrink-0">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
                   <div className="flex-1 min-w-0">
-                    <DialogTitle className="text-2xl truncate">{selectedProject.name}</DialogTitle>
-                    <DialogDescription className="text-xs whitespace-nowrap overflow-hidden text-ellipsis">
+                    <DialogTitle className="text-lg sm:text-2xl truncate">{selectedProject.name}</DialogTitle>
+                    <DialogDescription className="text-[10px] sm:text-xs whitespace-nowrap overflow-hidden text-ellipsis">
                       销售日期: {formatDateSafely(selectedProject.salesDate, 'yyyy年MM月dd日')} |
                       项目确认: {formatDateSafely(selectedProject.projectConfirmDate, 'yyyy年MM月dd日')} |
                       品牌: {BRAND_NAMES[selectedProject.brand]} |
                       分类: {CATEGORY_NAMES[selectedProject.category]}
                     </DialogDescription>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                     <Button
                       variant="outline"
                       size="icon"
                       onClick={() => setIsProjectDialogMaximized(!isProjectDialogMaximized)}
                       title={isProjectDialogMaximized ? '还原' : '最大化'}
+                      className="h-7 w-7 sm:h-8 sm:w-8"
                     >
-                      {isProjectDialogMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                      {isProjectDialogMaximized ? <Minimize2 className="h-3 w-3 sm:h-4 sm:w-4" /> : <Maximize2 className="h-3 w-3 sm:h-4 sm:w-4" />}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setProjectZoom(Math.max(50, projectZoom - 10))}
                       disabled={projectZoom <= 50}
+                      className="h-7 px-2 text-xs sm:h-8 sm:px-3 sm:text-sm"
                     >
                       缩小
                     </Button>
-                    <span className="text-sm font-medium w-12 text-center">{projectZoom}%</span>
+                    <span className="text-xs sm:text-sm font-medium w-8 sm:w-12 text-center">{projectZoom}%</span>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setProjectZoom(Math.min(200, projectZoom + 10))}
                       disabled={projectZoom >= 200}
+                      className="h-7 px-2 text-xs sm:h-8 sm:px-3 sm:text-sm"
                     >
                       放大
                     </Button>
@@ -2196,22 +2204,23 @@ export default function HomePage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setProjectZoom(100)}
+                      className="h-7 px-2 text-xs sm:h-8 sm:px-3 sm:text-sm"
                     >
                       重置
                     </Button>
                   </div>
                 </div>
               </DialogHeader>
-              <div className="flex-1 overflow-auto px-6 py-4">
+              <div className="flex-1 overflow-auto px-4 py-3">
                 <div 
                   className="transition-transform duration-200 origin-top-left"
                   style={{ 
                     transform: `scale(${projectZoom / 100})`,
-                    minWidth: `${1800 * (projectZoom / 100)}px`,
-                    minHeight: `${1000 * (projectZoom / 100)}px`
+                    minWidth: `${1400 * (projectZoom / 100)}px`,
+                    minHeight: `${800 * (projectZoom / 100)}px`
                   }}
                 >
-                  <div className="space-y-6" style={{ width: '1800px' }}>
+                  <div className="space-y-4" style={{ width: '1400px' }}>
                       {(CATEGORY_ROLES[selectedProject.category] || Object.keys(ROLE_NAMES)).map((role) => {
                         const roleTasks = (selectedProject.tasks || []).filter(t => t.role === role);
                         return (
@@ -2292,29 +2301,30 @@ export default function HomePage() {
         }}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingSalesTarget ? '编辑销售目标' : '创建销售目标'}</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-base sm:text-lg">{editingSalesTarget ? '编辑销售目标' : '创建销售目标'}</DialogTitle>
+              <DialogDescription className="text-xs sm:text-sm">
                 {editingSalesTarget ? '编辑年度销售目标和月度目标' : '创建年度销售目标并设置12个月的月度目标'}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3 sm:space-y-4 py-3 sm:py-4 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="year">年份 *</Label>
+                  <Label htmlFor="year" className="text-xs sm:text-sm">年份 *</Label>
                   <Input
                     id="year"
                     type="number"
                     value={newSalesTarget.year}
                     onChange={(e) => setNewSalesTarget({ ...newSalesTarget, year: parseInt(e.target.value) })}
+                    className="h-9 sm:h-10"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="brand">选择品牌 *</Label>
+                  <Label htmlFor="brand" className="text-xs sm:text-sm">选择品牌 *</Label>
                   <select
                     id="brand"
                     value={newSalesTarget.brand}
                     onChange={(e) => setNewSalesTarget({ ...newSalesTarget, brand: e.target.value as any })}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className="flex h-9 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs sm:text-sm"
                   >
                     <option value="">请选择品牌...</option>
                     {Object.keys(BRAND_NAMES).map(key => {
@@ -2327,7 +2337,7 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="targetAmount">年度目标金额（万元） *</Label>
+                <Label htmlFor="targetAmount" className="text-xs sm:text-sm">年度目标金额（万元） *</Label>
                 <Input
                   id="targetAmount"
                   type="number"
@@ -2337,13 +2347,14 @@ export default function HomePage() {
                     setNewSalesTarget({ ...newSalesTarget, targetAmount: newAmount });
                   }}
                   placeholder="例如：1000"
+                  className="h-9 sm:h-10"
                 />
               </div>
 
               {/* 月度目标 */}
-              <div className="space-y-3">
-                <Label>月度目标金额（万元）</Label>
-                <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+              <div className="space-y-2 sm:space-y-3">
+                <Label className="text-xs sm:text-sm">月度目标金额（万元）</Label>
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3">
                   {newSalesTarget.monthlyTargets
                     .reduce((acc: any[], current: any) => {
                       const existingIndex = acc.findIndex(item => item.month === current.month);
@@ -2357,7 +2368,7 @@ export default function HomePage() {
                     }, [])
                     .map((monthly, index) => (
                     <div key={monthly.month} className="space-y-1">
-                      <Label htmlFor={`month-${monthly.month}`} className="text-xs">{monthly.month}月</Label>
+                      <Label htmlFor={`month-${monthly.month}`} className="text-[10px] sm:text-xs">{monthly.month}月</Label>
                       <Input
                         id={`month-${monthly.month}`}
                         type="number"
@@ -2370,7 +2381,7 @@ export default function HomePage() {
                           }
                           setNewSalesTarget({ ...newSalesTarget, monthlyTargets: newMonthlyTargets });
                         }}
-                        className="text-sm"
+                        className="text-[10px] sm:text-xs h-8 sm:h-9 w-full text-center"
                         placeholder="0"
                       />
                     </div>
@@ -2379,13 +2390,14 @@ export default function HomePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">描述</Label>
+                <Label htmlFor="description" className="text-xs sm:text-sm">描述</Label>
                 <Textarea
                   id="description"
                   value={newSalesTarget.description}
                   onChange={(e) => setNewSalesTarget({ ...newSalesTarget, description: e.target.value })}
                   placeholder="简要描述销售目标"
                   rows={2}
+                  className="text-xs sm:text-sm"
                 />
               </div>
             </div>
@@ -2393,10 +2405,10 @@ export default function HomePage() {
               <Button onClick={() => {
                 setIsSalesTargetDialogOpen(false);
                 setEditingSalesTarget(null);
-              }} variant="outline">
+              }} variant="outline" className="h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm">
                 取消
               </Button>
-              <Button onClick={handleCreateSalesTarget} disabled={!newSalesTarget.year || !newSalesTarget.brand || !newSalesTarget.targetAmount}>
+              <Button onClick={handleCreateSalesTarget} disabled={!newSalesTarget.year || !newSalesTarget.brand || !newSalesTarget.targetAmount} className="h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm">
                 {editingSalesTarget ? '保存修改' : '创建目标'}
               </Button>
             </DialogFooter>

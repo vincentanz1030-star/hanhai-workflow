@@ -539,6 +539,13 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
                     src={imageUrl}
                     alt={`${task.taskName} - 图片${position}`}
                     className="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                    onError={(e) => {
+                      console.error('图片加载失败:', imageUrl);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                    onLoad={() => {
+                      console.log('图片加载成功:', imageUrl);
+                    }}
                   />
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                     <span className="text-white text-sm">图片 {position}</span>
@@ -788,6 +795,7 @@ export default function HomePage() {
   // 销售目标相关状态
   const [salesTargets, setSalesTargets] = useState<AnnualSalesTarget[]>([]);
   const [isSalesTargetDialogOpen, setIsSalesTargetDialogOpen] = useState(false);
+  const [editingSalesTarget, setEditingSalesTarget] = useState<AnnualSalesTarget | null>(null);
   const [newSalesTarget, setNewSalesTarget] = useState({
     year: new Date().getFullYear(),
     brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
@@ -952,14 +960,27 @@ export default function HomePage() {
   // 创建销售目标
   const handleCreateSalesTarget = async () => {
     try {
-      const response = await fetch('/api/sales-targets/annual', {
-        method: 'POST',
+      const url = editingSalesTarget 
+        ? '/api/sales-targets/annual'
+        : '/api/sales-targets/annual';
+      const method = editingSalesTarget ? 'PUT' : 'POST';
+
+      const body = editingSalesTarget 
+        ? {
+            id: editingSalesTarget.id,
+            ...newSalesTarget,
+          }
+        : newSalesTarget;
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSalesTarget),
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
         setIsSalesTargetDialogOpen(false);
+        setEditingSalesTarget(null);
         setNewSalesTarget({
           year: new Date().getFullYear(),
           brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
@@ -974,7 +995,46 @@ export default function HomePage() {
         loadSalesTargets();
       }
     } catch (error) {
-      console.error('创建销售目标失败:', error);
+      console.error(editingSalesTarget ? '更新销售目标失败:' : '创建销售目标失败:', error);
+    }
+  };
+
+  // 编辑销售目标
+  const handleEditSalesTarget = (target: AnnualSalesTarget) => {
+    setEditingSalesTarget(target);
+    setNewSalesTarget({
+      year: target.year,
+      brand: target.brand,
+      targetAmount: target.targetAmount,
+      description: target.description || '',
+      monthlyTargets: target.monthlyTargets?.map(mt => ({
+        month: mt.month,
+        targetAmount: mt.targetAmount,
+        actualAmount: mt.actualAmount,
+      })) || Array.from({ length: 12 }, (_, i) => ({
+        month: i + 1,
+        targetAmount: 0,
+        actualAmount: 0,
+      })),
+    });
+    setIsSalesTargetDialogOpen(true);
+  };
+
+  // 删除销售目标
+  const handleDeleteSalesTarget = async (id: string) => {
+    if (!confirm('确定要删除这个销售目标吗？')) return;
+
+    try {
+      const response = await fetch(`/api/sales-targets/annual?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        loadSalesTargets();
+      }
+    } catch (error) {
+      console.error('删除销售目标失败:', error);
+      alert('删除失败，请重试');
     }
   };
 
@@ -1352,9 +1412,27 @@ export default function HomePage() {
                               <Badge variant="outline">目标: {target.targetAmount}万元</Badge>
                               <Badge className="bg-blue-500">已完成: {target.actualAmount}万元</Badge>
                             </div>
-                            <div className="text-right">
-                              <div className="text-2xl font-bold text-blue-600">{completionRate}%</div>
-                              <div className="text-xs text-muted-foreground">完成率</div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <div className="text-2xl font-bold text-blue-600">{completionRate}%</div>
+                                <div className="text-xs text-muted-foreground">完成率</div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditSalesTarget(target)}
+                                >
+                                  编辑
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteSalesTarget(target.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                           <Progress value={parseFloat(completionRate)} className="h-3" />
@@ -2094,41 +2172,43 @@ export default function HomePage() {
           <Dialog open={!!selectedProject} onOpenChange={() => setSelectedProject(null)}>
             <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-hidden p-0">
               <div className="flex flex-col h-[95vh]">
-                <DialogHeader className="px-6 py-4 border-b shrink-0 flex flex-row items-center justify-between">
-                  <div className="flex-1">
-                    <DialogTitle className="text-2xl">{selectedProject.name}</DialogTitle>
-                    <DialogDescription>
-                      销售日期: {formatDateSafely(selectedProject.salesDate, 'yyyy年MM月dd日')} |
-                      项目确认: {formatDateSafely(selectedProject.projectConfirmDate, 'yyyy年MM月dd日')} |
-                      品牌: {BRAND_NAMES[selectedProject.brand]} |
-                      分类: {CATEGORY_NAMES[selectedProject.category]}
-                    </DialogDescription>
-                  </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setProjectZoom(Math.max(50, projectZoom - 10))}
-                      disabled={projectZoom <= 50}
-                    >
-                      缩小
-                    </Button>
-                    <span className="text-sm font-medium w-12 text-center">{projectZoom}%</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setProjectZoom(Math.min(150, projectZoom + 10))}
-                      disabled={projectZoom >= 150}
-                    >
-                      放大
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setProjectZoom(100)}
-                    >
-                      重置
-                    </Button>
+                <DialogHeader className="px-6 py-4 border-b shrink-0">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <DialogTitle className="text-2xl">{selectedProject.name}</DialogTitle>
+                      <DialogDescription>
+                        销售日期: {formatDateSafely(selectedProject.salesDate, 'yyyy年MM月dd日')} |
+                        项目确认: {formatDateSafely(selectedProject.projectConfirmDate, 'yyyy年MM月dd日')} |
+                        品牌: {BRAND_NAMES[selectedProject.brand]} |
+                        分类: {CATEGORY_NAMES[selectedProject.category]}
+                      </DialogDescription>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setProjectZoom(Math.max(50, projectZoom - 10))}
+                        disabled={projectZoom <= 50}
+                      >
+                        缩小
+                      </Button>
+                      <span className="text-sm font-medium w-12 text-center">{projectZoom}%</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setProjectZoom(Math.min(150, projectZoom + 10))}
+                        disabled={projectZoom >= 150}
+                      >
+                        放大
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setProjectZoom(100)}
+                      >
+                        重置
+                      </Button>
+                    </div>
                   </div>
                 </DialogHeader>
                 <div className="flex-1 overflow-y-auto px-6 py-4" style={{ transform: `scale(${projectZoom / 100})`, transformOrigin: 'top left' }}>
@@ -2204,13 +2284,18 @@ export default function HomePage() {
           </DialogContent>
         </Dialog>
 
-        {/* 创建销售目标对话框 */}
-        <Dialog open={isSalesTargetDialogOpen} onOpenChange={setIsSalesTargetDialogOpen}>
+        {/* 创建/编辑销售目标对话框 */}
+        <Dialog open={isSalesTargetDialogOpen} onOpenChange={(open) => {
+          setIsSalesTargetDialogOpen(open);
+          if (!open) {
+            setEditingSalesTarget(null);
+          }
+        }}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>创建销售目标</DialogTitle>
+              <DialogTitle>{editingSalesTarget ? '编辑销售目标' : '创建销售目标'}</DialogTitle>
               <DialogDescription>
-                创建年度销售目标，系统将自动生成12个月的月度目标
+                {editingSalesTarget ? '编辑年度销售目标和月度目标' : '创建年度销售目标，系统将自动生成12个月的月度目标'}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -2262,11 +2347,14 @@ export default function HomePage() {
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={() => setIsSalesTargetDialogOpen(false)} variant="outline">
+              <Button onClick={() => {
+                setIsSalesTargetDialogOpen(false);
+                setEditingSalesTarget(null);
+              }} variant="outline">
                 取消
               </Button>
               <Button onClick={handleCreateSalesTarget} disabled={!newSalesTarget.year || !newSalesTarget.brand || !newSalesTarget.targetAmount}>
-                创建目标
+                {editingSalesTarget ? '保存修改' : '创建目标'}
               </Button>
             </DialogFooter>
           </DialogContent>

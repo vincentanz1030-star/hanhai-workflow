@@ -46,11 +46,11 @@ export async function POST(request: NextRequest) {
   try {
     const client = getSupabaseClient();
     const body = await request.json();
-    const { name, salesDate, description } = body;
+    const { name, brand, salesDate, description } = body;
 
-    if (!name || !salesDate) {
+    if (!name || !salesDate || !brand) {
       return NextResponse.json(
-        { error: '项目名称和销售日期为必填项' },
+        { error: '项目名称、品牌和销售日期为必填项' },
         { status: 400 }
       );
     }
@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
       .from('projects')
       .insert({
         name,
+        brand,
         sales_date: salesDate,
         project_confirm_date: projectConfirmDateObj.toISOString(),
         description: description || null,

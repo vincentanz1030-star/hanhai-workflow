@@ -30,6 +30,15 @@ export const roleEnum = pgEnum("role_type", [
   "warehouse",
 ]);
 
+// 品牌枚举
+export const brandEnum = pgEnum("brand_type", [
+  "he_zhe",
+  "baobao",
+  "ai_he",
+  "bao_deng_yuan",
+  "all", // 全部/集团
+]);
+
 // ========== 项目表 ==========
 
 export const projects = pgTable(
@@ -39,6 +48,7 @@ export const projects = pgTable(
 			.primaryKey()
 			.default(sql`gen_random_uuid()`),
 		name: varchar("name", { length: 255 }).notNull(),
+		brand: brandEnum("brand").notNull(), // 品牌：禾哲、BAOBAO、爱禾、宝登源
 		salesDate: timestamp("sales_date", { withTimezone: true, mode: 'string' }).notNull(), // 销售日期
 		projectConfirmDate: timestamp("project_confirm_date", { withTimezone: true, mode: 'string' }).notNull(), // 项目确认日期
 		status: projectStatusEnum("status").default("pending").notNull(),
@@ -52,6 +62,7 @@ export const projects = pgTable(
 	(table) => [
 		index("projects_sales_date_idx").on(table.salesDate),
 		index("projects_status_idx").on(table.status),
+		index("projects_brand_idx").on(table.brand),
 	]
 );
 
@@ -99,6 +110,7 @@ export const feedback = pgTable(
 			.primaryKey()
 			.default(sql`gen_random_uuid()`),
 		type: feedbackEnum("type").notNull(), // 反馈类型
+		brand: brandEnum("brand").notNull(), // 关联品牌
 		role: roleEnum("role"), // 关联岗位
 		projectId: varchar("project_id", { length: 36 }).references(() => projects.id, { onDelete: 'set null' }), // 关联项目
 		title: varchar("title", { length: 255 }).notNull(), // 标题
@@ -116,6 +128,7 @@ export const feedback = pgTable(
 		index("feedback_status_idx").on(table.status),
 		index("feedback_role_idx").on(table.role),
 		index("feedback_project_idx").on(table.projectId),
+		index("feedback_brand_idx").on(table.brand),
 	]
 );
 
@@ -128,6 +141,7 @@ const { createInsertSchema: createCoercedInsertSchema } = createSchemaFactory({
 // Project schemas
 export const insertProjectSchema = createCoercedInsertSchema(projects).pick({
   name: true,
+  brand: true,
   salesDate: true,
   projectConfirmDate: true,
   description: true,
@@ -136,6 +150,7 @@ export const insertProjectSchema = createCoercedInsertSchema(projects).pick({
 export const updateProjectSchema = createCoercedInsertSchema(projects)
   .pick({
     name: true,
+    brand: true,
     salesDate: true,
     projectConfirmDate: true,
     status: true,
@@ -178,6 +193,7 @@ export const updateTaskSchema = createCoercedInsertSchema(tasks)
 // Feedback schemas
 export const insertFeedbackSchema = createCoercedInsertSchema(feedback).pick({
   type: true,
+  brand: true,
   role: true,
   projectId: true,
   title: true,

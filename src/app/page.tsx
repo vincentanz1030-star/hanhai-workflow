@@ -20,6 +20,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 interface Project {
   id: string;
   name: string;
+  brand: 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan' | 'all';
   salesDate: string;
   projectConfirmDate: string;
   status: 'pending' | 'in_progress' | 'completed' | 'delayed';
@@ -50,6 +51,7 @@ interface Task {
 interface Feedback {
   id: string;
   type: 'suggestion' | 'issue' | 'question' | 'other';
+  brand: 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan' | 'all';
   role: string | null;
   projectId: string | null;
   title: string;
@@ -70,8 +72,17 @@ const ROLE_NAMES: Record<string, string> = {
   procurement: '产品采购',
   packaging_design: '包装设计',
   finance: '财务出纳',
-  customer_service: '客服培训',
+  customer_service: '客服团队',
   warehouse: '仓储管理',
+};
+
+// 品牌映射
+const BRAND_NAMES: Record<string, string> = {
+  he_zhe: '禾哲',
+  baobao: 'BAOBAO',
+  ai_he: '爱禾',
+  bao_deng_yuan: '宝登源',
+  all: '全部',
 };
 
 // 状态映射
@@ -544,6 +555,7 @@ export default function HomePage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newProject, setNewProject] = useState({
     name: '',
+    brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan' | 'all',
     salesDate: '',
     description: '',
   });
@@ -559,12 +571,16 @@ export default function HomePage() {
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [newFeedback, setNewFeedback] = useState({
     type: 'suggestion' as 'suggestion' | 'issue' | 'question' | 'other',
+    brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan' | 'all',
     role: '' as string,
     projectId: '' as string,
     title: '',
     content: '',
     priority: 'medium' as 'low' | 'medium' | 'high',
   });
+  
+  // 品牌筛选状态
+  const [selectedBrand, setSelectedBrand] = useState<'all' | 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan'>('all');
 
   // 加载项目列表
   const loadProjects = async () => {
@@ -590,7 +606,12 @@ export default function HomePage() {
 
       if (response.ok) {
         setIsCreateDialogOpen(false);
-        setNewProject({ name: '', salesDate: '', description: '' });
+        setNewProject({ 
+          name: '', 
+          brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan' | 'all',
+          salesDate: '', 
+          description: '' 
+        });
         loadProjects();
       }
     } catch (error) {
@@ -662,8 +683,8 @@ export default function HomePage() {
 
   // 创建反馈
   const handleCreateFeedback = async () => {
-    if (!newFeedback.title || !newFeedback.content) {
-      alert('标题和内容不能为空');
+    if (!newFeedback.title || !newFeedback.content || !newFeedback.brand) {
+      alert('标题、内容和品牌不能为空');
       return;
     }
 
@@ -682,6 +703,7 @@ export default function HomePage() {
         setIsFeedbackDialogOpen(false);
         setNewFeedback({
           type: 'suggestion',
+          brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan' | 'all',
           role: '',
           projectId: '',
           title: '',
@@ -734,13 +756,23 @@ export default function HomePage() {
     }
   };
 
+  // 按品牌筛选项目
+  const getFilteredProjects = () => {
+    if (selectedBrand === 'all') {
+      return projects;
+    }
+    return projects.filter(p => p.brand === selectedBrand);
+  };
+
+  const filteredProjects = getFilteredProjects();
+
   // 计算统计数据
   const stats = {
-    total: projects.length,
-    pending: projects.filter(p => p.status === 'pending').length,
-    inProgress: projects.filter(p => p.status === 'in_progress').length,
-    completed: projects.filter(p => p.status === 'completed').length,
-    delayed: projects.filter(p => p.status === 'delayed').length,
+    total: filteredProjects.length,
+    pending: filteredProjects.filter(p => p.status === 'pending').length,
+    inProgress: filteredProjects.filter(p => p.status === 'in_progress').length,
+    completed: filteredProjects.filter(p => p.status === 'completed').length,
+    delayed: filteredProjects.filter(p => p.status === 'delayed').length,
   };
 
   // 按岗位计算平均进度
@@ -815,6 +847,23 @@ export default function HomePage() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="brand">选择品牌 *</Label>
+                    <select
+                      id="brand"
+                      value={newProject.brand}
+                      onChange={(e) => setNewProject({ ...newProject, brand: e.target.value as any })}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="">请选择品牌...</option>
+                      {Object.keys(BRAND_NAMES).map(key => {
+                        if (key === 'all') return null; // 不在创建项目时显示"全部"
+                        return (
+                          <option key={key} value={key}>{BRAND_NAMES[key]}</option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="salesDate">销售日期 *</Label>
                     <Input
                       id="salesDate"
@@ -836,7 +885,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleCreateProject} disabled={!newProject.name || !newProject.salesDate}>
+                  <Button onClick={handleCreateProject} disabled={!newProject.name || !newProject.salesDate || !newProject.brand}>
                     创建项目
                   </Button>
                 </DialogFooter>
@@ -854,11 +903,34 @@ export default function HomePage() {
             <TabsTrigger value="projects">项目列表</TabsTrigger>
             <TabsTrigger value="timeline">时间线</TabsTrigger>
             <TabsTrigger value="roles">岗位进度</TabsTrigger>
-            <TabsTrigger value="feedback">员工反馈</TabsTrigger>
+            <TabsTrigger value="feedback">支持协助</TabsTrigger>
           </TabsList>
 
           {/* 数据看板 */}
           <TabsContent value="dashboard" className="space-y-6">
+            {/* 品牌筛选 */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">品牌筛选</CardTitle>
+                <CardDescription>选择查看特定品牌或全部品牌的数据</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2 flex-wrap">
+                  {Object.keys(BRAND_NAMES).map(brandKey => (
+                    <Button
+                      key={brandKey}
+                      variant={selectedBrand === brandKey ? "default" : "outline"}
+                      onClick={() => setSelectedBrand(brandKey as any)}
+                      className={selectedBrand === brandKey ? 'gap-2' : 'gap-2'}
+                    >
+                      {selectedBrand === brandKey && <CheckCircle className="h-4 w-4" />}
+                      {BRAND_NAMES[brandKey]}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* 统计卡片 */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
               <Card>
@@ -943,7 +1015,10 @@ export default function HomePage() {
                         <div className="flex items-center gap-4">
                           <div className={`h-3 w-3 rounded-full ${STATUS_COLORS[project.status]}`} />
                           <div>
-                            <h3 className="font-medium">{project.name}</h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium">{project.name}</h3>
+                              <Badge variant="outline" className="text-xs">{BRAND_NAMES[project.brand]}</Badge>
+                            </div>
                             <p className="text-sm text-muted-foreground">
                               销售日期: {formatDateSafely(project.salesDate)}
                             </p>
@@ -1109,6 +1184,9 @@ export default function HomePage() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <CardTitle className="text-lg">{project.name}</CardTitle>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="outline">{BRAND_NAMES[project.brand]}</Badge>
+                          </div>
                           <CardDescription className="mt-1">
                             {project.description || '暂无描述'}
                           </CardDescription>
@@ -1377,8 +1455,8 @@ export default function HomePage() {
             <div className="flex items-center justify-between">
               <Card className="flex-1 mr-4">
                 <CardHeader>
-                  <CardTitle>员工反馈与需求</CardTitle>
-                  <CardDescription>收集和管理员工的建议、问题和需求</CardDescription>
+                  <CardTitle>支持与协助</CardTitle>
+                  <CardDescription>收集和管理团队的支持需求和建议</CardDescription>
                 </CardHeader>
               </Card>
               <Dialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen}>
@@ -1405,6 +1483,23 @@ export default function HomePage() {
                         {Object.keys(FEEDBACK_TYPES).map(key => (
                           <option key={key} value={key}>{FEEDBACK_TYPES[key]}</option>
                         ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="brand">选择品牌 *</Label>
+                      <select
+                        id="brand"
+                        value={newFeedback.brand}
+                        onChange={(e) => setNewFeedback({ ...newFeedback, brand: e.target.value as any })}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="">请选择品牌...</option>
+                        {Object.keys(BRAND_NAMES).map(key => {
+                          if (key === 'all') return null;
+                          return (
+                            <option key={key} value={key}>{BRAND_NAMES[key]}</option>
+                          );
+                        })}
                       </select>
                     </div>
                     <div className="space-y-2">
@@ -1469,7 +1564,7 @@ export default function HomePage() {
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button onClick={handleCreateFeedback} disabled={!newFeedback.title || !newFeedback.content}>
+                    <Button onClick={handleCreateFeedback} disabled={!newFeedback.title || !newFeedback.content || !newFeedback.brand}>
                       提交反馈
                     </Button>
                   </DialogFooter>

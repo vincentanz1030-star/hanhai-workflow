@@ -46,11 +46,11 @@ export async function POST(request: NextRequest) {
   try {
     const client = getSupabaseClient();
     const body = await request.json();
-    const { type, role, projectId, title, content, priority } = body;
+    const { type, brand, role, projectId, title, content, priority } = body;
 
-    if (!title || !content) {
+    if (!title || !content || !brand) {
       return NextResponse.json(
-        { error: '标题和内容不能为空' },
+        { error: '标题、内容和品牌不能为空' },
         { status: 400 }
       );
     }
@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
       .from('feedback')
       .insert({
         type,
+        brand,
         role,
         project_id: projectId,
         title,

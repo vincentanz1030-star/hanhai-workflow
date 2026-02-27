@@ -2152,7 +2152,7 @@ export default function HomePage() {
           }}>
             <DialogContent className={`p-0 overflow-hidden flex flex-col transition-all duration-300 ${
               isProjectDialogMaximized 
-                ? 'w-screen h-screen max-w-none max-h-none rounded-none' 
+                ? '!w-screen !h-screen !max-w-none !max-h-none !rounded-none sm:!max-w-none sm:!w-screen !translate-x-0 !translate-y-0 !top-0 !left-0' 
                 : 'max-w-[95vw] max-h-[95vh]'
             }`}>
               <DialogHeader className="px-6 py-4 border-b shrink-0">

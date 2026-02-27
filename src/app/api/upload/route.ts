@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     // 生成签名 URL（获取文件的可访问链接）
     const imageUrl = await storage.generatePresignedUrl({
       key: fileKey,
-      expireTime: 86400 // 有效期 1 天（86400 秒）
+      expireTime: 2592000 // 有效期 30 天（2592000 秒）
     });
 
     console.log('生成签名URL成功:', imageUrl);

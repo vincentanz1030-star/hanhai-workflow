@@ -827,9 +827,6 @@ export default function HomePage() {
     priority: 'medium' as 'low' | 'medium' | 'high',
   });
   
-  // 品牌筛选状态
-  const [selectedBrand, setSelectedBrand] = useState<'all' | 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan'>('all');
-
   // 加载项目列表
   const loadProjects = async () => {
     try {
@@ -1133,10 +1130,10 @@ export default function HomePage() {
 
   // 按品牌筛选项目
   const getFilteredProjects = () => {
-    if (selectedBrand === 'all') {
+    if (brandFilter === 'all') {
       return projects;
     }
-    return projects.filter(p => p.brand === selectedBrand);
+    return projects.filter(p => p.brand === brandFilter);
   };
 
   const filteredProjects = getFilteredProjects();
@@ -1296,30 +1293,31 @@ export default function HomePage() {
             <TabsTrigger value="feedback">支持协助</TabsTrigger>
           </TabsList>
 
-          {/* 数据看板 */}
-          <TabsContent value="dashboard" className="space-y-6">
-            {/* 品牌筛选 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">品牌筛选</CardTitle>
-                <CardDescription>选择查看特定品牌或全部品牌的数据</CardDescription>
-              </CardHeader>
-              <CardContent>
+          {/* 全局品牌筛选 - 在所有Tab上方 */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4 flex-wrap">
+                <span className="text-sm font-medium text-muted-foreground">品牌筛选:</span>
                 <div className="flex gap-2 flex-wrap">
                   {Object.keys(BRAND_NAMES).map(brandKey => (
                     <Button
                       key={brandKey}
-                      variant={selectedBrand === brandKey ? "default" : "outline"}
-                      onClick={() => setSelectedBrand(brandKey as any)}
-                      className={selectedBrand === brandKey ? 'gap-2' : 'gap-2'}
+                      variant={brandFilter === brandKey ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setBrandFilter(brandKey as any)}
+                      className={brandFilter === brandKey ? 'gap-2' : 'gap-2'}
                     >
-                      {selectedBrand === brandKey && <CheckCircle className="h-4 w-4" />}
+                      {brandFilter === brandKey && <CheckCircle className="h-4 w-4" />}
                       {BRAND_NAMES[brandKey]}
                     </Button>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 数据看板 */}
+          <TabsContent value="dashboard" className="space-y-6">
 
             {/* 统计卡片 */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
@@ -1444,35 +1442,37 @@ export default function HomePage() {
                           {target.monthlyTargets && target.monthlyTargets.length > 0 && (
                             <div className="mt-4 pt-4 border-t">
                               <h4 className="text-sm font-medium mb-3">月度目标和实际完成（可编辑实际完成额）</h4>
-                              <div className="space-y-2">
+                              <div className="grid grid-cols-6 sm:grid-cols-12 gap-2">
                                 {target.monthlyTargets.map((monthly) => {
                                   const monthlyRate = monthly.targetAmount > 0
                                     ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(0)
                                     : '0';
                                   const isComplete = parseInt(monthlyRate) >= 100;
                                   return (
-                                    <div key={monthly.id} className="grid grid-cols-4 gap-2 items-center">
-                                      <div className="text-sm font-medium text-muted-foreground">
+                                    <div key={monthly.id} className="flex flex-col gap-1">
+                                      <div className="text-xs font-medium text-center text-muted-foreground bg-muted rounded py-1">
                                         {monthly.month}月
                                       </div>
-                                      <Input
-                                        type="number"
-                                        placeholder="目标"
-                                        value={monthly.targetAmount}
-                                        disabled
-                                        className="bg-muted"
-                                      />
-                                      <Input
-                                        type="number"
-                                        placeholder="实际完成"
-                                        value={monthly.actualAmount}
-                                        onChange={(e) => handleUpdateMonthlyTarget(monthly.id, parseInt(e.target.value) || 0)}
-                                        className={isComplete ? 'border-green-500' : ''}
-                                      />
+                                      <div className="space-y-1">
+                                        <Input
+                                          type="number"
+                                          placeholder="目标"
+                                          value={monthly.targetAmount}
+                                          disabled
+                                          className="bg-muted text-xs h-8"
+                                        />
+                                        <Input
+                                          type="number"
+                                          placeholder="实际"
+                                          value={monthly.actualAmount}
+                                          onChange={(e) => handleUpdateMonthlyTarget(monthly.id, parseInt(e.target.value) || 0)}
+                                          className={`text-xs h-8 ${isComplete ? 'border-green-500' : ''}`}
+                                        />
+                                      </div>
                                       <div className={`text-xs text-center p-1 rounded ${
-                                        isComplete ? 'bg-green-100 text-green-700' : 'bg-gray-100'
+                                        isComplete ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                                       }`}>
-                                        完成率: {monthlyRate}%
+                                        {monthlyRate}%
                                       </div>
                                     </div>
                                   );
@@ -1582,7 +1582,7 @@ export default function HomePage() {
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart 
                       data={Object.keys(ROLE_NAMES).map(role => {
-                        const roleTasks = projects.flatMap(p => p.tasks || []).filter(t => t.role === role);
+                        const roleTasks = filteredProjects.flatMap(p => p.tasks || []).filter(t => t.role === role);
                         const avgProgress = roleTasks.length > 0
                           ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)
                           : 0;
@@ -1635,7 +1635,7 @@ export default function HomePage() {
                   <div className="mt-4 space-y-2">
                     <h4 className="text-sm font-medium mb-2">岗位进度详情</h4>
                     {Object.keys(ROLE_NAMES).map((role) => {
-                      const roleTasks = projects.flatMap(p => p.tasks || []).filter(t => t.role === role);
+                      const roleTasks = filteredProjects.flatMap(p => p.tasks || []).filter(t => t.role === role);
                       const avgProgress = roleTasks.length > 0
                         ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)
                         : 0;
@@ -1663,31 +1663,8 @@ export default function HomePage() {
 
           {/* 项目列表 */}
           <TabsContent value="projects" className="space-y-6">
-            {/* 品牌和项目分类筛选 */}
+            {/* 项目分类筛选 */}
             <div className="space-y-3">
-              <div className="flex gap-2 flex-wrap">
-                <span className="text-sm font-medium text-muted-foreground flex items-center py-2">品牌筛选:</span>
-                <Button
-                  variant={brandFilter === 'all' ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setBrandFilter('all')}
-                >
-                  全部
-                </Button>
-                {Object.keys(BRAND_NAMES).map(brandKey => {
-                  if (brandKey === 'all') return null;
-                  return (
-                    <Button
-                      key={brandKey}
-                      variant={brandFilter === brandKey ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setBrandFilter(brandKey as any)}
-                    >
-                      {BRAND_NAMES[brandKey]}
-                    </Button>
-                  );
-                })}
-              </div>
               <div className="flex gap-2 flex-wrap">
                 <span className="text-sm font-medium text-muted-foreground flex items-center py-2">项目类型:</span>
                 <Button
@@ -1798,7 +1775,7 @@ export default function HomePage() {
                   </div>
                 ) : (
                   <div className="space-y-8">
-                    {projects.map((project) => (
+                    {filteredProjects.map((project) => (
                       <div key={project.id} className="border-l-4 border-primary pl-6 pb-8 relative">
                         <div className="absolute -left-2 top-0 h-4 w-4 rounded-full bg-primary" />
                         <div className="mb-4">
@@ -1939,7 +1916,7 @@ export default function HomePage() {
               <CardContent>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {Object.keys(ROLE_NAMES).map((role) => {
-                    const roleTasks = projects.flatMap(p => p.tasks || []).filter(t => t.role === role);
+                    const roleTasks = filteredProjects.flatMap(p => p.tasks || []).filter(t => t.role === role);
                     const avgProgress = roleTasks.length > 0
                       ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)
                       : 0;
@@ -2264,7 +2241,13 @@ export default function HomePage() {
                   </div>
                 </DialogHeader>
                 <div className="flex-1 overflow-auto px-6 py-4">
-                  <div className="min-w-full" style={{ transform: `scale(${projectZoom / 100})`, transformOrigin: 'top left', width: `${100 * 100 / projectZoom}%` }}>
+                  <div 
+                    className="transition-transform duration-200 origin-top-left"
+                    style={{ 
+                      transform: `scale(${projectZoom / 100})`,
+                      width: `${10000 / projectZoom}%`
+                    }}
+                  >
                     <div className="space-y-6">
                       {(CATEGORY_ROLES[selectedProject.category] || Object.keys(ROLE_NAMES)).map((role) => {
                         const roleTasks = (selectedProject.tasks || []).filter(t => t.role === role);
@@ -2349,35 +2332,37 @@ export default function HomePage() {
             <DialogHeader>
               <DialogTitle>{editingSalesTarget ? '编辑销售目标' : '创建销售目标'}</DialogTitle>
               <DialogDescription>
-                {editingSalesTarget ? '编辑年度销售目标和月度目标' : '创建年度销售目标，系统将自动生成12个月的月度目标'}
+                {editingSalesTarget ? '编辑年度销售目标和月度目标' : '创建年度销售目标并设置12个月的月度目标'}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="year">年份 *</Label>
-                <Input
-                  id="year"
-                  type="number"
-                  value={newSalesTarget.year}
-                  onChange={(e) => setNewSalesTarget({ ...newSalesTarget, year: parseInt(e.target.value) })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="brand">选择品牌 *</Label>
-                <select
-                  id="brand"
-                  value={newSalesTarget.brand}
-                  onChange={(e) => setNewSalesTarget({ ...newSalesTarget, brand: e.target.value as any })}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="">请选择品牌...</option>
-                  {Object.keys(BRAND_NAMES).map(key => {
-                    if (key === 'all') return null;
-                    return (
-                      <option key={key} value={key}>{BRAND_NAMES[key]}</option>
-                    );
-                  })}
-                </select>
+            <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="year">年份 *</Label>
+                  <Input
+                    id="year"
+                    type="number"
+                    value={newSalesTarget.year}
+                    onChange={(e) => setNewSalesTarget({ ...newSalesTarget, year: parseInt(e.target.value) })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="brand">选择品牌 *</Label>
+                  <select
+                    id="brand"
+                    value={newSalesTarget.brand}
+                    onChange={(e) => setNewSalesTarget({ ...newSalesTarget, brand: e.target.value as any })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">请选择品牌...</option>
+                    {Object.keys(BRAND_NAMES).map(key => {
+                      if (key === 'all') return null;
+                      return (
+                        <option key={key} value={key}>{BRAND_NAMES[key]}</option>
+                      );
+                    })}
+                  </select>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="targetAmount">年度目标金额（万元） *</Label>
@@ -2385,10 +2370,38 @@ export default function HomePage() {
                   id="targetAmount"
                   type="number"
                   value={newSalesTarget.targetAmount}
-                  onChange={(e) => setNewSalesTarget({ ...newSalesTarget, targetAmount: parseInt(e.target.value) })}
+                  onChange={(e) => {
+                    const newAmount = parseInt(e.target.value) || 0;
+                    setNewSalesTarget({ ...newSalesTarget, targetAmount: newAmount });
+                  }}
                   placeholder="例如：1000"
                 />
               </div>
+
+              {/* 月度目标 */}
+              <div className="space-y-3">
+                <Label>月度目标金额（万元）</Label>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                  {newSalesTarget.monthlyTargets.map((monthly, index) => (
+                    <div key={monthly.month} className="space-y-1">
+                      <Label htmlFor={`month-${index}`} className="text-xs">{monthly.month}月</Label>
+                      <Input
+                        id={`month-${index}`}
+                        type="number"
+                        value={monthly.targetAmount}
+                        onChange={(e) => {
+                          const newMonthlyTargets = [...newSalesTarget.monthlyTargets];
+                          newMonthlyTargets[index].targetAmount = parseInt(e.target.value) || 0;
+                          setNewSalesTarget({ ...newSalesTarget, monthlyTargets: newMonthlyTargets });
+                        }}
+                        className="text-sm"
+                        placeholder="0"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="description">描述</Label>
                 <Textarea
@@ -2396,7 +2409,7 @@ export default function HomePage() {
                   value={newSalesTarget.description}
                   onChange={(e) => setNewSalesTarget({ ...newSalesTarget, description: e.target.value })}
                   placeholder="简要描述销售目标"
-                  rows={3}
+                  rows={2}
                 />
               </div>
             </div>

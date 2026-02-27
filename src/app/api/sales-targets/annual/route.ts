@@ -61,9 +61,9 @@ export async function POST(request: NextRequest) {
       .insert({
         year,
         brand,
-        targetAmount,
+        target_amount: targetAmount,
         description: description || null,
-        actualAmount: 0,
+        actual_amount: 0,
       })
       .select()
       .single();
@@ -80,12 +80,12 @@ export async function POST(request: NextRequest) {
       const { data: monthly } = await client
         .from('monthly_sales_targets')
         .insert({
-          annualTargetId: target.id,
+          annual_target_id: target.id,
           month,
           brand,
           year,
-          targetAmount: monthlyAmount,
-          actualAmount: 0,
+          target_amount: monthlyAmount,
+          actual_amount: 0,
         })
         .select()
         .single();

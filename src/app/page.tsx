@@ -2074,30 +2074,32 @@ export default function HomePage() {
         {/* 项目详情弹窗 */}
         {selectedProject && (
           <Dialog open={!!selectedProject} onOpenChange={() => setSelectedProject(null)}>
-            <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-2xl">{selectedProject.name}</DialogTitle>
-                <DialogDescription>
-                  销售日期: {formatDateSafely(selectedProject.salesDate, 'yyyy年MM月dd日')} |
-                  项目确认: {formatDateSafely(selectedProject.projectConfirmDate, 'yyyy年MM月dd日')} |
-                  品牌: {BRAND_NAMES[selectedProject.brand]} |
-                  分类: {CATEGORY_NAMES[selectedProject.category]}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-6 mt-4">
-                {Object.keys(ROLE_NAMES).map((role) => {
-                  const roleTasks = (selectedProject.tasks || []).filter(t => t.role === role);
-                  return (
-                    <Card key={role}>
-                      <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <Users className="h-5 w-5" />
-                          {ROLE_NAMES[role]}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {roleTasks.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">暂无任务</p>
+            <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-hidden p-0">
+              <div className="flex flex-col h-[95vh]">
+                <DialogHeader className="px-6 py-4 border-b shrink-0">
+                  <DialogTitle className="text-2xl">{selectedProject.name}</DialogTitle>
+                  <DialogDescription>
+                    销售日期: {formatDateSafely(selectedProject.salesDate, 'yyyy年MM月dd日')} |
+                    项目确认: {formatDateSafely(selectedProject.projectConfirmDate, 'yyyy年MM月dd日')} |
+                    品牌: {BRAND_NAMES[selectedProject.brand]} |
+                    分类: {CATEGORY_NAMES[selectedProject.category]}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex-1 overflow-y-auto px-6 py-4">
+                  <div className="space-y-6">
+                    {Object.keys(ROLE_NAMES).map((role) => {
+                      const roleTasks = (selectedProject.tasks || []).filter(t => t.role === role);
+                      return (
+                        <Card key={role}>
+                          <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <Users className="h-5 w-5" />
+                              {ROLE_NAMES[role]}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            {roleTasks.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">暂无任务</p>
                         ) : (
                           <div className="space-y-4">
                             {roleTasks.sort((a, b) => a.taskOrder - b.taskOrder).map((task) => (
@@ -2123,6 +2125,8 @@ export default function HomePage() {
                     </Card>
                   );
                 })}
+                  </div>
+                </div>
               </div>
             </DialogContent>
           </Dialog>

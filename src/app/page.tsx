@@ -362,10 +362,10 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
   };
 
   return (
-    <div className="border rounded-lg p-5 hover:border-primary transition-colors shadow-sm hover:shadow-md">
+    <div className="border rounded-lg p-3 sm:p-4 md:p-5 hover:border-primary transition-colors shadow-sm hover:shadow-md">
       {/* 任务头部 */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
+      <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-0 sm:mb-4 mb-3">
+        <div className="flex-1 w-full">
           {isEditingContent ? (
             <div className="space-y-3">
               <div className="space-y-2">
@@ -403,18 +403,18 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-3 mb-2">
-                <Badge variant="outline" className="text-lg px-3 py-1">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                <Badge variant="outline" className="text-base sm:text-lg px-2 sm:px-3 py-1">
                   {task.taskOrder}
                 </Badge>
-                <h4 className="text-lg font-semibold">{task.taskName}</h4>
-                <Badge className={`${STATUS_COLORS[task.status]} text-white`}>
+                <h4 className="text-base sm:text-lg font-semibold">{task.taskName}</h4>
+                <Badge className={`${STATUS_COLORS[task.status]} text-white text-xs sm:text-sm`}>
                   {STATUS_NAMES[task.status]}
                 </Badge>
               </div>
               {task.description && (
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 mt-3">
-                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2 sm:p-3 mt-2 sm:mt-3">
+                  <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed break-words whitespace-pre-wrap">
                     {task.description}
                   </p>
                 </div>
@@ -424,7 +424,7 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
         </div>
 
         {/* 操作按钮 */}
-        <div className="flex gap-2 ml-4">
+        <div className="flex flex-wrap gap-1 sm:gap-2 sm:ml-4">
           {!isEditingContent && (
             <Button
               variant="outline"
@@ -434,50 +434,55 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
                 setEditingTaskDescription(task.description || '');
                 setIsEditingContent(true);
               }}
+              className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
             >
               <span className="mr-1">✏️</span>
-              编辑内容
+              <span className="hidden sm:inline">编辑内容</span>
             </Button>
           )}
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsEditingDate(true)}
+            className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
           >
-            <Calendar className="h-4 w-4 mr-1" />
-            编辑时间
+            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+            <span className="hidden sm:inline">编辑时间</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsEditingLabels(true)}
+            className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
           >
-            <Users className="h-4 w-4 mr-1" />
-            自定义标签
+            <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+            <span className="hidden sm:inline">自定义标签</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsRatingDialogOpen(true)}
+            className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
           >
             <span className="mr-1">⭐</span>
-            评分
+            <span className="hidden sm:inline">评分</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleRemind}
             disabled={isReminding}
+            className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
           >
             {isReminding ? (
               <>
-                <div className="mr-1 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                催促中...
+                <div className="mr-1 h-3 w-3 sm:h-4 sm:w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <span className="hidden sm:inline">催促中...</span>
               </>
             ) : (
               <>
-                <AlertCircle className="h-4 w-4 mr-1" />
-                催促
+                <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                <span className="hidden sm:inline">催促</span>
               </>
             )}
           </Button>
@@ -485,13 +490,13 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
       </div>
 
       {/* 进度控制 */}
-      <div className="space-y-4 mt-4">
+      <div className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
         {/* 进度百分比和进度条 */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">完成进度</span>
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">完成进度</span>
             <div className="flex items-center gap-2">
-              <span className={`text-2xl font-bold ${
+              <span className={`text-xl sm:text-2xl font-bold ${
                 localProgress === 0 ? 'text-muted-foreground' :
                 localProgress < 50 ? 'text-blue-600' :
                 localProgress < 100 ? 'text-yellow-600' :
@@ -520,18 +525,18 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
         </div>
 
         {/* 时间信息 */}
-        <div className="space-y-3 mt-4">
+        <div className="space-y-2 sm:space-y-3 mt-3 sm:mt-4">
           {isEditingDate ? (
-            <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-2 border-blue-300 dark:border-blue-700">
-              <div className="flex items-center gap-2 mb-3">
-                <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <span className="text-base font-bold text-blue-700 dark:text-blue-300">编辑预计完成时间</span>
+            <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-2 border-blue-300 dark:border-blue-700">
+              <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm sm:text-base font-bold text-blue-700 dark:text-blue-300">编辑预计完成时间</span>
               </div>
               <Input
                 type="date"
                 value={editingDate}
                 onChange={(e) => setEditingDate(e.target.value)}
-                className="flex-1 mb-3"
+                className="flex-1 mb-2 sm:mb-3 h-9 sm:h-10"
               />
               <div className="flex gap-2">
                 <Button onClick={handleDateUpdate} className="flex-1">
@@ -544,23 +549,23 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
             </div>
           ) : (
             task.estimatedCompletionDate && task.estimatedCompletionDate.trim() !== '' && (
-              <div className={`p-4 rounded-lg border-2 ${
+              <div className={`p-3 sm:p-4 rounded-lg border-2 ${
                 remaining.isOverdue 
                   ? 'bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 border-red-400 dark:border-red-600' 
                   : 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-blue-300 dark:border-blue-600'
               }`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Calendar className={`h-6 w-6 ${remaining.isOverdue ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`} />
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Calendar className={`h-5 w-5 sm:h-6 sm:w-6 ${remaining.isOverdue ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`} />
                     <div>
-                      <div className={`text-sm font-medium ${
+                      <div className={`text-xs sm:text-sm font-medium ${
                         remaining.isOverdue 
                           ? 'text-red-700 dark:text-red-300' 
                           : 'text-blue-700 dark:text-blue-300'
                       }`}>
                         预计完成时间
                       </div>
-                      <div className={`text-2xl font-bold mt-1 ${
+                      <div className={`text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1 ${
                         remaining.isOverdue 
                           ? 'text-red-800 dark:text-red-200' 
                           : 'text-blue-800 dark:text-blue-200'
@@ -569,8 +574,8 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`inline-block px-4 py-2 rounded-lg text-sm font-bold ${
+                  <div className="text-right w-full sm:w-auto">
+                    <div className={`inline-block px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold ${
                       remaining.isOverdue 
                         ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-100' 
                         : 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-100'
@@ -581,7 +586,7 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
                           ? '⚠️ 今天截止' 
                           : '🚨 已延期'}
                     </div>
-                    <div className={`text-xs mt-2 font-medium ${
+                    <div className={`text-[10px] sm:text-xs mt-1 sm:mt-2 font-medium ${
                       remaining.isOverdue 
                         ? 'text-red-600 dark:text-red-400' 
                         : 'text-blue-600 dark:text-blue-400'
@@ -599,12 +604,12 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
           )}
 
           {task.actualCompletionDate && task.actualCompletionDate.trim() !== '' && (
-            <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+            <div className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium">实际完成时间</span>
+                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+                <span className="text-xs sm:text-sm font-medium">实际完成时间</span>
               </div>
-              <div className="text-sm font-semibold text-green-700 dark:text-green-400">
+              <div className="text-xs sm:text-sm font-semibold text-green-700 dark:text-green-400">
                 {formatDateSafely(task.actualCompletionDate)}
               </div>
             </div>
@@ -688,7 +693,15 @@ export default function HomePage() {
     description: '',
   });
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [projectZoom, setProjectZoom] = useState(100);
+  const [projectZoom, setProjectZoom] = useState(() => {
+    // 根据屏幕宽度设置默认缩放比例
+    if (typeof window !== 'undefined') {
+      const screenWidth = window.innerWidth;
+      if (screenWidth < 640) return 70; // 手机端默认70%
+      if (screenWidth < 1024) return 85; // 平板端默认85%
+    }
+    return 100; // 桌面端默认100%
+  });
   const [isProjectDialogMaximized, setIsProjectDialogMaximized] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'product_development' | 'operations_activity'>('all');
   const [brandFilter, setBrandFilter] = useState<'all' | 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan'>('all');
@@ -2158,13 +2171,13 @@ export default function HomePage() {
             <DialogContent className={`p-0 overflow-hidden flex flex-col transition-all duration-300 ${
               isProjectDialogMaximized 
                 ? '!w-screen !h-screen !max-w-none !max-h-none !rounded-none sm:!max-w-none sm:!w-screen !translate-x-0 !translate-y-0 !top-0 !left-0' 
-                : 'w-[95vw] h-[90vh] sm:max-w-[95vw] sm:max-h-[95vh]'
+                : 'w-[95vw] h-[95vh] sm:max-w-[95vw] sm:max-h-[95vh]'
             }`}>
               <DialogHeader className="px-3 sm:px-6 py-2 sm:py-4 border-b shrink-0">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
                   <div className="flex-1 min-w-0">
                     <DialogTitle className="text-lg sm:text-2xl truncate">{selectedProject.name}</DialogTitle>
-                    <DialogDescription className="text-[10px] sm:text-xs whitespace-nowrap overflow-hidden text-ellipsis">
+                    <DialogDescription className="text-[10px] sm:text-xs whitespace-nowrap overflow-hidden text-ellipsis text-slate-600 dark:text-slate-400 font-medium">
                       销售日期: {formatDateSafely(selectedProject.salesDate, 'yyyy年MM月dd日')} |
                       项目确认: {formatDateSafely(selectedProject.projectConfirmDate, 'yyyy年MM月dd日')} |
                       品牌: {BRAND_NAMES[selectedProject.brand]} |
@@ -2211,7 +2224,7 @@ export default function HomePage() {
                   </div>
                 </div>
               </DialogHeader>
-              <div className="flex-1 overflow-auto px-4 py-3">
+              <div className="flex-1 overflow-auto px-3 sm:px-4 py-2 sm:py-3">
                 <div 
                   className="transition-transform duration-200 origin-top-left"
                   style={{ 
@@ -2220,7 +2233,7 @@ export default function HomePage() {
                     minHeight: `${800 * (projectZoom / 100)}px`
                   }}
                 >
-                  <div className="space-y-4" style={{ width: '1400px' }}>
+                  <div className="space-y-3 sm:space-y-4" style={{ width: '1400px' }}>
                       {(CATEGORY_ROLES[selectedProject.category] || Object.keys(ROLE_NAMES)).map((role) => {
                         const roleTasks = (selectedProject.tasks || []).filter(t => t.role === role);
                         return (

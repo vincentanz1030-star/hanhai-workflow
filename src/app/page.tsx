@@ -790,6 +790,7 @@ export default function HomePage() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectZoom, setProjectZoom] = useState(100);
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'product_development' | 'operations_activity'>('all');
+  const [brandFilter, setBrandFilter] = useState<'all' | 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan'>('all');
   const [deleteConfirmProject, setDeleteConfirmProject] = useState<Project | null>(null);
   
   // 销售目标相关状态
@@ -1213,15 +1214,6 @@ export default function HomePage() {
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">项目名称 *</Label>
-                    <Input
-                      id="name"
-                      value={newProject.name}
-                      onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                      placeholder="例如：夏季新品推广"
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="brand">选择品牌 *</Label>
                     <select
                       id="brand"
@@ -1251,6 +1243,15 @@ export default function HomePage() {
                         <option key={key} value={key}>{CATEGORY_NAMES[key]}</option>
                       ))}
                     </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="name">项目名称 *</Label>
+                    <Input
+                      id="name"
+                      value={newProject.name}
+                      onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                      placeholder="例如：夏季新品推广"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="salesDate">销售日期 *</Label>
@@ -1400,7 +1401,9 @@ export default function HomePage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {salesTargets.map((target) => {
+                    {salesTargets
+                      .filter(target => brandFilter === 'all' || target.brand === brandFilter)
+                      .map((target) => {
                       const completionRate = target.targetAmount > 0 
                         ? ((target.actualAmount / target.targetAmount) * 100).toFixed(1)
                         : '0';
@@ -1440,20 +1443,36 @@ export default function HomePage() {
                           {/* 月度目标详情 */}
                           {target.monthlyTargets && target.monthlyTargets.length > 0 && (
                             <div className="mt-4 pt-4 border-t">
-                              <h4 className="text-sm font-medium mb-3">月度完成情况</h4>
-                              <div className="grid grid-cols-6 md:grid-cols-12 gap-2">
+                              <h4 className="text-sm font-medium mb-3">月度目标和实际完成（可编辑实际完成额）</h4>
+                              <div className="space-y-2">
                                 {target.monthlyTargets.map((monthly) => {
                                   const monthlyRate = monthly.targetAmount > 0
                                     ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(0)
                                     : '0';
                                   const isComplete = parseInt(monthlyRate) >= 100;
                                   return (
-                                    <div key={monthly.id} className="text-center">
-                                      <div className={`text-xs mb-1 ${isComplete ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
+                                    <div key={monthly.id} className="grid grid-cols-4 gap-2 items-center">
+                                      <div className="text-sm font-medium text-muted-foreground">
                                         {monthly.month}月
                                       </div>
-                                      <div className={`text-xs p-1 rounded ${isComplete ? 'bg-green-100 text-green-700' : 'bg-gray-100'}`}>
-                                        {monthlyRate}%
+                                      <Input
+                                        type="number"
+                                        placeholder="目标"
+                                        value={monthly.targetAmount}
+                                        disabled
+                                        className="bg-muted"
+                                      />
+                                      <Input
+                                        type="number"
+                                        placeholder="实际完成"
+                                        value={monthly.actualAmount}
+                                        onChange={(e) => handleUpdateMonthlyTarget(monthly.id, parseInt(e.target.value) || 0)}
+                                        className={isComplete ? 'border-green-500' : ''}
+                                      />
+                                      <div className={`text-xs text-center p-1 rounded ${
+                                        isComplete ? 'bg-green-100 text-green-700' : 'bg-gray-100'
+                                      }`}>
+                                        完成率: {monthlyRate}%
                                       </div>
                                     </div>
                                   );
@@ -1644,23 +1663,51 @@ export default function HomePage() {
 
           {/* 项目列表 */}
           <TabsContent value="projects" className="space-y-6">
-            {/* 项目分类筛选 */}
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant={categoryFilter === 'all' ? "default" : "outline"}
-                onClick={() => setCategoryFilter('all')}
-              >
-                全部项目
-              </Button>
-              {Object.keys(CATEGORY_NAMES).map(categoryKey => (
+            {/* 品牌和项目分类筛选 */}
+            <div className="space-y-3">
+              <div className="flex gap-2 flex-wrap">
+                <span className="text-sm font-medium text-muted-foreground flex items-center py-2">品牌筛选:</span>
                 <Button
-                  key={categoryKey}
-                  variant={categoryFilter === categoryKey ? "default" : "outline"}
-                  onClick={() => setCategoryFilter(categoryKey as any)}
+                  variant={brandFilter === 'all' ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setBrandFilter('all')}
                 >
-                  {CATEGORY_NAMES[categoryKey]}
+                  全部
                 </Button>
-              ))}
+                {Object.keys(BRAND_NAMES).map(brandKey => {
+                  if (brandKey === 'all') return null;
+                  return (
+                    <Button
+                      key={brandKey}
+                      variant={brandFilter === brandKey ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setBrandFilter(brandKey as any)}
+                    >
+                      {BRAND_NAMES[brandKey]}
+                    </Button>
+                  );
+                })}
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <span className="text-sm font-medium text-muted-foreground flex items-center py-2">项目类型:</span>
+                <Button
+                  variant={categoryFilter === 'all' ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCategoryFilter('all')}
+                >
+                  全部项目
+                </Button>
+                {Object.keys(CATEGORY_NAMES).map(categoryKey => (
+                  <Button
+                    key={categoryKey}
+                    variant={categoryFilter === categoryKey ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCategoryFilter(categoryKey as any)}
+                  >
+                    {CATEGORY_NAMES[categoryKey]}
+                  </Button>
+                ))}
+              </div>
             </div>
 
             {projects.length === 0 ? (
@@ -1678,7 +1725,10 @@ export default function HomePage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {projects
-                  .filter(project => categoryFilter === 'all' || project.category === categoryFilter)
+                  .filter(project => 
+                    (categoryFilter === 'all' || project.category === categoryFilter) &&
+                    (brandFilter === 'all' || project.brand === brandFilter)
+                  )
                   .map((project) => (
                   <Card key={project.id} className="hover:shadow-lg transition-shadow" onClick={() => loadProjectDetails(project.id)}>
                     <CardHeader>
@@ -2097,7 +2147,9 @@ export default function HomePage() {
                   </CardContent>
                 </Card>
               ) : (
-                feedbackList.map((feedback) => (
+                feedbackList
+                  .filter(feedback => brandFilter === 'all' || feedback.brand === brandFilter)
+                  .map((feedback) => (
                   <Card key={feedback.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -2211,11 +2263,12 @@ export default function HomePage() {
                     </div>
                   </div>
                 </DialogHeader>
-                <div className="flex-1 overflow-y-auto px-6 py-4" style={{ transform: `scale(${projectZoom / 100})`, transformOrigin: 'top left' }}>
-                  <div className="space-y-6">
-                    {(CATEGORY_ROLES[selectedProject.category] || Object.keys(ROLE_NAMES)).map((role) => {
-                      const roleTasks = (selectedProject.tasks || []).filter(t => t.role === role);
-                      return (
+                <div className="flex-1 overflow-auto px-6 py-4">
+                  <div className="min-w-full" style={{ transform: `scale(${projectZoom / 100})`, transformOrigin: 'top left', width: `${100 * 100 / projectZoom}%` }}>
+                    <div className="space-y-6">
+                      {(CATEGORY_ROLES[selectedProject.category] || Object.keys(ROLE_NAMES)).map((role) => {
+                        const roleTasks = (selectedProject.tasks || []).filter(t => t.role === role);
+                        return (
                         <Card key={role}>
                           <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
@@ -2229,15 +2282,15 @@ export default function HomePage() {
                         ) : (
                           <div className="space-y-4">
                             {roleTasks.sort((a, b) => a.taskOrder - b.taskOrder).map((task) => (
-                              <TaskCard 
-                                key={task.id} 
-                                task={task} 
+                              <TaskCard
+                                key={task.id}
+                                task={task}
                                 onUpdate={(updatedTask) => {
                                   setSelectedProject(prev => {
                                     if (!prev) return prev;
                                     return {
                                       ...prev,
-                                      tasks: prev.tasks?.map(t => 
+                                      tasks: prev.tasks?.map(t =>
                                         t.id === task.id ? { ...t, ...updatedTask } : t
                                       ) || []
                                     };
@@ -2251,6 +2304,7 @@ export default function HomePage() {
                     </Card>
                   );
                 })}
+                    </div>
                   </div>
                 </div>
               </div>

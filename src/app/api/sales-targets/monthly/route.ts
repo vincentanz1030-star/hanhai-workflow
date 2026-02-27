@@ -31,8 +31,8 @@ export async function PATCH(request: NextRequest) {
     const { data: updatedMonthly, error: updateError } = await client
       .from('monthly_sales_targets')
       .update({
-        actualAmount,
-        updatedAt: new Date().toISOString(),
+        actual_amount: actualAmount,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
@@ -46,17 +46,17 @@ export async function PATCH(request: NextRequest) {
     // 重新计算年度实际完成金额
     const { data: allMonthly } = await client
       .from('monthly_sales_targets')
-      .select('actualAmount')
+      .select('actual_amount')
       .eq('annual_target_id', monthlyTarget.annual_target_id);
 
-    const totalActualAmount = allMonthly?.reduce((sum, m) => sum + (m.actualAmount || 0), 0) || 0;
+    const totalActualAmount = allMonthly?.reduce((sum, m) => sum + (m.actual_amount || 0), 0) || 0;
 
     // 更新年度目标
     await client
       .from('annual_sales_targets')
       .update({
-        actualAmount: totalActualAmount,
-        updatedAt: new Date().toISOString(),
+        actual_amount: totalActualAmount,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', monthlyTarget.annual_target_id);
 

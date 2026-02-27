@@ -31,7 +31,7 @@ interface Project {
 interface Task {
   id: string;
   projectId: string;
-  role: 'illustration' | 'product_design' | 'detail_design' | 'copywriting' | 'procurement';
+  role: 'illustration' | 'product_design' | 'detail_design' | 'copywriting' | 'procurement' | 'packaging_design' | 'finance' | 'customer_service' | 'warehouse';
   taskName: string;
   taskOrder: number;
   description: string | null;
@@ -39,6 +39,8 @@ interface Task {
   estimatedCompletionDate: string | null;
   actualCompletionDate: string | null;
   status: 'pending' | 'in_progress' | 'completed' | 'delayed';
+  created_at: string;
+  updated_at: string | null;
 }
 
 // 岗位映射
@@ -87,6 +89,20 @@ function formatDateSafely(dateString: string | null | undefined, formatStr: stri
   }
 }
 
+// 计算剩余天数
+function getRemainingDays(targetDate: string | null): { days: number; isOverdue: boolean } {
+  if (!targetDate) return { days: 0, isOverdue: false };
+  try {
+    const now = new Date();
+    const target = new Date(targetDate);
+    const diffTime = target.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return { days: diffDays, isOverdue: diffDays < 0 };
+  } catch {
+    return { days: 0, isOverdue: false };
+  }
+}
+
 // 任务卡片组件
 function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Task>) => void }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -112,29 +128,50 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
     }
   };
 
+  const remaining = getRemainingDays(task.estimatedCompletionDate);
+
   return (
-    <div className="border rounded-lg p-4 hover:border-primary transition-colors">
-      <div className="flex items-start justify-between mb-3">
+    <div className="border rounded-lg p-5 hover:border-primary transition-colors shadow-sm hover:shadow-md">
+      {/* 任务头部 */}
+      <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <Badge variant="outline">{task.taskOrder}</Badge>
-            <h4 className="font-medium">{task.taskName}</h4>
+          <div className="flex items-center gap-3 mb-2">
+            <Badge variant="outline" className="text-lg px-3 py-1">
+              {task.taskOrder}
+            </Badge>
+            <h4 className="text-lg font-semibold">{task.taskName}</h4>
+            <Badge className={`${STATUS_COLORS[task.status]} text-white`}>
+              {STATUS_NAMES[task.status]}
+            </Badge>
           </div>
           {task.description && (
-            <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 mt-3">
+              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                {task.description}
+              </p>
+            </div>
           )}
         </div>
-        <Badge className={STATUS_COLORS[task.status]}>
-          {STATUS_NAMES[task.status]}
-        </Badge>
       </div>
-      <div className="space-y-3">
+
+      {/* 进度控制 */}
+      <div className="space-y-4 mt-4">
+        {/* 进度百分比和进度条 */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">完成进度</span>
-            <span className="font-medium">{localProgress}%</span>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">完成进度</span>
+            <div className="flex items-center gap-2">
+              <span className={`text-2xl font-bold ${
+                localProgress === 0 ? 'text-muted-foreground' :
+                localProgress < 50 ? 'text-blue-600' :
+                localProgress < 100 ? 'text-yellow-600' :
+                'text-green-600'
+              }`}>
+                {localProgress}%
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <Slider
               value={[localProgress]}
               onValueChange={handleProgressChange}
@@ -142,21 +179,64 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
               step={5}
               className="flex-1"
             />
-            <span className="text-xs text-muted-foreground w-8 text-right">{localProgress}%</span>
+            <div className="w-16 text-right">
+              <span className="text-sm font-medium">{localProgress}%</span>
+            </div>
+          </div>
+          {/* 进度阶段描述 */}
+          <div className="text-xs text-muted-foreground">
+            {localProgress === 0 && '📋 待开始'}
+            {localProgress > 0 && localProgress < 25 && '🚀 已启动'}
+            {localProgress >= 25 && localProgress < 50 && '🔄 进行中 - 早期阶段'}
+            {localProgress >= 50 && localProgress < 75 && '⚡ 进行中 - 中期阶段'}
+            {localProgress >= 75 && localProgress < 100 && '🏁 即将完成'}
+            {localProgress === 100 && '✅ 已完成'}
           </div>
         </div>
-        {formatDateSafely(task.estimatedCompletionDate) && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Calendar className="h-3 w-3" />
-            <span>预计完成: {formatDateSafely(task.estimatedCompletionDate)}</span>
-          </div>
-        )}
-        {formatDateSafely(task.actualCompletionDate) && (
-          <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
-            <CheckCircle className="h-3 w-3" />
-            <span>实际完成: {formatDateSafely(task.actualCompletionDate)}</span>
-          </div>
-        )}
+
+        {/* 时间信息 */}
+        <div className="grid gap-2 mt-4">
+          {task.estimatedCompletionDate && task.estimatedCompletionDate.trim() !== '' && (
+            <div className={`flex items-center justify-between p-3 rounded-lg ${
+              remaining.isOverdue 
+                ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' 
+                : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+            }`}>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <span className="text-sm font-medium">预计完成时间</span>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-semibold">
+                  {formatDateSafely(task.estimatedCompletionDate)}
+                </div>
+                <div className={`text-xs font-medium ${
+                  remaining.isOverdue 
+                    ? 'text-red-600 dark:text-red-400' 
+                    : 'text-blue-600 dark:text-blue-400'
+                }`}>
+                  {remaining.days > 0 
+                    ? `剩余 ${remaining.days} 天` 
+                    : remaining.days === 0 
+                      ? '今天截止' 
+                      : `已逾期 ${Math.abs(remaining.days)} 天`}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {task.actualCompletionDate && task.actualCompletionDate.trim() !== '' && (
+            <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium">实际完成时间</span>
+              </div>
+              <div className="text-sm font-semibold text-green-700 dark:text-green-400">
+                {formatDateSafely(task.actualCompletionDate)}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -667,31 +747,82 @@ export default function HomePage() {
             <Card>
               <CardHeader>
                 <CardTitle>各岗位工作进度概览</CardTitle>
-                <CardDescription>查看所有项目中各岗位的平均完成进度</CardDescription>
+                <CardDescription>查看所有项目中各岗位的平均完成进度和详细信息</CardDescription>
               </CardHeader>
               <CardContent>
-                {Object.keys(ROLE_NAMES).map((role) => {
-                  const roleTasks = projects.flatMap(p => p.tasks || []).filter(t => t.role === role);
-                  const avgProgress = roleTasks.length > 0
-                    ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)
-                    : 0;
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {Object.keys(ROLE_NAMES).map((role) => {
+                    const roleTasks = projects.flatMap(p => p.tasks || []).filter(t => t.role === role);
+                    const avgProgress = roleTasks.length > 0
+                      ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)
+                      : 0;
+                    
+                    const completedTasks = roleTasks.filter(t => t.progress === 100).length;
+                    const inProgressTasks = roleTasks.filter(t => t.progress > 0 && t.progress < 100).length;
+                    const pendingTasks = roleTasks.filter(t => t.progress === 0).length;
 
-                  return (
-                    <div key={role} className="mb-6 last:mb-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{ROLE_NAMES[role]}</span>
-                        </div>
-                        <span className="text-sm text-muted-foreground">{avgProgress}%</span>
-                      </div>
-                      <Progress value={avgProgress} className="h-2" />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        共 {roleTasks.length} 个任务
-                      </p>
-                    </div>
-                  );
-                })}
+                    return (
+                      <Card key={role} className="border-2 hover:border-primary transition-colors">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <Users className="h-4 w-4" />
+                              {ROLE_NAMES[role]}
+                            </CardTitle>
+                            <Badge variant="outline" className="text-lg font-semibold">
+                              {avgProgress}%
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {/* 进度条 */}
+                          <div>
+                            <Progress value={avgProgress} className="h-3" />
+                          </div>
+
+                          {/* 任务统计 */}
+                          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                            <div className="bg-green-50 dark:bg-green-900/20 rounded p-2">
+                              <div className="text-green-700 dark:text-green-400 font-semibold">{completedTasks}</div>
+                              <div className="text-muted-foreground">已完成</div>
+                            </div>
+                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-2">
+                              <div className="text-blue-700 dark:text-blue-400 font-semibold">{inProgressTasks}</div>
+                              <div className="text-muted-foreground">进行中</div>
+                            </div>
+                            <div className="bg-gray-50 dark:bg-gray-900/20 rounded p-2">
+                              <div className="text-gray-700 dark:text-gray-400 font-semibold">{pendingTasks}</div>
+                              <div className="text-muted-foreground">待开始</div>
+                            </div>
+                          </div>
+
+                          {/* 任务数量 */}
+                          <div className="text-xs text-muted-foreground text-center pt-2 border-t">
+                            总计 {roleTasks.length} 个任务
+                          </div>
+
+                          {/* 最近的任务 */}
+                          {roleTasks.length > 0 && (
+                            <div className="pt-2 border-t">
+                              <div className="text-xs font-medium mb-2">最近任务:</div>
+                              <div className="space-y-1">
+                                {roleTasks
+                                  .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
+                                  .slice(0, 2)
+                                  .map(task => (
+                                    <div key={task.id} className="flex items-center justify-between text-xs">
+                                      <span className="truncate flex-1 mr-2">{task.taskName}</span>
+                                      <span className="font-medium whitespace-nowrap">{task.progress}%</span>
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

@@ -69,6 +69,8 @@ export const tasks = pgTable(
 		taskOrder: integer("task_order").notNull(), // 任务序号 1-5
 		description: text("description"), // 任务描述
 		progress: integer("progress").default(0).notNull(), // 完成进度 0-100
+		imageUrl: text("image_url"), // 任务图片URL
+		customProgressLabels: jsonb("custom_progress_labels"), // 自定义进度标签 {"0": "待开始", "50": "进行中", "100": "已完成"}
 		estimatedCompletionDate: timestamp("estimated_completion_date", { withTimezone: true, mode: 'string' }), // 预计完成时间
 		actualCompletionDate: timestamp("actual_completion_date", { withTimezone: true, mode: 'string' }), // 实际完成时间
 		status: taskStatusEnum("status").default("pending").notNull(),
@@ -116,6 +118,8 @@ export const insertTaskSchema = createCoercedInsertSchema(tasks).pick({
   taskOrder: true,
   description: true,
   progress: true,
+  imageUrl: true,
+  customProgressLabels: true,
   estimatedCompletionDate: true,
   actualCompletionDate: true,
   status: true,
@@ -126,6 +130,8 @@ export const updateTaskSchema = createCoercedInsertSchema(tasks)
     taskName: true,
     description: true,
     progress: true,
+    imageUrl: true,
+    customProgressLabels: true,
     estimatedCompletionDate: true,
     actualCompletionDate: true,
     status: true,

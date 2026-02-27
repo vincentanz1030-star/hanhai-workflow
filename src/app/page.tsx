@@ -36,6 +36,8 @@ interface Task {
   taskOrder: number;
   description: string | null;
   progress: number;
+  imageUrl: string | null;
+  customProgressLabels: Record<string, string> | null;
   estimatedCompletionDate: string | null;
   actualCompletionDate: string | null;
   status: 'pending' | 'in_progress' | 'completed' | 'delayed';
@@ -107,6 +109,11 @@ function getRemainingDays(targetDate: string | null): { days: number; isOverdue:
 function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Task>) => void }) {
   const [isEditing, setIsEditing] = useState(false);
   const [localProgress, setLocalProgress] = useState(task.progress);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isEditingDate, setIsEditingDate] = useState(false);
+  const [editingDate, setEditingDate] = useState('');
+  const [isEditingLabels, setIsEditingLabels] = useState(false);
+  const [customLabels, setCustomLabels] = useState<Record<string, string>>(task.customProgressLabels || {});
 
   const handleProgressChange = async (value: number[]) => {
     const newProgress = value[0];
@@ -128,7 +135,98 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
     }
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // 更新任务的图片URL
+        const updateResponse = await fetch(`/api/tasks/${task.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl: data.imageUrl }),
+        });
+
+        if (updateResponse.ok) {
+          const updateData = await updateResponse.json();
+          onUpdate(updateData.task);
+        }
+      }
+    } catch (error) {
+      console.error('图片上传失败:', error);
+      alert('图片上传失败，请重试');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDateUpdate = async () => {
+    try {
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estimatedCompletionDate: editingDate }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        onUpdate(data.task);
+        setIsEditingDate(false);
+      }
+    } catch (error) {
+      console.error('更新日期失败:', error);
+      alert('更新日期失败，请重试');
+    }
+  };
+
+  const handleLabelsUpdate = async () => {
+    try {
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customProgressLabels: customLabels }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        onUpdate(data.task);
+        setIsEditingLabels(false);
+      }
+    } catch (error) {
+      console.error('更新自定义标签失败:', error);
+      alert('更新自定义标签失败，请重试');
+    }
+  };
+
   const remaining = getRemainingDays(task.estimatedCompletionDate);
+
+  // 获取自定义进度标签或默认标签
+  const getProgressLabel = (progress: number) => {
+    if (!customLabels || Object.keys(customLabels).length === 0) {
+      // 默认标签
+      if (progress === 0) return '📋 待开始';
+      if (progress > 0 && progress < 25) return '🚀 已启动';
+      if (progress >= 25 && progress < 50) return '🔄 进行中 - 早期阶段';
+      if (progress >= 50 && progress < 75) return '⚡ 进行中 - 中期阶段';
+      if (progress >= 75 && progress < 100) return '🏁 即将完成';
+      if (progress === 100) return '✅ 已完成';
+    }
+
+    // 查找最接近的自定义标签
+    const keys = Object.keys(customLabels).map(Number).sort((a, b) => Math.abs(a - progress) - Math.abs(b - progress));
+    return customLabels[keys[0].toString()] || '';
+  };
 
   return (
     <div className="border rounded-lg p-5 hover:border-primary transition-colors shadow-sm hover:shadow-md">
@@ -152,6 +250,68 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
             </div>
           )}
         </div>
+
+        {/* 操作按钮 */}
+        <div className="flex gap-2 ml-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditingDate(true)}
+          >
+            <Calendar className="h-4 w-4 mr-1" />
+            编辑时间
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditingLabels(true)}
+          >
+            <Users className="h-4 w-4 mr-1" />
+            自定义标签
+          </Button>
+        </div>
+      </div>
+
+      {/* 任务图片 */}
+      {task.imageUrl && (
+        <div className="mb-4">
+          <img
+            src={task.imageUrl}
+            alt={task.taskName}
+            className="w-full h-48 object-cover rounded-lg"
+          />
+        </div>
+      )}
+
+      {/* 图片上传 */}
+      <div className="mb-4">
+        <input
+          type="file"
+          id={`image-upload-${task.id}`}
+          accept="image/*"
+          onChange={handleImageUpload}
+          disabled={isUploading}
+          className="hidden"
+        />
+        <label
+          htmlFor={`image-upload-${task.id}`}
+          className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors ${
+            isUploading
+              ? 'bg-muted cursor-not-allowed'
+              : 'bg-secondary hover:bg-secondary/80'
+          } h-10 px-4 py-2 cursor-pointer`}
+        >
+          {isUploading ? (
+            <>
+              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              上传中...
+            </>
+          ) : (
+            <>
+              {task.imageUrl ? '更换图片' : '上传图片'}
+            </>
+          )}
+        </label>
       </div>
 
       {/* 进度控制 */}
@@ -185,44 +345,57 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
           </div>
           {/* 进度阶段描述 */}
           <div className="text-xs text-muted-foreground">
-            {localProgress === 0 && '📋 待开始'}
-            {localProgress > 0 && localProgress < 25 && '🚀 已启动'}
-            {localProgress >= 25 && localProgress < 50 && '🔄 进行中 - 早期阶段'}
-            {localProgress >= 50 && localProgress < 75 && '⚡ 进行中 - 中期阶段'}
-            {localProgress >= 75 && localProgress < 100 && '🏁 即将完成'}
-            {localProgress === 100 && '✅ 已完成'}
+            {getProgressLabel(localProgress)}
           </div>
         </div>
 
         {/* 时间信息 */}
         <div className="grid gap-2 mt-4">
-          {task.estimatedCompletionDate && task.estimatedCompletionDate.trim() !== '' && (
-            <div className={`flex items-center justify-between p-3 rounded-lg ${
-              remaining.isOverdue 
-                ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' 
-                : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-            }`}>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span className="text-sm font-medium">预计完成时间</span>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-semibold">
-                  {formatDateSafely(task.estimatedCompletionDate)}
-                </div>
-                <div className={`text-xs font-medium ${
-                  remaining.isOverdue 
-                    ? 'text-red-600 dark:text-red-400' 
-                    : 'text-blue-600 dark:text-blue-400'
-                }`}>
-                  {remaining.days > 0 
-                    ? `剩余 ${remaining.days} 天` 
-                    : remaining.days === 0 
-                      ? '今天截止' 
-                      : `已逾期 ${Math.abs(remaining.days)} 天`}
-                </div>
-              </div>
+          {isEditingDate ? (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+              <Calendar className="h-4 w-4" />
+              <Input
+                type="date"
+                value={editingDate}
+                onChange={(e) => setEditingDate(e.target.value)}
+                className="flex-1"
+              />
+              <Button size="sm" onClick={handleDateUpdate}>
+                保存
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setIsEditingDate(false)}>
+                取消
+              </Button>
             </div>
+          ) : (
+            task.estimatedCompletionDate && task.estimatedCompletionDate.trim() !== '' && (
+              <div className={`flex items-center justify-between p-3 rounded-lg ${
+                remaining.isOverdue 
+                  ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' 
+                  : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <span className="text-sm font-medium">预计完成时间</span>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-semibold">
+                    {formatDateSafely(task.estimatedCompletionDate)}
+                  </div>
+                  <div className={`text-xs font-medium ${
+                    remaining.isOverdue 
+                      ? 'text-red-600 dark:text-red-400' 
+                      : 'text-blue-600 dark:text-blue-400'
+                  }`}>
+                    {remaining.days > 0 
+                      ? `剩余 ${remaining.days} 天` 
+                      : remaining.days === 0 
+                        ? '今天截止' 
+                        : `已逾期 ${Math.abs(remaining.days)} 天`}
+                  </div>
+                </div>
+              </div>
+            )
           )}
 
           {task.actualCompletionDate && task.actualCompletionDate.trim() !== '' && (
@@ -238,6 +411,39 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
           )}
         </div>
       </div>
+
+      {/* 自定义进度标签编辑对话框 */}
+      <Dialog open={isEditingLabels} onOpenChange={setIsEditingLabels}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>自定义进度标签</DialogTitle>
+            <DialogDescription>
+              为不同的进度百分比设置自定义标签名称
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {[0, 25, 50, 75, 100].map((progress) => (
+              <div key={progress} className="flex items-center gap-4">
+                <span className="w-16 text-sm font-medium">{progress}%</span>
+                <Input
+                  value={customLabels[progress.toString()] || ''}
+                  onChange={(e) => setCustomLabels({ ...customLabels, [progress.toString()]: e.target.value })}
+                  placeholder="例如：待开始、进行中..."
+                  className="flex-1"
+                />
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditingLabels(false)}>
+              取消
+            </Button>
+            <Button onClick={handleLabelsUpdate}>
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -210,8 +210,6 @@ function getRemainingDays(targetDate: string | null): { days: number; isOverdue:
 function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Task>) => void }) {
   const [isEditing, setIsEditing] = useState(false);
   const [localProgress, setLocalProgress] = useState(task.progress);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadingTo, setUploadingTo] = useState<1 | 2 | 3>(1); // 上传到哪个图片位置
   const [isEditingDate, setIsEditingDate] = useState(false);
   const [editingDate, setEditingDate] = useState('');
   const [isEditingLabels, setIsEditingLabels] = useState(false);
@@ -302,48 +300,6 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
       }
     } catch (error) {
       console.error('更新任务失败:', error);
-    }
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, position: 1 | 2 | 3) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    setUploadingTo(position);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // 更新任务的图片URL到指定位置
-        const updateBody: Record<string, string> = {};
-        if (position === 1) updateBody.imageUrl = data.imageUrl;
-        if (position === 2) updateBody.imageUrl2 = data.imageUrl;
-        if (position === 3) updateBody.imageUrl3 = data.imageUrl;
-
-        const updateResponse = await fetch(`/api/tasks/${task.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updateBody),
-        });
-
-        if (updateResponse.ok) {
-          const updateData = await updateResponse.json();
-          onUpdate(updateData.task);
-        }
-      }
-    } catch (error) {
-      console.error('图片上传失败:', error);
-      alert('图片上传失败，请重试');
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -525,63 +481,6 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
             )}
           </Button>
         </div>
-      </div>
-
-      {/* 任务图片 - 支持最多3张 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-        {[1, 2, 3].map((position) => {
-          const imageUrl = position === 1 ? task.imageUrl : position === 2 ? task.imageUrl2 : task.imageUrl3;
-          return (
-            <div key={position} className="space-y-2">
-              {imageUrl && (
-                <div className="relative group">
-                  <img
-                    src={imageUrl}
-                    alt={`${task.taskName} - 图片${position}`}
-                    className="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
-                    onError={(e) => {
-                      console.error('图片加载失败:', imageUrl);
-                      e.currentTarget.style.display = 'none';
-                    }}
-                    onLoad={() => {
-                      console.log('图片加载成功:', imageUrl);
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                    <span className="text-white text-sm">图片 {position}</span>
-                  </div>
-                </div>
-              )}
-              <input
-                type="file"
-                id={`image-upload-${task.id}-${position}`}
-                accept="image/*"
-                onChange={(e) => handleImageUpload(e, position as 1 | 2 | 3)}
-                disabled={isUploading}
-                className="hidden"
-              />
-              <label
-                htmlFor={`image-upload-${task.id}-${position}`}
-                className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors w-full ${
-                  isUploading && uploadingTo === position
-                    ? 'bg-muted cursor-not-allowed'
-                    : 'bg-secondary hover:bg-secondary/80'
-                } h-10 px-4 py-2 cursor-pointer`}
-              >
-                {isUploading && uploadingTo === position ? (
-                  <>
-                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    上传中...
-                  </>
-                ) : (
-                  <>
-                    {imageUrl ? `更换图片${position}` : `上传图片${position}`}
-                  </>
-                )}
-              </label>
-            </div>
-          );
-        })}
       </div>
 
       {/* 进度控制 */}
@@ -1442,34 +1341,38 @@ export default function HomePage() {
                           {target.monthlyTargets && target.monthlyTargets.length > 0 && (
                             <div className="mt-4 pt-4 border-t">
                               <h4 className="text-sm font-medium mb-3">月度目标和实际完成（可编辑实际完成额）</h4>
-                              <div className="grid grid-cols-6 sm:grid-cols-12 gap-2">
+                              <div className="border rounded-lg overflow-hidden">
+                                <div className="grid grid-cols-4 gap-2 bg-muted px-3 py-2 text-sm font-medium">
+                                  <div>月份</div>
+                                  <div>目标销售额（万元）</div>
+                                  <div>实际销售额（万元）</div>
+                                  <div>完成率</div>
+                                </div>
                                 {target.monthlyTargets.map((monthly) => {
                                   const monthlyRate = monthly.targetAmount > 0
-                                    ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(0)
-                                    : '0';
-                                  const isComplete = parseInt(monthlyRate) >= 100;
+                                    ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(1)
+                                    : '0.0';
+                                  const isComplete = parseFloat(monthlyRate) >= 100;
                                   return (
-                                    <div key={monthly.id} className="flex flex-col gap-1">
-                                      <div className="text-xs font-medium text-center text-muted-foreground bg-muted rounded py-1">
+                                    <div key={monthly.id} className="grid grid-cols-4 gap-2 px-3 py-2 border-b last:border-b-0 items-center">
+                                      <div className="text-sm font-medium text-muted-foreground">
                                         {monthly.month}月
                                       </div>
-                                      <div className="space-y-1">
-                                        <Input
-                                          type="number"
-                                          placeholder="目标"
-                                          value={monthly.targetAmount}
-                                          disabled
-                                          className="bg-muted text-xs h-8"
-                                        />
-                                        <Input
-                                          type="number"
-                                          placeholder="实际"
-                                          value={monthly.actualAmount}
-                                          onChange={(e) => handleUpdateMonthlyTarget(monthly.id, parseInt(e.target.value) || 0)}
-                                          className={`text-xs h-8 ${isComplete ? 'border-green-500' : ''}`}
-                                        />
-                                      </div>
-                                      <div className={`text-xs text-center p-1 rounded ${
+                                      <Input
+                                        type="number"
+                                        placeholder="目标"
+                                        value={monthly.targetAmount}
+                                        disabled
+                                        className="bg-muted text-xs h-8"
+                                      />
+                                      <Input
+                                        type="number"
+                                        placeholder="实际"
+                                        value={monthly.actualAmount}
+                                        onChange={(e) => handleUpdateMonthlyTarget(monthly.id, parseInt(e.target.value) || 0)}
+                                        className={`text-xs h-8 ${isComplete ? 'border-green-500' : ''}`}
+                                      />
+                                      <div className={`text-xs text-center p-1 rounded font-medium ${
                                         isComplete ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                                       }`}>
                                         {monthlyRate}%
@@ -2244,11 +2147,10 @@ export default function HomePage() {
                   <div 
                     className="transition-transform duration-200 origin-top-left"
                     style={{ 
-                      transform: `scale(${projectZoom / 100})`,
-                      width: `${10000 / projectZoom}%`
+                      transform: `scale(${projectZoom / 100})`
                     }}
                   >
-                    <div className="space-y-6">
+                    <div className="space-y-6" style={{ width: '1000px' }}>
                       {(CATEGORY_ROLES[selectedProject.category] || Object.keys(ROLE_NAMES)).map((role) => {
                         const roleTasks = (selectedProject.tasks || []).filter(t => t.role === role);
                         return (

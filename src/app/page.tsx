@@ -37,12 +37,28 @@ interface Task {
   description: string | null;
   progress: number;
   imageUrl: string | null;
+  imageUrl2: string | null;
+  imageUrl3: string | null;
   customProgressLabels: Record<string, string> | null;
   estimatedCompletionDate: string | null;
   actualCompletionDate: string | null;
   status: 'pending' | 'in_progress' | 'completed' | 'delayed';
   created_at: string;
   updated_at: string | null;
+}
+
+interface Feedback {
+  id: string;
+  type: 'suggestion' | 'issue' | 'question' | 'other';
+  role: string | null;
+  projectId: string | null;
+  title: string;
+  content: string;
+  status: 'pending' | 'in_review' | 'resolved';
+  priority: 'low' | 'medium' | 'high';
+  createdAt: string;
+  updatedAt: string | null;
+  resolvedAt: string | null;
 }
 
 // 岗位映射
@@ -72,6 +88,35 @@ const STATUS_COLORS: Record<string, string> = {
   in_progress: 'bg-blue-500',
   completed: 'bg-green-500',
   delayed: 'bg-red-500',
+};
+
+// 反馈类型映射
+const FEEDBACK_TYPES: Record<string, string> = {
+  suggestion: '建议',
+  issue: '问题',
+  question: '疑问',
+  other: '其他',
+};
+
+// 反馈状态映射
+const FEEDBACK_STATUS: Record<string, string> = {
+  pending: '待处理',
+  in_review: '审核中',
+  resolved: '已解决',
+};
+
+// 优先级映射
+const PRIORITY_NAMES: Record<string, string> = {
+  low: '低',
+  medium: '中',
+  high: '高',
+};
+
+// 优先级颜色
+const PRIORITY_COLORS: Record<string, string> = {
+  low: 'bg-gray-500',
+  medium: 'bg-yellow-500',
+  high: 'bg-red-500',
 };
 
 // 安全的日期格式化函数
@@ -110,6 +155,7 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
   const [isEditing, setIsEditing] = useState(false);
   const [localProgress, setLocalProgress] = useState(task.progress);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadingTo, setUploadingTo] = useState<1 | 2 | 3>(1); // 上传到哪个图片位置
   const [isEditingDate, setIsEditingDate] = useState(false);
   const [editingDate, setEditingDate] = useState('');
   const [isEditingLabels, setIsEditingLabels] = useState(false);
@@ -135,11 +181,12 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, position: 1 | 2 | 3) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
+    setUploadingTo(position);
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -151,11 +198,16 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
 
       if (response.ok) {
         const data = await response.json();
-        // 更新任务的图片URL
+        // 更新任务的图片URL到指定位置
+        const updateBody: Record<string, string> = {};
+        if (position === 1) updateBody.imageUrl = data.imageUrl;
+        if (position === 2) updateBody.imageUrl2 = data.imageUrl;
+        if (position === 3) updateBody.imageUrl3 = data.imageUrl;
+
         const updateResponse = await fetch(`/api/tasks/${task.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrl: data.imageUrl }),
+          body: JSON.stringify(updateBody),
         });
 
         if (updateResponse.ok) {
@@ -272,46 +324,54 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
         </div>
       </div>
 
-      {/* 任务图片 */}
-      {task.imageUrl && (
-        <div className="mb-4">
-          <img
-            src={task.imageUrl}
-            alt={task.taskName}
-            className="w-full h-48 object-cover rounded-lg"
-          />
-        </div>
-      )}
-
-      {/* 图片上传 */}
-      <div className="mb-4">
-        <input
-          type="file"
-          id={`image-upload-${task.id}`}
-          accept="image/*"
-          onChange={handleImageUpload}
-          disabled={isUploading}
-          className="hidden"
-        />
-        <label
-          htmlFor={`image-upload-${task.id}`}
-          className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors ${
-            isUploading
-              ? 'bg-muted cursor-not-allowed'
-              : 'bg-secondary hover:bg-secondary/80'
-          } h-10 px-4 py-2 cursor-pointer`}
-        >
-          {isUploading ? (
-            <>
-              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              上传中...
-            </>
-          ) : (
-            <>
-              {task.imageUrl ? '更换图片' : '上传图片'}
-            </>
-          )}
-        </label>
+      {/* 任务图片 - 支持最多3张 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        {[1, 2, 3].map((position) => {
+          const imageUrl = position === 1 ? task.imageUrl : position === 2 ? task.imageUrl2 : task.imageUrl3;
+          return (
+            <div key={position} className="space-y-2">
+              {imageUrl && (
+                <div className="relative group">
+                  <img
+                    src={imageUrl}
+                    alt={`${task.taskName} - 图片${position}`}
+                    className="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                  />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                    <span className="text-white text-sm">图片 {position}</span>
+                  </div>
+                </div>
+              )}
+              <input
+                type="file"
+                id={`image-upload-${task.id}-${position}`}
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e, position as 1 | 2 | 3)}
+                disabled={isUploading}
+                className="hidden"
+              />
+              <label
+                htmlFor={`image-upload-${task.id}-${position}`}
+                className={`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors w-full ${
+                  isUploading && uploadingTo === position
+                    ? 'bg-muted cursor-not-allowed'
+                    : 'bg-secondary hover:bg-secondary/80'
+                } h-10 px-4 py-2 cursor-pointer`}
+              >
+                {isUploading && uploadingTo === position ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    上传中...
+                  </>
+                ) : (
+                  <>
+                    {imageUrl ? `更换图片${position}` : `上传图片${position}`}
+                  </>
+                )}
+              </label>
+            </div>
+          );
+        })}
       </div>
 
       {/* 进度控制 */}
@@ -350,48 +410,78 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
         </div>
 
         {/* 时间信息 */}
-        <div className="grid gap-2 mt-4">
+        <div className="space-y-3 mt-4">
           {isEditingDate ? (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-              <Calendar className="h-4 w-4" />
+            <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-2 border-blue-300 dark:border-blue-700">
+              <div className="flex items-center gap-2 mb-3">
+                <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <span className="text-base font-bold text-blue-700 dark:text-blue-300">编辑预计完成时间</span>
+              </div>
               <Input
                 type="date"
                 value={editingDate}
                 onChange={(e) => setEditingDate(e.target.value)}
-                className="flex-1"
+                className="flex-1 mb-3"
               />
-              <Button size="sm" onClick={handleDateUpdate}>
-                保存
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setIsEditingDate(false)}>
-                取消
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={handleDateUpdate} className="flex-1">
+                  保存时间
+                </Button>
+                <Button variant="outline" onClick={() => setIsEditingDate(false)}>
+                  取消
+                </Button>
+              </div>
             </div>
           ) : (
             task.estimatedCompletionDate && task.estimatedCompletionDate.trim() !== '' && (
-              <div className={`flex items-center justify-between p-3 rounded-lg ${
+              <div className={`p-4 rounded-lg border-2 ${
                 remaining.isOverdue 
-                  ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' 
-                  : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                  ? 'bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 border-red-400 dark:border-red-600' 
+                  : 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-blue-300 dark:border-blue-600'
               }`}>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm font-medium">预计完成时间</span>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-semibold">
-                    {formatDateSafely(task.estimatedCompletionDate)}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Calendar className={`h-6 w-6 ${remaining.isOverdue ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`} />
+                    <div>
+                      <div className={`text-sm font-medium ${
+                        remaining.isOverdue 
+                          ? 'text-red-700 dark:text-red-300' 
+                          : 'text-blue-700 dark:text-blue-300'
+                      }`}>
+                        预计完成时间
+                      </div>
+                      <div className={`text-2xl font-bold mt-1 ${
+                        remaining.isOverdue 
+                          ? 'text-red-800 dark:text-red-200' 
+                          : 'text-blue-800 dark:text-blue-200'
+                      }`}>
+                        {formatDateSafely(task.estimatedCompletionDate)}
+                      </div>
+                    </div>
                   </div>
-                  <div className={`text-xs font-medium ${
-                    remaining.isOverdue 
-                      ? 'text-red-600 dark:text-red-400' 
-                      : 'text-blue-600 dark:text-blue-400'
-                  }`}>
-                    {remaining.days > 0 
-                      ? `剩余 ${remaining.days} 天` 
-                      : remaining.days === 0 
-                        ? '今天截止' 
-                        : `已逾期 ${Math.abs(remaining.days)} 天`}
+                  <div className="text-right">
+                    <div className={`inline-block px-4 py-2 rounded-lg text-sm font-bold ${
+                      remaining.isOverdue 
+                        ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-100' 
+                        : 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-100'
+                    }`}>
+                      {remaining.days > 0 
+                        ? `📅 剩余 ${remaining.days} 天` 
+                        : remaining.days === 0 
+                          ? '⚠️ 今天截止' 
+                          : '🚨 已延期'}
+                    </div>
+                    <div className={`text-xs mt-2 font-medium ${
+                      remaining.isOverdue 
+                        ? 'text-red-600 dark:text-red-400' 
+                        : 'text-blue-600 dark:text-blue-400'
+                    }`}>
+                      {remaining.days > 0 
+                        ? '按计划进行' 
+                        : remaining.days === 0 
+                          ? '务必今日完成' 
+                          : `已逾期 ${Math.abs(remaining.days)} 天`}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -458,6 +548,23 @@ export default function HomePage() {
     description: '',
   });
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  
+  // 时间线编辑状态
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editingSalesDate, setEditingSalesDate] = useState('');
+  const [editingConfirmDate, setEditingConfirmDate] = useState('');
+  
+  // 反馈相关状态
+  const [feedbackList, setFeedbackList] = useState<Feedback[]>([]);
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const [newFeedback, setNewFeedback] = useState({
+    type: 'suggestion' as 'suggestion' | 'issue' | 'question' | 'other',
+    role: '' as string,
+    projectId: '' as string,
+    title: '',
+    content: '',
+    priority: 'medium' as 'low' | 'medium' | 'high',
+  });
 
   // 加载项目列表
   const loadProjects = async () => {
@@ -502,6 +609,131 @@ export default function HomePage() {
     }
   };
 
+  // 开始编辑项目日期
+  const handleStartEditDates = (project: Project) => {
+    setEditingProjectId(project.id);
+    setEditingSalesDate(project.salesDate);
+    setEditingConfirmDate(project.projectConfirmDate);
+  };
+
+  // 取消编辑
+  const handleCancelEditDates = () => {
+    setEditingProjectId(null);
+    setEditingSalesDate('');
+    setEditingConfirmDate('');
+  };
+
+  // 保存项目日期
+  const handleSaveDates = async (projectId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          salesDate: editingSalesDate,
+          projectConfirmDate: editingConfirmDate,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // 更新本地项目列表
+        setProjects(projects.map(p => 
+          p.id === projectId ? { ...p, ...data.project } : p
+        ));
+        setEditingProjectId(null);
+      }
+    } catch (error) {
+      console.error('更新项目日期失败:', error);
+      alert('更新失败，请重试');
+    }
+  };
+
+  // 加载反馈列表
+  const loadFeedback = async () => {
+    try {
+      const response = await fetch('/api/feedback');
+      const data = await response.json();
+      setFeedbackList(data.feedback || []);
+    } catch (error) {
+      console.error('加载反馈失败:', error);
+    }
+  };
+
+  // 创建反馈
+  const handleCreateFeedback = async () => {
+    if (!newFeedback.title || !newFeedback.content) {
+      alert('标题和内容不能为空');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newFeedback,
+          role: newFeedback.role || null,
+          projectId: newFeedback.projectId || null,
+        }),
+      });
+
+      if (response.ok) {
+        setIsFeedbackDialogOpen(false);
+        setNewFeedback({
+          type: 'suggestion',
+          role: '',
+          projectId: '',
+          title: '',
+          content: '',
+          priority: 'medium',
+        });
+        loadFeedback();
+      }
+    } catch (error) {
+      console.error('创建反馈失败:', error);
+      alert('创建失败，请重试');
+    }
+  };
+
+  // 更新反馈状态
+  const handleUpdateFeedback = async (feedbackId: string, status: string) => {
+    try {
+      const response = await fetch(`/api/feedback/${feedbackId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+
+      if (response.ok) {
+        loadFeedback();
+      }
+    } catch (error) {
+      console.error('更新反馈失败:', error);
+      alert('更新失败，请重试');
+    }
+  };
+
+  // 删除反馈
+  const handleDeleteFeedback = async (feedbackId: string) => {
+    if (!confirm('确定要删除这条反馈吗？')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/feedback/${feedbackId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        loadFeedback();
+      }
+    } catch (error) {
+      console.error('删除反馈失败:', error);
+      alert('删除失败，请重试');
+    }
+  };
+
   // 计算统计数据
   const stats = {
     total: projects.length,
@@ -531,6 +763,7 @@ export default function HomePage() {
 
   useEffect(() => {
     loadProjects();
+    loadFeedback();
   }, []);
 
   if (loading) {
@@ -616,11 +849,12 @@ export default function HomePage() {
       {/* 主内容 */}
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-5">
             <TabsTrigger value="dashboard">数据看板</TabsTrigger>
             <TabsTrigger value="projects">项目列表</TabsTrigger>
             <TabsTrigger value="timeline">时间线</TabsTrigger>
             <TabsTrigger value="roles">岗位进度</TabsTrigger>
+            <TabsTrigger value="feedback">员工反馈</TabsTrigger>
           </TabsList>
 
           {/* 数据看板 */}
@@ -771,24 +1005,83 @@ export default function HomePage() {
                   <CardDescription>所有项目中各岗位的平均完成进度</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={Object.keys(ROLE_NAMES).map(role => {
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart 
+                      data={Object.keys(ROLE_NAMES).map(role => {
+                        const roleTasks = projects.flatMap(p => p.tasks || []).filter(t => t.role === role);
+                        const avgProgress = roleTasks.length > 0
+                          ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)
+                          : 0;
+                        return {
+                          role: ROLE_NAMES[role],
+                          roleKey: role,
+                          progress: avgProgress,
+                          taskCount: roleTasks.length,
+                        };
+                      })}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="role" 
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                        interval={0}
+                      />
+                      <YAxis domain={[0, 100]} />
+                      <Tooltip 
+                        formatter={(value: number, name: string, props: any) => [
+                          `${value}%`,
+                          '平均进度'
+                        ]}
+                        labelFormatter={(label: string, props: any) => {
+                          if (props && props.payload) {
+                            return `${props.payload.role} (${props.payload.taskCount}个任务)`;
+                          }
+                          return label;
+                        }}
+                      />
+                      <Bar 
+                        dataKey="progress" 
+                        fill="#3b82f6"
+                        radius={[4, 4, 0, 0]}
+                      >
+                        {[...Object.keys(ROLE_NAMES)].map((entry, index) => (
+                          <rect 
+                            key={`bar-${index}`}
+                            fill={index % 2 === 0 ? '#3b82f6' : '#8b5cf6'}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                  
+                  {/* 进度统计表格 */}
+                  <div className="mt-4 space-y-2">
+                    <h4 className="text-sm font-medium mb-2">岗位进度详情</h4>
+                    {Object.keys(ROLE_NAMES).map((role) => {
                       const roleTasks = projects.flatMap(p => p.tasks || []).filter(t => t.role === role);
                       const avgProgress = roleTasks.length > 0
                         ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)
                         : 0;
-                      return {
-                        role: ROLE_NAMES[role].substring(0, 4),
-                        progress: avgProgress,
-                      };
-                    })}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="role" />
-                      <YAxis domain={[0, 100]} />
-                      <Tooltip />
-                      <Bar dataKey="progress" fill="#3b82f6" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                      const completedTasks = roleTasks.filter(t => t.progress === 100).length;
+                      return (
+                        <div key={role} className="flex items-center justify-between text-sm">
+                          <span className="flex-1">{ROLE_NAMES[role]}</span>
+                          <div className="flex items-center gap-2 flex-[2]">
+                            <Progress value={avgProgress} className="h-2" />
+                            <span className="w-12 text-right font-medium">
+                              {avgProgress}%
+                            </span>
+                          </div>
+                          <span className="w-24 text-right text-muted-foreground">
+                            {completedTasks}/{roleTasks.length}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -867,17 +1160,63 @@ export default function HomePage() {
                       <div key={project.id} className="border-l-4 border-primary pl-6 pb-8 relative">
                         <div className="absolute -left-2 top-0 h-4 w-4 rounded-full bg-primary" />
                         <div className="mb-4">
-                          <h3 className="text-xl font-bold">{project.name}</h3>
+                          <div className="flex items-start justify-between">
+                            <h3 className="text-xl font-bold">{project.name}</h3>
+                            {editingProjectId === project.id ? (
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={() => handleSaveDates(project.id)}>
+                                  保存
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={handleCancelEditDates}>
+                                  取消
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button size="sm" variant="outline" onClick={() => handleStartEditDates(project)}>
+                                编辑日期
+                              </Button>
+                            )}
+                          </div>
                           <div className="flex flex-wrap gap-4 mt-2 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4" />
-                              <span>项目确认: {formatDateSafely(project.projectConfirmDate)}</span>
-                            </div>
-                            <ArrowRight className="h-4 w-4" />
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-green-600" />
-                              <span className="text-green-600 font-medium">销售日期: {formatDateSafely(project.salesDate)}</span>
-                            </div>
+                            {editingProjectId === project.id ? (
+                              <>
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-4 w-4" />
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="date"
+                                      value={editingConfirmDate}
+                                      onChange={(e) => setEditingConfirmDate(e.target.value)}
+                                      className="w-auto"
+                                    />
+                                  </div>
+                                </div>
+                                <ArrowRight className="h-4 w-4" />
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4" />
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="date"
+                                      value={editingSalesDate}
+                                      onChange={(e) => setEditingSalesDate(e.target.value)}
+                                      className="w-auto"
+                                    />
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-4 w-4" />
+                                  <span>项目确认: {formatDateSafely(project.projectConfirmDate)}</span>
+                                </div>
+                                <ArrowRight className="h-4 w-4" />
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4 text-green-600" />
+                                  <span className="text-green-600 font-medium">销售日期: {formatDateSafely(project.salesDate)}</span>
+                                </div>
+                              </>
+                            )}
                           </div>
                         </div>
 
@@ -1031,6 +1370,191 @@ export default function HomePage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* 员工反馈 */}
+          <TabsContent value="feedback" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <Card className="flex-1 mr-4">
+                <CardHeader>
+                  <CardTitle>员工反馈与需求</CardTitle>
+                  <CardDescription>收集和管理员工的建议、问题和需求</CardDescription>
+                </CardHeader>
+              </Card>
+              <Dialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    提交反馈
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>提交反馈</DialogTitle>
+                    <DialogDescription>请填写您的反馈或需求</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="type">反馈类型 *</Label>
+                      <select
+                        id="type"
+                        value={newFeedback.type}
+                        onChange={(e) => setNewFeedback({ ...newFeedback, type: e.target.value as any })}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        {Object.keys(FEEDBACK_TYPES).map(key => (
+                          <option key={key} value={key}>{FEEDBACK_TYPES[key]}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="role">关联岗位 (可选)</Label>
+                      <select
+                        id="role"
+                        value={newFeedback.role}
+                        onChange={(e) => setNewFeedback({ ...newFeedback, role: e.target.value })}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="">选择岗位...</option>
+                        {Object.keys(ROLE_NAMES).map(key => (
+                          <option key={key} value={key}>{ROLE_NAMES[key]}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="project">关联项目 (可选)</Label>
+                      <select
+                        id="project"
+                        value={newFeedback.projectId}
+                        onChange={(e) => setNewFeedback({ ...newFeedback, projectId: e.target.value })}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="">选择项目...</option>
+                        {projects.map(project => (
+                          <option key={project.id} value={project.id}>{project.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="title">标题 *</Label>
+                      <Input
+                        id="title"
+                        value={newFeedback.title}
+                        onChange={(e) => setNewFeedback({ ...newFeedback, title: e.target.value })}
+                        placeholder="简要描述反馈内容"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="content">详细内容 *</Label>
+                      <Textarea
+                        id="content"
+                        value={newFeedback.content}
+                        onChange={(e) => setNewFeedback({ ...newFeedback, content: e.target.value })}
+                        placeholder="请详细描述您的反馈或需求"
+                        rows={5}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="priority">优先级</Label>
+                      <select
+                        id="priority"
+                        value={newFeedback.priority}
+                        onChange={(e) => setNewFeedback({ ...newFeedback, priority: e.target.value as any })}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        {Object.keys(PRIORITY_NAMES).map(key => (
+                          <option key={key} value={key}>{PRIORITY_NAMES[key]}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={handleCreateFeedback} disabled={!newFeedback.title || !newFeedback.content}>
+                      提交反馈
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* 反馈列表 */}
+            <div className="grid gap-4">
+              {feedbackList.length === 0 ? (
+                <Card>
+                  <CardContent className="py-16 text-center">
+                    <AlertCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <h3 className="text-lg font-medium mb-2">暂无反馈</h3>
+                    <p className="text-muted-foreground mb-4">还没有员工提交反馈或需求</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                feedbackList.map((feedback) => (
+                  <Card key={feedback.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge>{FEEDBACK_TYPES[feedback.type]}</Badge>
+                            <Badge className={PRIORITY_COLORS[feedback.priority]}>{PRIORITY_NAMES[feedback.priority]}优先级</Badge>
+                            <Badge className={feedback.status === 'resolved' ? 'bg-green-500' : feedback.status === 'in_review' ? 'bg-blue-500' : 'bg-gray-500'}>
+                              {FEEDBACK_STATUS[feedback.status]}
+                            </Badge>
+                          </div>
+                          <CardTitle className="text-lg">{feedback.title}</CardTitle>
+                        </div>
+                        {feedback.status !== 'resolved' && (
+                          <div className="flex gap-2 ml-4">
+                            {feedback.status === 'pending' && (
+                              <Button size="sm" variant="outline" onClick={() => handleUpdateFeedback(feedback.id, 'in_review')}>
+                                开始审核
+                              </Button>
+                            )}
+                            {feedback.status === 'in_review' && (
+                              <Button size="sm" onClick={() => handleUpdateFeedback(feedback.id, 'resolved')}>
+                                标记已解决
+                              </Button>
+                            )}
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteFeedback(feedback.id)}>
+                              删除
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <p className="text-sm whitespace-pre-wrap">{feedback.content}</p>
+                        
+                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-3 border-t">
+                          {feedback.role && (
+                            <div className="flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              <span>{ROLE_NAMES[feedback.role]}</span>
+                            </div>
+                          )}
+                          {feedback.projectId && (
+                            <div className="flex items-center gap-1">
+                              <FolderOpen className="h-3 w-3" />
+                              <span>{projects.find(p => p.id === feedback.projectId)?.name || '未知项目'}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            <span>{formatDateSafely(feedback.createdAt, 'yyyy-MM-dd HH:mm')}</span>
+                          </div>
+                          {feedback.resolvedAt && (
+                            <div className="flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3" />
+                              <span>解决于: {formatDateSafely(feedback.resolvedAt, 'yyyy-MM-dd HH:mm')}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
           </TabsContent>
         </Tabs>
 

@@ -10,7 +10,16 @@ export async function PATCH(
     const client = getSupabaseClient();
     const { id } = await params;
     const body = await request.json();
-    const { progress, status, actualCompletionDate } = body;
+    const { 
+      progress, 
+      status, 
+      actualCompletionDate, 
+      imageUrl, 
+      imageUrl2, 
+      imageUrl3, 
+      customProgressLabels,
+      estimatedCompletionDate 
+    } = body;
 
     // 验证进度值
     if (progress !== undefined && (progress < 0 || progress > 100)) {
@@ -35,6 +44,26 @@ export async function PATCH(
 
     if (actualCompletionDate) {
       updateData.actual_completion_date = actualCompletionDate;
+    }
+
+    if (imageUrl !== undefined) {
+      updateData.image_url = imageUrl;
+    }
+
+    if (imageUrl2 !== undefined) {
+      updateData.image_url_2 = imageUrl2;
+    }
+
+    if (imageUrl3 !== undefined) {
+      updateData.image_url_3 = imageUrl3;
+    }
+
+    if (customProgressLabels !== undefined) {
+      updateData.custom_progress_labels = customProgressLabels;
+    }
+
+    if (estimatedCompletionDate !== undefined) {
+      updateData.estimated_completion_date = estimatedCompletionDate;
     }
 
     // 根据进度自动更新状态

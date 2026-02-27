@@ -69,7 +69,9 @@ export const tasks = pgTable(
 		taskOrder: integer("task_order").notNull(), // 任务序号 1-5
 		description: text("description"), // 任务描述
 		progress: integer("progress").default(0).notNull(), // 完成进度 0-100
-		imageUrl: text("image_url"), // 任务图片URL
+		imageUrl: text("image_url"), // 任务图片URL 1
+		imageUrl2: text("image_url_2"), // 任务图片URL 2
+		imageUrl3: text("image_url_3"), // 任务图片URL 3
 		customProgressLabels: jsonb("custom_progress_labels"), // 自定义进度标签 {"0": "待开始", "50": "进行中", "100": "已完成"}
 		estimatedCompletionDate: timestamp("estimated_completion_date", { withTimezone: true, mode: 'string' }), // 预计完成时间
 		actualCompletionDate: timestamp("actual_completion_date", { withTimezone: true, mode: 'string' }), // 实际完成时间
@@ -83,6 +85,37 @@ export const tasks = pgTable(
 		index("tasks_project_id_idx").on(table.projectId),
 		index("tasks_role_idx").on(table.role),
 		index("tasks_status_idx").on(table.status),
+	]
+);
+
+// ========== 反馈需求表 ==========
+
+export const feedbackEnum = pgEnum("feedback_type", ["suggestion", "issue", "question", "other"]);
+
+export const feedback = pgTable(
+	"feedback",
+	{
+		id: varchar("id", { length: 36 })
+			.primaryKey()
+			.default(sql`gen_random_uuid()`),
+		type: feedbackEnum("type").notNull(), // 反馈类型
+		role: roleEnum("role"), // 关联岗位
+		projectId: varchar("project_id", { length: 36 }).references(() => projects.id, { onDelete: 'set null' }), // 关联项目
+		title: varchar("title", { length: 255 }).notNull(), // 标题
+		content: text("content").notNull(), // 内容
+		status: varchar("status", { length: 20 }).default("pending").notNull(), // 状态 pending, in_review, resolved
+		priority: varchar("priority", { length: 20 }).default("medium"), // 优先级 low, medium, high
+		createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
+		resolvedAt: timestamp("resolved_at", { withTimezone: true, mode: 'string' }), // 解决时间
+	},
+	(table) => [
+		index("feedback_type_idx").on(table.type),
+		index("feedback_status_idx").on(table.status),
+		index("feedback_role_idx").on(table.role),
+		index("feedback_project_idx").on(table.projectId),
 	]
 );
 
@@ -119,6 +152,8 @@ export const insertTaskSchema = createCoercedInsertSchema(tasks).pick({
   description: true,
   progress: true,
   imageUrl: true,
+  imageUrl2: true,
+  imageUrl3: true,
   customProgressLabels: true,
   estimatedCompletionDate: true,
   actualCompletionDate: true,
@@ -131,10 +166,29 @@ export const updateTaskSchema = createCoercedInsertSchema(tasks)
     description: true,
     progress: true,
     imageUrl: true,
+    imageUrl2: true,
+    imageUrl3: true,
     customProgressLabels: true,
     estimatedCompletionDate: true,
     actualCompletionDate: true,
     status: true,
+  })
+  .partial();
+
+// Feedback schemas
+export const insertFeedbackSchema = createCoercedInsertSchema(feedback).pick({
+  type: true,
+  role: true,
+  projectId: true,
+  title: true,
+  content: true,
+  priority: true,
+});
+
+export const updateFeedbackSchema = createCoercedInsertSchema(feedback)
+  .pick({
+    status: true,
+    priority: true,
   })
   .partial();
 
@@ -146,3 +200,7 @@ export type UpdateProject = z.infer<typeof updateProjectSchema>;
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type UpdateTask = z.infer<typeof updateTaskSchema>;
+
+export type Feedback = typeof feedback.$inferSelect;
+export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
+export type UpdateFeedback = z.infer<typeof updateFeedbackSchema>;

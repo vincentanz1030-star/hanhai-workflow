@@ -40,7 +40,7 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // 获取每个年度目标的月度目标
+    // 获取每个年度目标的月度目标（去重）
     const targetsWithMonthly = await Promise.all(
       (targets || []).map(async (target) => {
         const { data: monthlyTargets } = await client
@@ -49,9 +49,23 @@ export async function GET() {
           .eq('annual_target_id', target.id)
           .order('month', { ascending: true });
 
+        // 按月份去重，保留每条月的最新记录
+        const uniqueMonthlyTargets = monthlyTargets?.reduce((acc: any[], current: any) => {
+          const existingIndex = acc.findIndex(item => item.month === current.month);
+          if (existingIndex === -1) {
+            acc.push(current);
+          } else {
+            // 保留更新时间较晚的记录
+            if (current.updated_at && (!acc[existingIndex].updated_at || current.updated_at > acc[existingIndex].updated_at)) {
+              acc[existingIndex] = current;
+            }
+          }
+          return acc;
+        }, []) || [];
+
         return {
           ...target,
-          monthlyTargets: monthlyTargets || [],
+          monthlyTargets: uniqueMonthlyTargets,
         };
       })
     );

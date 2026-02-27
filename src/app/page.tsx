@@ -900,20 +900,37 @@ export default function HomePage() {
   // 编辑销售目标
   const handleEditSalesTarget = (target: AnnualSalesTarget) => {
     setEditingSalesTarget(target);
+
+    // 按月份去重月度目标
+    const uniqueMonthlyTargets = target.monthlyTargets?.reduce((acc: any[], current: any) => {
+      const existingIndex = acc.findIndex(item => item.month === current.month);
+      if (existingIndex === -1) {
+        acc.push(current);
+      } else {
+        // 保留更新时间较晚的记录
+        if (current.updatedAt && (!acc[existingIndex].updatedAt || current.updatedAt > acc[existingIndex].updatedAt)) {
+          acc[existingIndex] = current;
+        }
+      }
+      return acc;
+    }, []);
+
     setNewSalesTarget({
       year: target.year,
       brand: target.brand,
       targetAmount: target.targetAmount,
       description: target.description || '',
-      monthlyTargets: target.monthlyTargets?.map(mt => ({
-        month: mt.month,
-        targetAmount: mt.targetAmount,
-        actualAmount: mt.actualAmount,
-      })) || Array.from({ length: 12 }, (_, i) => ({
-        month: i + 1,
-        targetAmount: 0,
-        actualAmount: 0,
-      })),
+      monthlyTargets: uniqueMonthlyTargets.length > 0
+        ? uniqueMonthlyTargets.map(mt => ({
+            month: mt.month,
+            targetAmount: mt.targetAmount,
+            actualAmount: mt.actualAmount,
+          }))
+        : Array.from({ length: 12 }, (_, i) => ({
+            month: i + 1,
+            targetAmount: 0,
+            actualAmount: 0,
+          })),
     });
     setIsSalesTargetDialogOpen(true);
   };
@@ -2285,16 +2302,30 @@ export default function HomePage() {
               <div className="space-y-3">
                 <Label>月度目标金额（万元）</Label>
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                  {newSalesTarget.monthlyTargets.map((monthly, index) => (
+                  {newSalesTarget.monthlyTargets
+                    .reduce((acc: any[], current: any) => {
+                      const existingIndex = acc.findIndex(item => item.month === current.month);
+                      if (existingIndex === -1) {
+                        acc.push(current);
+                      } else {
+                        // 保留后面的记录
+                        acc[existingIndex] = current;
+                      }
+                      return acc;
+                    }, [])
+                    .map((monthly, index) => (
                     <div key={monthly.month} className="space-y-1">
-                      <Label htmlFor={`month-${index}`} className="text-xs">{monthly.month}月</Label>
+                      <Label htmlFor={`month-${monthly.month}`} className="text-xs">{monthly.month}月</Label>
                       <Input
-                        id={`month-${index}`}
+                        id={`month-${monthly.month}`}
                         type="number"
                         value={monthly.targetAmount}
                         onChange={(e) => {
                           const newMonthlyTargets = [...newSalesTarget.monthlyTargets];
-                          newMonthlyTargets[index].targetAmount = parseInt(e.target.value) || 0;
+                          const targetIndex = newMonthlyTargets.findIndex(m => m.month === monthly.month);
+                          if (targetIndex !== -1) {
+                            newMonthlyTargets[targetIndex].targetAmount = parseInt(e.target.value) || 0;
+                          }
                           setNewSalesTarget({ ...newSalesTarget, monthlyTargets: newMonthlyTargets });
                         }}
                         className="text-sm"

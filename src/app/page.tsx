@@ -414,6 +414,7 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
                   placeholder="输入任务名称"
                 />
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="task-description">任务描述</Label>
                 <Textarea
@@ -774,6 +775,7 @@ export default function HomePage() {
     description: '',
   });
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projectZoom, setProjectZoom] = useState(100);
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'product_development' | 'operations_activity'>('all');
   const [deleteConfirmProject, setDeleteConfirmProject] = useState<Project | null>(null);
   
@@ -785,6 +787,11 @@ export default function HomePage() {
     brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
     targetAmount: 0,
     description: '',
+    monthlyTargets: Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      targetAmount: 0,
+      actualAmount: 0,
+    })),
   });
   
   // 时间线编辑状态
@@ -952,6 +959,11 @@ export default function HomePage() {
           brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
           targetAmount: 0,
           description: '',
+          monthlyTargets: Array.from({ length: 12 }, (_, i) => ({
+            month: i + 1,
+            targetAmount: 0,
+            actualAmount: 0,
+          })),
         });
         loadSalesTargets();
       }
@@ -2076,16 +2088,44 @@ export default function HomePage() {
           <Dialog open={!!selectedProject} onOpenChange={() => setSelectedProject(null)}>
             <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-hidden p-0">
               <div className="flex flex-col h-[95vh]">
-                <DialogHeader className="px-6 py-4 border-b shrink-0">
-                  <DialogTitle className="text-2xl">{selectedProject.name}</DialogTitle>
-                  <DialogDescription>
-                    销售日期: {formatDateSafely(selectedProject.salesDate, 'yyyy年MM月dd日')} |
-                    项目确认: {formatDateSafely(selectedProject.projectConfirmDate, 'yyyy年MM月dd日')} |
-                    品牌: {BRAND_NAMES[selectedProject.brand]} |
-                    分类: {CATEGORY_NAMES[selectedProject.category]}
-                  </DialogDescription>
+                <DialogHeader className="px-6 py-4 border-b shrink-0 flex flex-row items-center justify-between">
+                  <div className="flex-1">
+                    <DialogTitle className="text-2xl">{selectedProject.name}</DialogTitle>
+                    <DialogDescription>
+                      销售日期: {formatDateSafely(selectedProject.salesDate, 'yyyy年MM月dd日')} |
+                      项目确认: {formatDateSafely(selectedProject.projectConfirmDate, 'yyyy年MM月dd日')} |
+                      品牌: {BRAND_NAMES[selectedProject.brand]} |
+                      分类: {CATEGORY_NAMES[selectedProject.category]}
+                    </DialogDescription>
+                  </div>
+                  <div className="flex items-center gap-2 ml-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setProjectZoom(Math.max(50, projectZoom - 10))}
+                      disabled={projectZoom <= 50}
+                    >
+                      缩小
+                    </Button>
+                    <span className="text-sm font-medium w-12 text-center">{projectZoom}%</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setProjectZoom(Math.min(150, projectZoom + 10))}
+                      disabled={projectZoom >= 150}
+                    >
+                      放大
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setProjectZoom(100)}
+                    >
+                      重置
+                    </Button>
+                  </div>
                 </DialogHeader>
-                <div className="flex-1 overflow-y-auto px-6 py-4">
+                <div className="flex-1 overflow-y-auto px-6 py-4" style={{ transform: `scale(${projectZoom / 100})`, transformOrigin: 'top left' }}>
                   <div className="space-y-6">
                     {Object.keys(ROLE_NAMES).map((role) => {
                       const roleTasks = (selectedProject.tasks || []).filter(t => t.role === role);

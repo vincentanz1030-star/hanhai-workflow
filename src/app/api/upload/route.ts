@@ -46,11 +46,11 @@ export async function POST(request: NextRequest) {
       contentType: file.type,
     });
 
-    // 生成公开访问的URL（使用 bucket 的公开地址）
-    const bucketUrl = process.env.COZE_BUCKET_ENDPOINT_URL || '';
-    // 移除路径部分，只保留域名
-    const baseUrl = bucketUrl.split('/').slice(0, 3).join('/');
-    const imageUrl = `${baseUrl}/${process.env.COZE_BUCKET_NAME}/${fileKey}`;
+    // 生成签名 URL（获取文件的可访问链接）
+    const imageUrl = await storage.generatePresignedUrl({
+      key: fileKey,
+      expireTime: 86400 // 有效期 1 天（86400 秒）
+    });
 
     console.log('上传成功:', { fileKey, imageUrl });
 

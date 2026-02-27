@@ -224,6 +224,93 @@ export const updateFeedbackSchema = createCoercedInsertSchema(feedback)
   })
   .partial();
 
+// ========== 销售目标表 ==========
+
+// 年度销售目标表
+export const annualSalesTargets = pgTable(
+  "annual_sales_targets",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    year: integer("year").notNull(), // 年份，如 2024
+    brand: brandEnum("brand").notNull(), // 关联品牌
+    targetAmount: integer("target_amount").notNull(), // 年度目标金额（单位：万元）
+    actualAmount: integer("actual_amount").default(0).notNull(), // 实际完成金额
+    description: text("description"), // 描述
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
+  },
+  (table) => [
+    index("annual_sales_targets_year_idx").on(table.year),
+    index("annual_sales_targets_brand_idx").on(table.brand),
+  ]
+);
+
+// 月度销售目标表
+export const monthlySalesTargets = pgTable(
+  "monthly_sales_targets",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    annualTargetId: varchar("annual_target_id", { length: 36 })
+      .references(() => annualSalesTargets.id, { onDelete: 'cascade' })
+      .notNull(),
+    month: integer("month").notNull(), // 月份 1-12
+    brand: brandEnum("brand").notNull(), // 关联品牌
+    year: integer("year").notNull(), // 年份
+    targetAmount: integer("target_amount").notNull(), // 月度目标金额
+    actualAmount: integer("actual_amount").default(0).notNull(), // 实际完成金额
+    description: text("description"), // 描述
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
+  },
+  (table) => [
+    index("monthly_sales_targets_annual_idx").on(table.annualTargetId),
+    index("monthly_sales_targets_year_month_idx").on(table.year, table.month),
+    index("monthly_sales_targets_brand_idx").on(table.brand),
+  ]
+);
+
+// Annual Sales Target schemas
+export const insertAnnualSalesTargetSchema = createCoercedInsertSchema(annualSalesTargets).pick({
+  year: true,
+  brand: true,
+  targetAmount: true,
+  description: true,
+});
+
+export const updateAnnualSalesTargetSchema = createCoercedInsertSchema(annualSalesTargets)
+  .pick({
+    targetAmount: true,
+    actualAmount: true,
+    description: true,
+  })
+  .partial();
+
+// Monthly Sales Target schemas
+export const insertMonthlySalesTargetSchema = createCoercedInsertSchema(monthlySalesTargets).pick({
+  annualTargetId: true,
+  month: true,
+  brand: true,
+  year: true,
+  targetAmount: true,
+  description: true,
+});
+
+export const updateMonthlySalesTargetSchema = createCoercedInsertSchema(monthlySalesTargets)
+  .pick({
+    targetAmount: true,
+    actualAmount: true,
+    description: true,
+  })
+  .partial();
+
 // TypeScript types
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
@@ -236,3 +323,11 @@ export type UpdateTask = z.infer<typeof updateTaskSchema>;
 export type Feedback = typeof feedback.$inferSelect;
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 export type UpdateFeedback = z.infer<typeof updateFeedbackSchema>;
+
+export type AnnualSalesTarget = typeof annualSalesTargets.$inferSelect;
+export type InsertAnnualSalesTarget = z.infer<typeof insertAnnualSalesTargetSchema>;
+export type UpdateAnnualSalesTarget = z.infer<typeof updateAnnualSalesTargetSchema>;
+
+export type MonthlySalesTarget = typeof monthlySalesTargets.$inferSelect;
+export type InsertMonthlySalesTarget = z.infer<typeof insertMonthlySalesTargetSchema>;
+export type UpdateMonthlySalesTarget = z.infer<typeof updateMonthlySalesTargetSchema>;

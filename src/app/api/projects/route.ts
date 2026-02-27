@@ -105,6 +105,47 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// 删除项目
+export async function DELETE(request: NextRequest) {
+  try {
+    const client = getSupabaseClient();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: '项目ID为必填项' }, { status: 400 });
+    }
+
+    // 先删除项目相关的所有任务
+    const { error: tasksDeleteError } = await client
+      .from('tasks')
+      .delete()
+      .eq('project_id', id);
+
+    if (tasksDeleteError) {
+      console.error('删除项目任务失败:', tasksDeleteError);
+      return NextResponse.json({ error: tasksDeleteError.message }, { status: 500 });
+    }
+
+    // 删除项目
+    const { error: projectDeleteError } = await client
+      .from('projects')
+      .delete()
+      .eq('id', id);
+
+    if (projectDeleteError) {
+      console.error('删除项目失败:', projectDeleteError);
+      return NextResponse.json({ error: projectDeleteError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ message: '项目删除成功' });
+  } catch (error) {
+    console.error('服务器错误:', error);
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+  }
+}
+
+
 // 为项目创建所有岗位的任务
 async function createTasksForProject(
   client: any,

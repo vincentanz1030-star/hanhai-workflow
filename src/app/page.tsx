@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, Users, CheckCircle, AlertCircle, Plus, TrendingUp, FolderOpen, ArrowRight } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, AlertCircle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2 } from 'lucide-react';
 import { format, differenceInDays, isBefore, isAfter, isToday } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Slider } from '@/components/ui/slider';
@@ -67,6 +67,33 @@ interface Feedback {
   updatedAt: string | null;
   resolvedAt: string | null;
 }
+
+// 销售目标接口
+interface MonthlySalesTarget {
+  id: string;
+  annualTargetId: string;
+  month: number;
+  brand: 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan';
+  year: number;
+  targetAmount: number;
+  actualAmount: number;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+interface AnnualSalesTarget {
+  id: string;
+  year: number;
+  brand: 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan';
+  targetAmount: number;
+  actualAmount: number;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+  monthlyTargets?: MonthlySalesTarget[];
+}
+
 
 // 岗位映射
 const ROLE_NAMES: Record<string, string> = {
@@ -671,6 +698,17 @@ export default function HomePage() {
   });
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'product_development' | 'operations_activity'>('all');
+  const [deleteConfirmProject, setDeleteConfirmProject] = useState<Project | null>(null);
+  
+  // 销售目标相关状态
+  const [salesTargets, setSalesTargets] = useState<AnnualSalesTarget[]>([]);
+  const [isSalesTargetDialogOpen, setIsSalesTargetDialogOpen] = useState(false);
+  const [newSalesTarget, setNewSalesTarget] = useState({
+    year: new Date().getFullYear(),
+    brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
+    targetAmount: 0,
+    description: '',
+  });
   
   // 时间线编辑状态
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
@@ -728,6 +766,23 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('创建项目失败:', error);
+    }
+  };
+
+  // 删除项目
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      const response = await fetch(`/api/projects?id=${projectId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setDeleteConfirmProject(null);
+        loadProjects();
+      }
+    } catch (error) {
+      console.error('删除项目失败:', error);
+      alert('删除失败，请重试');
     }
   };
 
@@ -790,6 +845,58 @@ export default function HomePage() {
       setFeedbackList(data.feedback || []);
     } catch (error) {
       console.error('加载反馈失败:', error);
+    }
+  };
+
+  // 加载销售目标
+  const loadSalesTargets = async () => {
+    try {
+      const response = await fetch('/api/sales-targets/annual');
+      const data = await response.json();
+      setSalesTargets(data.targets || []);
+    } catch (error) {
+      console.error('加载销售目标失败:', error);
+    }
+  };
+
+  // 创建销售目标
+  const handleCreateSalesTarget = async () => {
+    try {
+      const response = await fetch('/api/sales-targets/annual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSalesTarget),
+      });
+
+      if (response.ok) {
+        setIsSalesTargetDialogOpen(false);
+        setNewSalesTarget({
+          year: new Date().getFullYear(),
+          brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
+          targetAmount: 0,
+          description: '',
+        });
+        loadSalesTargets();
+      }
+    } catch (error) {
+      console.error('创建销售目标失败:', error);
+    }
+  };
+
+  // 更新月度销售目标
+  const handleUpdateMonthlyTarget = async (id: string, actualAmount: number) => {
+    try {
+      const response = await fetch('/api/sales-targets/monthly', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, actualAmount }),
+      });
+
+      if (response.ok) {
+        loadSalesTargets();
+      }
+    } catch (error) {
+      console.error('更新月度销售目标失败:', error);
     }
   };
 
@@ -908,6 +1015,7 @@ export default function HomePage() {
   useEffect(() => {
     loadProjects();
     loadFeedback();
+    loadSalesTargets();
   }, []);
 
   if (loading) {
@@ -1114,6 +1222,79 @@ export default function HomePage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* 销售目标 */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>销售目标</CardTitle>
+                    <CardDescription>年度和月度销售目标跟踪</CardDescription>
+                  </div>
+                  <Button onClick={() => setIsSalesTargetDialogOpen(true)} size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    新建目标
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {salesTargets.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>暂无销售目标，点击上方按钮创建</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {salesTargets.map((target) => {
+                      const completionRate = target.targetAmount > 0 
+                        ? ((target.actualAmount / target.targetAmount) * 100).toFixed(1)
+                        : '0';
+                      return (
+                        <div key={target.id} className="border rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <h3 className="font-semibold">{target.year}年 - {BRAND_NAMES[target.brand]}</h3>
+                              <Badge variant="outline">目标: {target.targetAmount}万元</Badge>
+                              <Badge className="bg-blue-500">已完成: {target.actualAmount}万元</Badge>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-blue-600">{completionRate}%</div>
+                              <div className="text-xs text-muted-foreground">完成率</div>
+                            </div>
+                          </div>
+                          <Progress value={parseFloat(completionRate)} className="h-3" />
+                          
+                          {/* 月度目标详情 */}
+                          {target.monthlyTargets && target.monthlyTargets.length > 0 && (
+                            <div className="mt-4 pt-4 border-t">
+                              <h4 className="text-sm font-medium mb-3">月度完成情况</h4>
+                              <div className="grid grid-cols-6 md:grid-cols-12 gap-2">
+                                {target.monthlyTargets.map((monthly) => {
+                                  const monthlyRate = monthly.targetAmount > 0
+                                    ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(0)
+                                    : '0';
+                                  const isComplete = parseInt(monthlyRate) >= 100;
+                                  return (
+                                    <div key={monthly.id} className="text-center">
+                                      <div className={`text-xs mb-1 ${isComplete ? 'text-green-600 font-medium' : 'text-muted-foreground'}`}>
+                                        {monthly.month}月
+                                      </div>
+                                      <div className={`text-xs p-1 rounded ${isComplete ? 'bg-green-100 text-green-700' : 'bg-gray-100'}`}>
+                                        {monthlyRate}%
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* 近期项目 */}
             <Card>
@@ -1326,21 +1507,34 @@ export default function HomePage() {
                 {projects
                   .filter(project => categoryFilter === 'all' || project.category === categoryFilter)
                   .map((project) => (
-                  <Card key={project.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => loadProjectDetails(project.id)}>
+                  <Card key={project.id} className="hover:shadow-lg transition-shadow" onClick={() => loadProjectDetails(project.id)}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <CardTitle className="text-lg">{project.name}</CardTitle>
                           <div className="flex items-center gap-2 mt-2">
                             <Badge variant="outline">{BRAND_NAMES[project.brand]}</Badge>
+                            <Badge variant="outline">{CATEGORY_NAMES[project.category]}</Badge>
                           </div>
                           <CardDescription className="mt-1">
                             {project.description || '暂无描述'}
                           </CardDescription>
                         </div>
-                        <Badge className={STATUS_COLORS[project.status]}>
-                          {STATUS_NAMES[project.status]}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className={STATUS_COLORS[project.status]}>
+                            {STATUS_NAMES[project.status]}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteConfirmProject(project);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500 hover:text-red-600" />
+                          </Button>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -1803,12 +1997,14 @@ export default function HomePage() {
         {/* 项目详情弹窗 */}
         {selectedProject && (
           <Dialog open={!!selectedProject} onOpenChange={() => setSelectedProject(null)}>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-2xl">{selectedProject.name}</DialogTitle>
                 <DialogDescription>
                   销售日期: {formatDateSafely(selectedProject.salesDate, 'yyyy年MM月dd日')} |
-                  项目确认: {formatDateSafely(selectedProject.projectConfirmDate, 'yyyy年MM月dd日')}
+                  项目确认: {formatDateSafely(selectedProject.projectConfirmDate, 'yyyy年MM月dd日')} |
+                  品牌: {BRAND_NAMES[selectedProject.brand]} |
+                  分类: {CATEGORY_NAMES[selectedProject.category]}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-6 mt-4">
@@ -1854,6 +2050,100 @@ export default function HomePage() {
             </DialogContent>
           </Dialog>
         )}
+
+        {/* 删除项目确认对话框 */}
+        <Dialog open={!!deleteConfirmProject} onOpenChange={(open) => !open && setDeleteConfirmProject(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>确认删除项目</DialogTitle>
+              <DialogDescription>
+                您确定要删除项目 "{deleteConfirmProject?.name}" 吗？此操作不可撤销，该项目的所有任务也将被删除。
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteConfirmProject(null)}
+              >
+                取消
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => deleteConfirmProject && handleDeleteProject(deleteConfirmProject.id)}
+              >
+                确认删除
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 创建销售目标对话框 */}
+        <Dialog open={isSalesTargetDialogOpen} onOpenChange={setIsSalesTargetDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>创建销售目标</DialogTitle>
+              <DialogDescription>
+                创建年度销售目标，系统将自动生成12个月的月度目标
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="year">年份 *</Label>
+                <Input
+                  id="year"
+                  type="number"
+                  value={newSalesTarget.year}
+                  onChange={(e) => setNewSalesTarget({ ...newSalesTarget, year: parseInt(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="brand">选择品牌 *</Label>
+                <select
+                  id="brand"
+                  value={newSalesTarget.brand}
+                  onChange={(e) => setNewSalesTarget({ ...newSalesTarget, brand: e.target.value as any })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">请选择品牌...</option>
+                  {Object.keys(BRAND_NAMES).map(key => {
+                    if (key === 'all') return null;
+                    return (
+                      <option key={key} value={key}>{BRAND_NAMES[key]}</option>
+                    );
+                  })}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="targetAmount">年度目标金额（万元） *</Label>
+                <Input
+                  id="targetAmount"
+                  type="number"
+                  value={newSalesTarget.targetAmount}
+                  onChange={(e) => setNewSalesTarget({ ...newSalesTarget, targetAmount: parseInt(e.target.value) })}
+                  placeholder="例如：1000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">描述</Label>
+                <Textarea
+                  id="description"
+                  value={newSalesTarget.description}
+                  onChange={(e) => setNewSalesTarget({ ...newSalesTarget, description: e.target.value })}
+                  placeholder="简要描述销售目标"
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setIsSalesTargetDialogOpen(false)} variant="outline">
+                取消
+              </Button>
+              <Button onClick={handleCreateSalesTarget} disabled={!newSalesTarget.year || !newSalesTarget.brand || !newSalesTarget.targetAmount}>
+                创建目标
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

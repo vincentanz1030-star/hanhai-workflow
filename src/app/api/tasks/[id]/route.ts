@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
+// 将蛇形命名转换为驼峰命名
+function toCamelCase(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(toCamelCase);
+  if (typeof obj !== 'object') return obj;
+
+  const newObj: any = {};
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      // 移除所有下划线，并将下划线后的字母大写
+      const camelKey = key.split('_').reduce((result, word, index) => {
+        if (index === 0) {
+          return word;
+        }
+        return result + word.charAt(0).toUpperCase() + word.slice(1);
+      }, '');
+      newObj[camelKey] = toCamelCase(obj[key]);
+    }
+  }
+  return newObj;
+}
+
 // 更新任务
 export async function PATCH(
   request: NextRequest,
@@ -119,7 +141,7 @@ export async function PATCH(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ task: data });
+    return NextResponse.json({ task: toCamelCase(data) });
   } catch (error) {
     console.error('服务器错误:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });

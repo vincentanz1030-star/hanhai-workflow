@@ -10,7 +10,13 @@ function toCamelCase(obj: any): any {
   const newObj: any = {};
   for (const key in obj) {
     if (obj.hasOwnProperty(key)) {
-      const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      // 移除所有下划线，并将下划线后的字母大写
+      const camelKey = key.split('_').reduce((result, word, index) => {
+        if (index === 0) {
+          return word;
+        }
+        return result + word.charAt(0).toUpperCase() + word.slice(1);
+      }, '');
       newObj[camelKey] = toCamelCase(obj[key]);
     }
   }

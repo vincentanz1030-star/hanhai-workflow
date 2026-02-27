@@ -28,6 +28,7 @@ interface Project {
   status: 'pending' | 'in_progress' | 'completed' | 'delayed';
   description: string | null;
   createdAt: string;
+  updatedAt: string | null;
   tasks?: Task[];
 }
 
@@ -49,8 +50,8 @@ interface Task {
   rating: number | null;
   reminderCount: number;
   lastReminderAt: string | null;
-  created_at: string;
-  updated_at: string | null;
+  createdAt: string;
+  updatedAt: string | null;
 }
 
 interface Feedback {

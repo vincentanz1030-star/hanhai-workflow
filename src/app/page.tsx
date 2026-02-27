@@ -521,7 +521,7 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
               onValueChange={handleProgressChange}
               max={100}
               step={5}
-              className="flex-1 min-w-0 max-w-[200px] sm:max-w-[300px]"
+              className="flex-1 min-w-0"
             />
             <div className="w-10 sm:w-12 text-right flex-shrink-0">
               <span className="text-xs sm:text-sm font-medium">{localProgress}%</span>
@@ -2274,29 +2274,27 @@ export default function HomePage() {
               </DialogHeader>
               <div className="flex-1 overflow-auto px-3 sm:px-4 py-2 sm:py-3">
                 <div 
-                  className="transition-transform duration-200 origin-top-left"
+                  className="transition-transform duration-200 origin-top-left w-full max-w-2xl sm:max-w-4xl lg:max-w-6xl mx-auto"
                   style={{ 
                     transform: `scale(${projectZoom / 100})`,
-                    minWidth: `${1400 * (projectZoom / 100)}px`,
-                    minHeight: `${800 * (projectZoom / 100)}px`
                   }}
                 >
-                  <div className="space-y-3 sm:space-y-4" style={{ width: '1400px' }}>
+                  <div className="space-y-3 sm:space-y-4 w-full">
                       {(CATEGORY_ROLES[selectedProject.category] || Object.keys(ROLE_NAMES)).map((role) => {
                         const roleTasks = (selectedProject.tasks || []).filter(t => t.role === role);
                         return (
-                        <Card key={role}>
-                          <CardHeader>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              <Users className="h-5 w-5" />
+                        <Card key={role} className="w-full">
+                          <CardHeader className="pb-2 sm:pb-3">
+                            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+                              <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                               {ROLE_NAMES[role]}
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
                             {roleTasks.length === 0 ? (
-                              <p className="text-sm text-muted-foreground">暂无任务</p>
-                        ) : (
-                          <div className="space-y-4">
+                              <p className="text-xs text-muted-foreground">暂无任务</p>
+                            ) : (
+                              <div className="space-y-2 sm:space-y-3">
                             {roleTasks.sort((a, b) => a.taskOrder - b.taskOrder).map((task) => (
                               <TaskCard
                                 key={task.id}

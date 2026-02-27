@@ -902,7 +902,7 @@ export default function HomePage() {
     setEditingSalesTarget(target);
 
     // 按月份去重月度目标
-    const uniqueMonthlyTargets = target.monthlyTargets?.reduce((acc: any[], current: any) => {
+    const uniqueMonthlyTargets = (target.monthlyTargets || []).reduce((acc: any[], current: any) => {
       const existingIndex = acc.findIndex(item => item.month === current.month);
       if (existingIndex === -1) {
         acc.push(current);
@@ -1359,45 +1359,71 @@ export default function HomePage() {
                           {target.monthlyTargets && target.monthlyTargets.length > 0 && (
                             <div className="mt-4 pt-4 border-t">
                               <h4 className="text-sm font-medium mb-3">月度目标和实际完成（可编辑实际完成额）</h4>
-                              <div className="border rounded-lg overflow-hidden">
-                                <div className="grid grid-cols-4 gap-2 bg-muted px-3 py-2 text-sm font-medium">
-                                  <div>月份</div>
-                                  <div>目标销售额（万元）</div>
-                                  <div>实际销售额（万元）</div>
-                                  <div>完成率</div>
-                                </div>
-                                {target.monthlyTargets.map((monthly) => {
-                                  const monthlyRate = monthly.targetAmount > 0
-                                    ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(1)
-                                    : '0.0';
-                                  const isComplete = parseFloat(monthlyRate) >= 100;
-                                  return (
-                                    <div key={monthly.id} className="grid grid-cols-4 gap-2 px-3 py-2 border-b last:border-b-0 items-center">
-                                      <div className="text-sm font-medium text-muted-foreground">
-                                        {monthly.month}月
-                                      </div>
-                                      <Input
-                                        type="number"
-                                        placeholder="目标"
-                                        value={monthly.targetAmount}
-                                        disabled
-                                        className="bg-muted text-xs h-8"
-                                      />
-                                      <Input
-                                        type="number"
-                                        placeholder="实际"
-                                        value={monthly.actualAmount}
-                                        onChange={(e) => handleUpdateMonthlyTarget(monthly.id, parseInt(e.target.value) || 0)}
-                                        className={`text-xs h-8 ${isComplete ? 'border-green-500' : ''}`}
-                                      />
-                                      <div className={`text-xs text-center p-1 rounded font-medium ${
-                                        isComplete ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                                      }`}>
-                                        {monthlyRate}%
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                              <div className="border rounded-lg overflow-x-auto">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="bg-muted">
+                                      <th className="px-3 py-2 text-left font-medium whitespace-nowrap">月份</th>
+                                      {target.monthlyTargets.map((monthly) => (
+                                        <th key={monthly.month} className="px-2 py-2 text-center font-medium whitespace-nowrap min-w-[50px]">
+                                          {monthly.month}月
+                                        </th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr className="border-b">
+                                      <td className="px-3 py-2 font-medium whitespace-nowrap">目标（万元）</td>
+                                      {target.monthlyTargets.map((monthly) => (
+                                        <td key={`target-${monthly.month}`} className="px-2 py-2 text-center">
+                                          <Input
+                                            type="number"
+                                            value={monthly.targetAmount}
+                                            disabled
+                                            className="bg-muted text-xs h-7 w-full text-center"
+                                          />
+                                        </td>
+                                      ))}
+                                    </tr>
+                                    <tr className="border-b">
+                                      <td className="px-3 py-2 font-medium whitespace-nowrap">实际（万元）</td>
+                                      {target.monthlyTargets.map((monthly) => {
+                                        const monthlyRate = monthly.targetAmount > 0
+                                          ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(1)
+                                          : '0.0';
+                                        const isComplete = parseFloat(monthlyRate) >= 100;
+                                        return (
+                                          <td key={`actual-${monthly.month}`} className="px-2 py-2 text-center">
+                                            <Input
+                                              type="number"
+                                              value={monthly.actualAmount}
+                                              onChange={(e) => handleUpdateMonthlyTarget(monthly.id, parseInt(e.target.value) || 0)}
+                                              className={`text-xs h-7 w-full text-center ${isComplete ? 'border-green-500' : ''}`}
+                                            />
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
+                                    <tr>
+                                      <td className="px-3 py-2 font-medium whitespace-nowrap">完成率</td>
+                                      {target.monthlyTargets.map((monthly) => {
+                                        const monthlyRate = monthly.targetAmount > 0
+                                          ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(1)
+                                          : '0.0';
+                                        const isComplete = parseFloat(monthlyRate) >= 100;
+                                        return (
+                                          <td key={`rate-${monthly.month}`} className="px-2 py-2 text-center">
+                                            <div className={`text-xs px-2 py-1 rounded font-medium ${
+                                              isComplete ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                                            }`}>
+                                              {monthlyRate}%
+                                            </div>
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
+                                  </tbody>
+                                </table>
                               </div>
                             </div>
                           )}
@@ -1892,7 +1918,7 @@ export default function HomePage() {
                               <div className="text-xs font-medium mb-2">最近任务:</div>
                               <div className="space-y-1">
                                 {roleTasks
-                                  .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
+                                  .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
                                   .slice(0, 2)
                                   .map(task => (
                                     <div key={task.id} className="flex items-center justify-between text-xs">
@@ -2120,55 +2146,56 @@ export default function HomePage() {
         {/* 项目详情弹窗 */}
         {selectedProject && (
           <Dialog open={!!selectedProject} onOpenChange={() => setSelectedProject(null)}>
-            <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-hidden p-0">
-              <div className="flex flex-col h-[95vh]">
-                <DialogHeader className="px-6 py-4 border-b shrink-0">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <DialogTitle className="text-2xl">{selectedProject.name}</DialogTitle>
-                      <DialogDescription>
-                        销售日期: {formatDateSafely(selectedProject.salesDate, 'yyyy年MM月dd日')} |
-                        项目确认: {formatDateSafely(selectedProject.projectConfirmDate, 'yyyy年MM月dd日')} |
-                        品牌: {BRAND_NAMES[selectedProject.brand]} |
-                        分类: {CATEGORY_NAMES[selectedProject.category]}
-                      </DialogDescription>
-                    </div>
-                    <div className="flex items-center gap-2 ml-4 shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setProjectZoom(Math.max(33, projectZoom - 10))}
-                        disabled={projectZoom <= 33}
-                      >
-                        缩小
-                      </Button>
-                      <span className="text-sm font-medium w-12 text-center">{projectZoom}%</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setProjectZoom(Math.min(200, projectZoom + 10))}
-                        disabled={projectZoom >= 200}
-                      >
-                        放大
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setProjectZoom(100)}
-                      >
-                        重置
-                      </Button>
-                    </div>
+            <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 overflow-hidden flex flex-col">
+              <DialogHeader className="px-6 py-4 border-b shrink-0">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <DialogTitle className="text-2xl truncate">{selectedProject.name}</DialogTitle>
+                    <DialogDescription className="text-xs whitespace-nowrap overflow-hidden text-ellipsis">
+                      销售日期: {formatDateSafely(selectedProject.salesDate, 'yyyy年MM月dd日')} |
+                      项目确认: {formatDateSafely(selectedProject.projectConfirmDate, 'yyyy年MM月dd日')} |
+                      品牌: {BRAND_NAMES[selectedProject.brand]} |
+                      分类: {CATEGORY_NAMES[selectedProject.category]}
+                    </DialogDescription>
                   </div>
-                </DialogHeader>
-                <div className="flex-1 overflow-auto px-6 py-4">
-                  <div 
-                    className="transition-transform duration-200 origin-top-left"
-                    style={{ 
-                      transform: `scale(${projectZoom / 100})`
-                    }}
-                  >
-                    <div className="space-y-6" style={{ width: '1800px' }}>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setProjectZoom(Math.max(50, projectZoom - 10))}
+                      disabled={projectZoom <= 50}
+                    >
+                      缩小
+                    </Button>
+                    <span className="text-sm font-medium w-12 text-center">{projectZoom}%</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setProjectZoom(Math.min(200, projectZoom + 10))}
+                      disabled={projectZoom >= 200}
+                    >
+                      放大
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setProjectZoom(100)}
+                    >
+                      重置
+                    </Button>
+                  </div>
+                </div>
+              </DialogHeader>
+              <div className="flex-1 overflow-auto px-6 py-4">
+                <div 
+                  className="transition-transform duration-200 origin-top-left"
+                  style={{ 
+                    transform: `scale(${projectZoom / 100})`,
+                    minWidth: `${1800 * (projectZoom / 100)}px`,
+                    minHeight: `${1000 * (projectZoom / 100)}px`
+                  }}
+                >
+                  <div className="space-y-6" style={{ width: '1800px' }}>
                       {(CATEGORY_ROLES[selectedProject.category] || Object.keys(ROLE_NAMES)).map((role) => {
                         const roleTasks = (selectedProject.tasks || []).filter(t => t.role === role);
                         return (
@@ -2210,7 +2237,6 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
-              </div>
             </DialogContent>
           </Dialog>
         )}

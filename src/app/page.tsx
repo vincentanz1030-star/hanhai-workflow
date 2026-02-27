@@ -2119,8 +2119,8 @@ export default function HomePage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setProjectZoom(Math.max(50, projectZoom - 10))}
-                        disabled={projectZoom <= 50}
+                        onClick={() => setProjectZoom(Math.max(33, projectZoom - 10))}
+                        disabled={projectZoom <= 33}
                       >
                         缩小
                       </Button>
@@ -2128,8 +2128,8 @@ export default function HomePage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setProjectZoom(Math.min(150, projectZoom + 10))}
-                        disabled={projectZoom >= 150}
+                        onClick={() => setProjectZoom(Math.min(200, projectZoom + 10))}
+                        disabled={projectZoom >= 200}
                       >
                         放大
                       </Button>
@@ -2150,7 +2150,7 @@ export default function HomePage() {
                       transform: `scale(${projectZoom / 100})`
                     }}
                   >
-                    <div className="space-y-6" style={{ width: '3000px' }}>
+                    <div className="space-y-6" style={{ width: '1800px' }}>
                       {(CATEGORY_ROLES[selectedProject.category] || Object.keys(ROLE_NAMES)).map((role) => {
                         const roleTasks = (selectedProject.tasks || []).filter(t => t.role === role);
                         return (

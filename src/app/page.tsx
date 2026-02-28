@@ -836,6 +836,118 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
   );
 }
 
+// 组织架构树节点组件
+function OrgTreeNode({
+  category,
+  level,
+  onEdit,
+  onDelete,
+  onAddChild,
+}: {
+  category: ProductCategory;
+  level: number;
+  onEdit: (category: ProductCategory) => void;
+  onDelete: (id: string) => void;
+  onAddChild: (parentId: string) => void;
+}) {
+  const hasChildren = category.children && category.children.length > 0;
+  const canAddMore = level < 4;
+
+  const levelColors: Record<number, string> = {
+    1: 'bg-blue-500 text-white',
+    2: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    3: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
+    4: 'bg-gray-50 text-gray-600 dark:bg-gray-900/20 dark:text-gray-500',
+  };
+
+  return (
+    <div className="flex flex-col">
+      {/* 当前节点 */}
+      <div
+        className={`
+          relative flex items-center gap-3 px-4 py-3 rounded-lg border-2
+          transition-all hover:shadow-md
+          ${levelColors[level]}
+          border-current
+        `}
+        style={{ marginLeft: `${(level - 1) * 40}px` }}
+      >
+        {/* 连接线 */}
+        {level > 1 && (
+          <div className="absolute left-[-20px] top-1/2 w-[20px] h-[2px] bg-current opacity-30" />
+        )}
+
+        {/* 品类图标 */}
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/20">
+          <FolderOpen className="h-4 w-4" />
+        </div>
+
+        {/* 品类信息 */}
+        <div className="flex-1 min-w-0">
+          <div className="font-medium truncate">{category.name}</div>
+          {category.code && (
+            <div className="text-xs opacity-70 truncate">{category.code}</div>
+          )}
+        </div>
+
+        {/* 操作按钮 */}
+        <div className="flex items-center gap-1">
+          {canAddMore && (
+            <button
+              onClick={() => onAddChild(category.id)}
+              className="flex items-center justify-center w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+              title="添加子品类"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            onClick={() => onEdit(category)}
+            className="p-1.5 rounded hover:bg-white/20 transition-colors"
+            title="编辑"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => {
+              if (confirm('确定要删除这个品类吗？')) {
+                onDelete(category.id);
+              }
+            }}
+            className="p-1.5 rounded hover:bg-red-500/20 transition-colors text-red-500"
+            title="删除"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* 子节点 */}
+      {hasChildren && (
+        <div className="relative flex flex-col">
+          {/* 垂直连接线 */}
+          <div
+            className="absolute left-[20px] top-0 w-[2px] bg-current opacity-20"
+            style={{
+              height: `${category.children!.length * 50}px`,
+            }}
+          />
+          {category.children!.map(child => (
+            <OrgTreeNode
+              key={child.id}
+              category={child}
+              level={level + 1}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onAddChild={onAddChild}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function HomePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -891,7 +1003,6 @@ export default function HomePage() {
     description: '',
     sortOrder: 0,
   });
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   // 本周工作安排相关状态
   const [weeklyWorkPlans, setWeeklyWorkPlans] = useState<WeeklyWorkPlan[]>([]);
@@ -2610,25 +2721,35 @@ export default function HomePage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="p-4 bg-muted/30 rounded-lg min-h-[200px]">
-                      <MindMapTree
-                        categories={categoryTree}
-                        onEdit={handleEditCategory}
-                        onDelete={handleDeleteProductCategory}
-                        expandedCategories={expandedCategories}
-                        onToggleExpand={(id) => {
-                          const newExpanded = new Set(expandedCategories);
-                          if (newExpanded.has(id)) {
-                            newExpanded.delete(id);
-                          } else {
-                            newExpanded.add(id);
-                          }
-                          setExpandedCategories(newExpanded);
-                        }}
-                      />
-                      {brandCategories.length === 0 && (
+                    <div className="p-6 bg-muted/30 rounded-lg min-h-[300px]">
+                      {categoryTree.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground">
                           暂无品类数据，请点击上方"新增品类"按钮添加
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-6">
+                          {categoryTree.map(category => (
+                            <OrgTreeNode
+                              key={category.id}
+                              category={category}
+                              level={1}
+                              onEdit={handleEditCategory}
+                              onDelete={handleDeleteProductCategory}
+                              onAddChild={(parentId) => {
+                                setEditingProductCategory(null);
+                                setNewProductCategory({
+                                  brand: brandKey as any,
+                                  level: 2,
+                                  parentId,
+                                  name: '',
+                                  code: '',
+                                  description: '',
+                                  sortOrder: 0,
+                                });
+                                setIsProductCategoryDialogOpen(true);
+                              }}
+                            />
+                          ))}
                         </div>
                       )}
                     </div>
@@ -3222,283 +3343,95 @@ export default function HomePage() {
         </Dialog>
 
         {/* 创建/编辑本周工作安排对话框 */}
-        <WeeklyWorkPlanDialog
-          isOpen={isWeeklyWorkPlanDialogOpen}
-          onClose={() => {
-            setIsWeeklyWorkPlanDialogOpen(false);
-            setEditingWeeklyWorkPlan(null);
-            setNewWeeklyWorkPlan({
-              brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
-              weekStart: '',
-              weekEnd: '',
-              content: '',
-              priority: 'normal',
-            });
-          }}
-          onSave={handleCreateOrUpdateWeeklyWorkPlan}
-          editingPlan={editingWeeklyWorkPlan}
-          newPlan={newWeeklyWorkPlan}
-          setNewPlan={setNewWeeklyWorkPlan}
-        />
+        <Dialog open={isWeeklyWorkPlanDialogOpen} onOpenChange={setIsWeeklyWorkPlanDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{editingWeeklyWorkPlan ? '编辑工作安排' : '新增工作安排'}</DialogTitle>
+              <DialogDescription>
+                {editingWeeklyWorkPlan ? '编辑本周工作安排内容' : '添加本周工作重点'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>品牌 *</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={newWeeklyWorkPlan.brand}
+                  onChange={(e) => setNewWeeklyWorkPlan({ ...newWeeklyWorkPlan, brand: e.target.value as any })}
+                >
+                  <option value="">选择品牌</option>
+                  <option value="he_zhe">禾哲</option>
+                  <option value="baobao">BAOBAO</option>
+                  <option value="ai_he">爱禾</option>
+                  <option value="bao_deng_yuan">宝登源</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>周开始日期</Label>
+                  <Input
+                    type="date"
+                    value={newWeeklyWorkPlan.weekStart}
+                    onChange={(e) => setNewWeeklyWorkPlan({ ...newWeeklyWorkPlan, weekStart: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>周结束日期</Label>
+                  <Input
+                    type="date"
+                    value={newWeeklyWorkPlan.weekEnd}
+                    onChange={(e) => setNewWeeklyWorkPlan({ ...newWeeklyWorkPlan, weekEnd: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>优先级 *</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={newWeeklyWorkPlan.priority}
+                  onChange={(e) => setNewWeeklyWorkPlan({ ...newWeeklyWorkPlan, priority: e.target.value as any })}
+                >
+                  <option value="urgent">🔴 紧急</option>
+                  <option value="important">🟠 重要</option>
+                  <option value="normal">⚪ 一般</option>
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <Label>工作内容 *</Label>
+                <Textarea
+                  value={newWeeklyWorkPlan.content}
+                  onChange={(e) => setNewWeeklyWorkPlan({ ...newWeeklyWorkPlan, content: e.target.value })}
+                  placeholder="请输入本周工作重点和安排"
+                  rows={6}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsWeeklyWorkPlanDialogOpen(false);
+                  setEditingWeeklyWorkPlan(null);
+                  setNewWeeklyWorkPlan({
+                    brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
+                    weekStart: '',
+                    weekEnd: '',
+                    content: '',
+                    priority: 'normal',
+                  });
+                }}
+              >
+                取消
+              </Button>
+              <Button onClick={handleCreateOrUpdateWeeklyWorkPlan}>
+                {editingWeeklyWorkPlan ? '更新' : '创建'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
 }
 
-// 思维导图树形组件
-function MindMapTree({
-  categories,
-  onEdit,
-  onDelete,
-  expandedCategories,
-  onToggleExpand,
-}: {
-  categories: ProductCategory[];
-  onEdit: (category: ProductCategory) => void;
-  onDelete: (id: string) => void;
-  expandedCategories: Set<string>;
-  onToggleExpand: (id: string) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      {categories.map(category => (
-        <MindMapNode
-          key={category.id}
-          category={category}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          expandedCategories={expandedCategories}
-          onToggleExpand={onToggleExpand}
-        />
-      ))}
-    </div>
-  );
-}
 
-// 思维导图节点组件
-function MindMapNode({
-  category,
-  onEdit,
-  onDelete,
-  expandedCategories,
-  onToggleExpand,
-}: {
-  category: ProductCategory;
-  onEdit: (category: ProductCategory) => void;
-  onDelete: (id: string) => void;
-  expandedCategories: Set<string>;
-  onToggleExpand: (id: string) => void;
-}) {
-  const hasChildren = category.children && category.children.length > 0;
-  const isExpanded = expandedCategories.has(category.id);
-
-  return (
-    <div className="relative">
-      {/* 垂直连接线 */}
-      {category.level > 1 && (
-        <div className="absolute left-0 top-0 w-[2px] h-full bg-gradient-to-b from-transparent via-border to-transparent" style={{ left: `${(category.level - 1.5) * 40}px` }} />
-      )}
-
-      {/* 节点卡片 */}
-      <div
-        className={`
-          relative flex items-center gap-3 px-4 py-3 rounded-xl border-2
-          transition-all hover:shadow-lg hover:scale-[1.02] cursor-pointer
-          ${category.level === 1 ? 'bg-gradient-to-r from-primary to-primary/80 text-primary-foreground border-primary shadow-lg' : ''}
-          ${category.level === 2 ? 'bg-card border-primary shadow-md hover:border-primary' : ''}
-          ${category.level === 3 ? 'bg-card border-muted-foreground/50 hover:border-muted-foreground' : ''}
-          ${category.level === 4 ? 'bg-card border-dashed border-muted hover:border-muted-foreground/50' : ''}
-        `}
-        style={{ marginLeft: `${(category.level - 1) * 30}px` }}
-      >
-        {/* 展开/折叠按钮 */}
-        {hasChildren && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleExpand(category.id);
-            }}
-            className="flex items-center justify-center w-7 h-7 rounded-full bg-background hover:bg-muted transition-colors shadow-sm border"
-          >
-            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </button>
-        )}
-
-        {/* 品类图标 */}
-        <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${category.level === 1 ? 'bg-white/20' : 'bg-muted'}`}>
-          <FolderOpen className={`h-4 w-4 ${category.level === 1 ? 'text-white' : 'text-muted-foreground'}`} />
-        </div>
-
-        {/* 品类信息 */}
-        <div className="flex-1 min-w-0">
-          <div className={`font-medium truncate ${category.level === 1 ? 'text-lg' : 'text-sm'}`}>
-            {category.name}
-          </div>
-          {category.code && (
-            <div className={`text-xs opacity-70 truncate ${category.level === 1 ? 'text-white/80' : 'text-muted-foreground'}`}>
-              编码: {category.code}
-            </div>
-          )}
-        </div>
-
-        {/* 级别标签 */}
-        <div className={`text-xs px-2.5 py-1 rounded-full font-medium ${category.level === 1 ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'}`}>
-          L{category.level}
-        </div>
-
-        {/* 操作按钮 */}
-        <div className="flex items-center gap-1 ml-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(category);
-            }}
-            className="p-2 rounded-lg hover:bg-background/20 transition-colors"
-            title="编辑"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (confirm('确定要删除这个品类吗？')) {
-                onDelete(category.id);
-              }
-            }}
-            className="p-2 rounded-lg hover:bg-red-500/20 transition-colors text-red-500"
-            title="删除"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* 子节点 */}
-      {hasChildren && isExpanded && (
-        <div className="mt-3 space-y-3">
-          {category.children!.map(child => (
-            <MindMapNode
-              key={child.id}
-              category={child}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              expandedCategories={expandedCategories}
-              onToggleExpand={onToggleExpand}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// 创建/编辑本周工作安排对话框
-function WeeklyWorkPlanDialog({
-  isOpen,
-  onClose,
-  onSave,
-  editingPlan,
-  newPlan,
-  setNewPlan,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: () => void;
-  editingPlan: WeeklyWorkPlan | null;
-  newPlan: {
-    brand: 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan';
-    weekStart: string;
-    weekEnd: string;
-    content: string;
-    priority: 'urgent' | 'important' | 'normal';
-  };
-  setNewPlan: React.Dispatch<React.SetStateAction<typeof newPlan>>;
-}) {
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{editingPlan ? '编辑工作安排' : '新增工作安排'}</DialogTitle>
-          <DialogDescription>
-            {editingPlan ? '编辑本周工作安排内容' : '添加本周工作重点'}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label>品牌 *</Label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={newPlan.brand}
-              onChange={(e) => setNewPlan({ ...newPlan, brand: e.target.value as any })}
-            >
-              <option value="">选择品牌</option>
-              <option value="he_zhe">禾哲</option>
-              <option value="baobao">BAOBAO</option>
-              <option value="ai_he">爱禾</option>
-              <option value="bao_deng_yuan">宝登源</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label>周开始日期</Label>
-              <Input
-                type="date"
-                value={newPlan.weekStart}
-                onChange={(e) => setNewPlan({ ...newPlan, weekStart: e.target.value })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>周结束日期</Label>
-              <Input
-                type="date"
-                value={newPlan.weekEnd}
-                onChange={(e) => setNewPlan({ ...newPlan, weekEnd: e.target.value })}
-              />
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <Label>优先级 *</Label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={newPlan.priority}
-              onChange={(e) => setNewPlan({ ...newPlan, priority: e.target.value as any })}
-            >
-              <option value="urgent">🔴 紧急</option>
-              <option value="important">🟠 重要</option>
-              <option value="normal">⚪ 一般</option>
-            </select>
-          </div>
-          <div className="grid gap-2">
-            <Label>工作内容 *</Label>
-            <Textarea
-              value={newPlan.content}
-              onChange={(e) => setNewPlan({ ...newPlan, content: e.target.value })}
-              placeholder="请输入本周工作重点和安排"
-              rows={6}
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => {
-              onClose();
-              setNewPlan({
-                brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
-                weekStart: '',
-                weekEnd: '',
-                content: '',
-                priority: 'normal',
-              });
-            }}
-          >
-            取消
-          </Button>
-          <Button onClick={onSave}>
-            {editingPlan ? '更新' : '创建'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}

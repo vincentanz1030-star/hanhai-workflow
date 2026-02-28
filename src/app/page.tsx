@@ -2828,7 +2828,7 @@ export default function HomePage() {
                           暂无品类数据，请点击上方"新增品类"按钮添加
                         </div>
                       ) : (
-                        <div className="flex flex-col gap-6">
+                        <div className="flex flex-col items-start gap-6">
                           {categoryTree.map(category => (
                             <OrgTreeNode
                               key={category.id}

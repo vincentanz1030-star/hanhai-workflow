@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, Users, CheckCircle, AlertCircle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil, LogOut, User, Shield } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, AlertCircle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil, LogOut, User, Shield, Loader2 } from 'lucide-react';
 import { format, differenceInDays, isBefore, isAfter, isToday } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Slider } from '@/components/ui/slider';
@@ -1018,6 +1018,8 @@ export default function HomePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [createProjectError, setCreateProjectError] = useState('');
   const [newProject, setNewProject] = useState({
     name: '',
     brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan' | 'all',
@@ -1478,9 +1480,13 @@ export default function HomePage() {
   // 创建项目
   const handleCreateProject = async () => {
     try {
+      setIsCreatingProject(true);
+      setCreateProjectError('');
+      
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(newProject),
       });
 
@@ -1494,9 +1500,15 @@ export default function HomePage() {
           description: '' 
         });
         loadProjects();
+      } else {
+        const data = await response.json();
+        setCreateProjectError(data.error || '创建项目失败，请重试');
       }
     } catch (error) {
       console.error('创建项目失败:', error);
+      setCreateProjectError('网络错误，请检查连接后重试');
+    } finally {
+      setIsCreatingProject(false);
     }
   };
 
@@ -1920,7 +1932,12 @@ export default function HomePage() {
                   </Button>
                 </Link>
               )}
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+                setIsCreateDialogOpen(open);
+                if (!open) {
+                  setCreateProjectError('');
+                }
+              }}>
                 <Button
                   className="gap-2 h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full sm:w-auto"
                   onClick={() => setIsCreateDialogOpen(true)}
@@ -1933,6 +1950,11 @@ export default function HomePage() {
                   <DialogTitle className="text-base sm:text-lg">创建新项目</DialogTitle>
                   <DialogDescription className="text-xs sm:text-sm">填写项目信息，系统将自动生成各岗位任务</DialogDescription>
                 </DialogHeader>
+                {createProjectError && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-md text-xs sm:text-sm">
+                    {createProjectError}
+                  </div>
+                )}
                 <div className="space-y-3 sm:space-y-4 py-3 sm:py-4 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
                   <div className="space-y-2">
                     <Label htmlFor="brand" className="text-xs sm:text-sm">选择品牌 *</Label>
@@ -1999,8 +2021,25 @@ export default function HomePage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleCreateProject} disabled={!newProject.name || !newProject.salesDate || !newProject.brand || !newProject.category} className="h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full">
-                    创建项目
+                  <Button 
+                    onClick={handleCreateProject} 
+                    disabled={
+                      !newProject.name || 
+                      !newProject.salesDate || 
+                      !newProject.brand || 
+                      !newProject.category || 
+                      isCreatingProject
+                    } 
+                    className="h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full"
+                  >
+                    {isCreatingProject ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        创建中...
+                      </>
+                    ) : (
+                      '创建项目'
+                    )}
                   </Button>
                 </DialogFooter>
               </DialogContent>

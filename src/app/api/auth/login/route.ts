@@ -8,8 +8,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, password } = body;
 
+    console.log('[登录API] 尝试登录:', email);
+
     // 验证必填字段
     if (!email || !password) {
+      console.log('[登录API] 缺少必填字段');
       return NextResponse.json(
         { error: '缺少必填字段' },
         { status: 400 }
@@ -19,21 +22,34 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseClient();
 
     // 查询用户
+    console.log('[登录API] 查询用户...');
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
       .eq('email', email)
       .single();
 
-    if (error || !user) {
+    if (error) {
+      console.error('[登录API] 查询用户失败:', error.message);
       return NextResponse.json(
         { error: '邮箱或密码错误' },
         { status: 401 }
       );
     }
 
+    if (!user) {
+      console.log('[登录API] 用户不存在');
+      return NextResponse.json(
+        { error: '邮箱或密码错误' },
+        { status: 401 }
+      );
+    }
+
+    console.log('[登录API] 用户查询成功:', user.email, user.is_active, user.status);
+
     // 检查用户是否启用
     if (!user.is_active) {
+      console.log('[登录API] 用户未激活:', user.status);
       if (user.status === 'pending') {
         return NextResponse.json(
           { error: '账号正在审核中，请耐心等待' },
@@ -57,7 +73,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证密码
+    console.log('[登录API] 验证密码...');
     const isPasswordValid = await verifyPassword(password, user.password_hash);
+    console.log('[登录API] 密码验证结果:', isPasswordValid);
+
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: '邮箱或密码错误' },
@@ -65,10 +84,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('[登录API] 密码验证通过');
+
     // 获取用户主角色
     const primaryRole = await getPrimaryRole(user.id);
+    console.log('[登录API] 用户角色:', primaryRole);
 
     // 生成Token
+    console.log('[登录API] 生成Token...');
     const token = generateToken({
       userId: user.id,
       email: user.email,
@@ -97,9 +120,10 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
+    console.log('[登录API] 登录成功');
     return response;
   } catch (error) {
-    console.error('登录错误:', error);
+    console.error('[登录API] 登录错误:', error);
     return NextResponse.json(
       { error: '服务器错误' },
       { status: 500 }

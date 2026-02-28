@@ -110,6 +110,18 @@ interface ProductCategory {
   children?: ProductCategory[]; // 子品类（前端计算）
 }
 
+// 本周工作安排接口
+interface WeeklyWorkPlan {
+  id: string;
+  brand: 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan';
+  weekStart: string; // 本周开始日期
+  weekEnd: string; // 本周结束日期
+  content: string; // 工作内容
+  priority: 'urgent' | 'important' | 'normal'; // 优先级
+  createdAt: string;
+  updatedAt: string | null;
+}
+
 // 品类树组件
 interface CategoryTreeProps {
   category: ProductCategory;
@@ -881,6 +893,18 @@ export default function HomePage() {
   });
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
+  // 本周工作安排相关状态
+  const [weeklyWorkPlans, setWeeklyWorkPlans] = useState<WeeklyWorkPlan[]>([]);
+  const [isWeeklyWorkPlanDialogOpen, setIsWeeklyWorkPlanDialogOpen] = useState(false);
+  const [editingWeeklyWorkPlan, setEditingWeeklyWorkPlan] = useState<WeeklyWorkPlan | null>(null);
+  const [newWeeklyWorkPlan, setNewWeeklyWorkPlan] = useState({
+    brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
+    weekStart: '',
+    weekEnd: '',
+    content: '',
+    priority: 'normal' as 'urgent' | 'important' | 'normal',
+  });
+
   // 构建树形结构
   const buildCategoryTree = (categories: ProductCategory[]): ProductCategory[] => {
     const map = new Map<string, ProductCategory>();
@@ -943,6 +967,26 @@ export default function HomePage() {
       setProductCategories(data.categories || []);
     } catch (error) {
       console.error('加载产品开发框架失败:', error);
+    }
+  };
+
+  // 加载本周工作安排
+  const loadWeeklyWorkPlans = async () => {
+    try {
+      const now = new Date();
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay() + 1); // 周一
+      const weekStartStr = weekStart.toISOString().split('T')[0];
+      
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6); // 周日
+      const weekEndStr = weekEnd.toISOString().split('T')[0];
+
+      const response = await fetch(`/api/weekly-work-plans?brand=${brandFilter}&weekStart=${weekStartStr}&weekEnd=${weekEndStr}`);
+      const data = await response.json();
+      setWeeklyWorkPlans(data.plans || []);
+    } catch (error) {
+      console.error('加载本周工作安排失败:', error);
     }
   };
 
@@ -1037,6 +1081,81 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('删除产品品类失败:', error);
+    }
+  };
+
+  // 创建或更新本周工作安排
+  const handleCreateOrUpdateWeeklyWorkPlan = async () => {
+    try {
+      const now = new Date();
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay() + 1); // 周一
+      const weekStartStr = weekStart.toISOString().split('T')[0];
+      
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6); // 周日
+      const weekEndStr = weekEnd.toISOString().split('T')[0];
+
+      const url = editingWeeklyWorkPlan
+        ? `/api/weekly-work-plans/${editingWeeklyWorkPlan.id}`
+        : '/api/weekly-work-plans';
+
+      const response = await fetch(url, {
+        method: editingWeeklyWorkPlan ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newWeeklyWorkPlan,
+          weekStart: newWeeklyWorkPlan.weekStart || weekStartStr,
+          weekEnd: newWeeklyWorkPlan.weekEnd || weekEndStr,
+        }),
+      });
+
+      if (response.ok) {
+        setIsWeeklyWorkPlanDialogOpen(false);
+        setEditingWeeklyWorkPlan(null);
+        setNewWeeklyWorkPlan({
+          brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
+          weekStart: '',
+          weekEnd: '',
+          content: '',
+          priority: 'normal',
+        });
+        loadWeeklyWorkPlans();
+      } else {
+        const data = await response.json();
+        alert(data.error || '操作失败');
+      }
+    } catch (error) {
+      console.error('保存本周工作安排失败:', error);
+      alert('保存失败，请重试');
+    }
+  };
+
+  // 编辑本周工作安排
+  const handleEditWeeklyWorkPlan = (plan: WeeklyWorkPlan) => {
+    setEditingWeeklyWorkPlan(plan);
+    setNewWeeklyWorkPlan({
+      brand: plan.brand,
+      weekStart: plan.weekStart,
+      weekEnd: plan.weekEnd,
+      content: plan.content,
+      priority: plan.priority,
+    });
+    setIsWeeklyWorkPlanDialogOpen(true);
+  };
+
+  // 删除本周工作安排
+  const handleDeleteWeeklyWorkPlan = async (id: string) => {
+    try {
+      const response = await fetch(`/api/weekly-work-plans/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        loadWeeklyWorkPlans();
+      }
+    } catch (error) {
+      console.error('删除本周工作安排失败:', error);
     }
   };
 
@@ -1386,10 +1505,15 @@ export default function HomePage() {
     loadProjects();
     loadFeedback();
     loadSalesTargets();
+    loadWeeklyWorkPlans();
   }, []);
 
   useEffect(() => {
     loadProductCategories(brandFilter);
+  }, [brandFilter]);
+
+  useEffect(() => {
+    loadWeeklyWorkPlans();
   }, [brandFilter]);
 
   if (loading) {
@@ -1743,185 +1867,91 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
-            {/* 本周产品销售安排 */}
+            {/* 本周工作安排 */}
             <Card>
               <CardHeader>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <div>
-                    <CardTitle className="text-lg sm:text-xl">本周产品销售安排</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">本周需要重点关注的销售项目和关键任务</CardDescription>
+                    <CardTitle className="text-lg sm:text-xl">本周工作安排</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">本周重点工作和优先级安排</CardDescription>
                   </div>
-                  <Badge className="bg-blue-500 w-full sm:w-auto justify-center">
-                    {(() => {
-                      const now = new Date();
-                      const weekStart = new Date(now);
-                      weekStart.setDate(now.getDate() - now.getDay() + 1); // 周一
-                      const weekEnd = new Date(weekStart);
-                      weekEnd.setDate(weekStart.getDate() + 6); // 周日
-                      const formatDate = (d: Date) => `${d.getMonth() + 1}月${d.getDate()}日`;
-                      return `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
-                    })()}
-                  </Badge>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Badge className="bg-blue-500 w-full sm:w-auto justify-center">
+                      {(() => {
+                        const now = new Date();
+                        const weekStart = new Date(now);
+                        weekStart.setDate(now.getDate() - now.getDay() + 1); // 周一
+                        const weekEnd = new Date(weekStart);
+                        weekEnd.setDate(weekStart.getDate() + 6); // 周日
+                        const formatDate = (d: Date) => `${d.getMonth() + 1}月${d.getDate()}日`;
+                        return `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
+                      })()}
+                    </Badge>
+                    <Button onClick={() => setIsWeeklyWorkPlanDialogOpen(true)} size="sm" className="w-full sm:w-auto">
+                      <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      新增工作
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
-                {(() => {
-                  const now = new Date();
-                  const weekStart = new Date(now);
-                  weekStart.setDate(now.getDate() - now.getDay() + 1);
-                  weekStart.setHours(0, 0, 0, 0);
-                  const weekEnd = new Date(weekStart);
-                  weekEnd.setDate(weekStart.getDate() + 6);
-                  weekEnd.setHours(23, 59, 59, 999);
-
-                  // 获取本周的销售项目（销售日期在本周内）
-                  const weekProjects = projects.filter(p => {
-                    if (brandFilter !== 'all' && p.brand !== brandFilter) return false;
-                    const salesDate = new Date(p.salesDate);
-                    return salesDate >= weekStart && salesDate <= weekEnd;
-                  });
-
-                  // 获取本月的项目（作为补充显示）
-                  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-                  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                  monthEnd.setHours(23, 59, 59, 999);
-
-                  const monthProjects = projects.filter(p => {
-                    if (brandFilter !== 'all' && p.brand !== brandFilter) return false;
-                    const salesDate = new Date(p.salesDate);
-                    return salesDate >= monthStart && salesDate <= monthEnd;
-                  });
-
-                  const displayProjects = weekProjects.length > 0 ? weekProjects : monthProjects;
-
-                  if (displayProjects.length === 0) {
-                    return (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p className="text-sm">本周暂无销售安排</p>
-                        <p className="text-xs mt-2">请查看项目列表或创建新的项目</p>
-                      </div>
-                    );
-                  }
-
-                  // 按品牌分组
-                  const groupedByBrand = displayProjects.reduce((acc, project) => {
-                    if (!acc[project.brand]) {
-                      acc[project.brand] = [];
-                    }
-                    acc[project.brand].push(project);
-                    return acc;
-                  }, {} as Record<string, typeof displayProjects>);
-
-                  return (
-                    <div className="space-y-6">
-                      {Object.entries(groupedByBrand).map(([brand, brandProjects]) => (
-                        <div key={brand} className="space-y-3">
-                          <div className="flex items-center gap-2 pb-2 border-b">
-                            <Badge variant="outline" className="text-xs font-medium px-3 py-1">
-                              {BRAND_NAMES[brand as keyof typeof BRAND_NAMES]}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {weekProjects.length > 0 ? '本周销售' : '本月销售'} · {brandProjects.length}个项目
-                            </span>
-                          </div>
-                          
-                          <div className="space-y-3">
-                            {brandProjects.map(project => {
-                              const projectTasks = project.tasks || [];
-                              const overallProgress = projectTasks.length > 0
-                                ? Math.round(projectTasks.reduce((sum, t) => sum + t.progress, 0) / projectTasks.length)
-                                : 0;
-                              
-                              // 找出进度较低或催促次数较多的任务
-                              const urgentTasks = projectTasks
-                                .filter(t => t.progress < 80 || (t.reminderCount && t.reminderCount > 0))
-                                .sort((a, b) => a.progress - b.progress)
-                                .slice(0, 5);
-
-                              // 计算距离销售日期的天数
-                              const salesDate = new Date(project.salesDate);
-                              const daysToSales = Math.ceil((salesDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                              
-                              let urgencyColor = 'text-muted-foreground';
-                              let urgencyBg = 'bg-muted';
-                              if (daysToSales <= 3) {
-                                urgencyColor = 'text-red-600';
-                                urgencyBg = 'bg-red-50 dark:bg-red-900/20';
-                              } else if (daysToSales <= 7) {
-                                urgencyColor = 'text-orange-600';
-                                urgencyBg = 'bg-orange-50 dark:bg-orange-900/20';
-                              }
-
-                              return (
-                                <div
-                                  key={project.id}
-                                  className={`
-                                    border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer
-                                    ${daysToSales <= 3 ? 'border-red-300 dark:border-red-800' : ''}
-                                    ${daysToSales <= 7 && daysToSales > 3 ? 'border-orange-300 dark:border-orange-800' : ''}
-                                  `}
-                                  onClick={() => {
-                                    loadProjectDetails(project.id);
-                                    setSelectedProject(project);
-                                  }}
-                                >
-                                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <h4 className="font-semibold text-base">{project.name}</h4>
-                                        <span className={`text-xs px-2 py-0.5 rounded-full ${urgencyBg} ${urgencyColor} font-medium`}>
-                                          {daysToSales <= 0 ? '今日销售' : daysToSales === 1 ? '明天销售' : `${daysToSales}天后销售`}
-                                        </span>
-                                      </div>
-                                      <div className="text-xs text-muted-foreground">
-                                        销售日期: {format(project.salesDate, 'yyyy-MM-dd', { locale: zhCN })}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                      <div className="text-right">
-                                        <div className="text-lg font-bold">{overallProgress}%</div>
-                                        <div className="text-xs text-muted-foreground">整体进度</div>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <Progress value={overallProgress} className="h-2 mb-3" />
-
-                                  {/* 关键任务提醒 */}
-                                  {urgentTasks.length > 0 && (
-                                    <div className="mt-3 pt-3 border-t">
-                                      <div className="text-xs font-medium text-muted-foreground mb-2">
-                                        ⚠️ 需要关注的岗位
-                                      </div>
-                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                        {urgentTasks.map(task => {
-                                          const isUrgent = task.progress < 50 || (task.reminderCount && task.reminderCount >= 3);
-                                          return (
-                                            <div
-                                              key={task.id}
-                                              className={`
-                                                text-xs px-2 py-1.5 rounded-md text-center font-medium
-                                                ${isUrgent ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'}
-                                              `}
-                                            >
-                                              {ROLE_NAMES[task.role]}
-                                              <span className="ml-1 opacity-75">{task.progress}%</span>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  )}
+                {weeklyWorkPlans.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-sm">本周暂无工作安排</p>
+                    <p className="text-xs mt-2">点击上方按钮添加工作重点</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {weeklyWorkPlans
+                      .filter(plan => brandFilter === 'all' || plan.brand === brandFilter)
+                      .sort((a, b) => {
+                        const priorityOrder = { urgent: 0, important: 1, normal: 2 };
+                        return priorityOrder[a.priority] - priorityOrder[b.priority];
+                      })
+                      .map(plan => {
+                        const priorityConfig = {
+                          urgent: { label: '紧急', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', border: 'border-red-300 dark:border-red-800' },
+                          important: { label: '重要', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', border: 'border-orange-300 dark:border-orange-800' },
+                          normal: { label: '一般', color: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400', border: 'border-gray-300 dark:border-gray-700' },
+                        };
+                        const config = priorityConfig[plan.priority];
+                        
+                        return (
+                          <div
+                            key={plan.id}
+                            className={`border-2 ${config.border} rounded-lg p-4 hover:shadow-md transition-all`}
+                          >
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Badge className={config.color}>{config.label}</Badge>
+                                  <Badge variant="outline">{BRAND_NAMES[plan.brand]}</Badge>
                                 </div>
-                              );
-                            })}
+                                <div className="text-sm whitespace-pre-wrap">{plan.content}</div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditWeeklyWorkPlan(plan)}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteWeeklyWorkPlan(plan.id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
+                        );
+                      })}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -3190,6 +3220,26 @@ export default function HomePage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* 创建/编辑本周工作安排对话框 */}
+        <WeeklyWorkPlanDialog
+          isOpen={isWeeklyWorkPlanDialogOpen}
+          onClose={() => {
+            setIsWeeklyWorkPlanDialogOpen(false);
+            setEditingWeeklyWorkPlan(null);
+            setNewWeeklyWorkPlan({
+              brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
+              weekStart: '',
+              weekEnd: '',
+              content: '',
+              priority: 'normal',
+            });
+          }}
+          onSave={handleCreateOrUpdateWeeklyWorkPlan}
+          editingPlan={editingWeeklyWorkPlan}
+          newPlan={newWeeklyWorkPlan}
+          setNewPlan={setNewWeeklyWorkPlan}
+        />
       </main>
     </div>
   );
@@ -3339,5 +3389,116 @@ function MindMapNode({
         </div>
       )}
     </div>
+  );
+}
+
+// 创建/编辑本周工作安排对话框
+function WeeklyWorkPlanDialog({
+  isOpen,
+  onClose,
+  onSave,
+  editingPlan,
+  newPlan,
+  setNewPlan,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  editingPlan: WeeklyWorkPlan | null;
+  newPlan: {
+    brand: 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan';
+    weekStart: string;
+    weekEnd: string;
+    content: string;
+    priority: 'urgent' | 'important' | 'normal';
+  };
+  setNewPlan: React.Dispatch<React.SetStateAction<typeof newPlan>>;
+}) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{editingPlan ? '编辑工作安排' : '新增工作安排'}</DialogTitle>
+          <DialogDescription>
+            {editingPlan ? '编辑本周工作安排内容' : '添加本周工作重点'}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label>品牌 *</Label>
+            <select
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={newPlan.brand}
+              onChange={(e) => setNewPlan({ ...newPlan, brand: e.target.value as any })}
+            >
+              <option value="">选择品牌</option>
+              <option value="he_zhe">禾哲</option>
+              <option value="baobao">BAOBAO</option>
+              <option value="ai_he">爱禾</option>
+              <option value="bao_deng_yuan">宝登源</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label>周开始日期</Label>
+              <Input
+                type="date"
+                value={newPlan.weekStart}
+                onChange={(e) => setNewPlan({ ...newPlan, weekStart: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>周结束日期</Label>
+              <Input
+                type="date"
+                value={newPlan.weekEnd}
+                onChange={(e) => setNewPlan({ ...newPlan, weekEnd: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label>优先级 *</Label>
+            <select
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={newPlan.priority}
+              onChange={(e) => setNewPlan({ ...newPlan, priority: e.target.value as any })}
+            >
+              <option value="urgent">🔴 紧急</option>
+              <option value="important">🟠 重要</option>
+              <option value="normal">⚪ 一般</option>
+            </select>
+          </div>
+          <div className="grid gap-2">
+            <Label>工作内容 *</Label>
+            <Textarea
+              value={newPlan.content}
+              onChange={(e) => setNewPlan({ ...newPlan, content: e.target.value })}
+              placeholder="请输入本周工作重点和安排"
+              rows={6}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => {
+              onClose();
+              setNewPlan({
+                brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
+                weekStart: '',
+                weekEnd: '',
+                content: '',
+                priority: 'normal',
+              });
+            }}
+          >
+            取消
+          </Button>
+          <Button onClick={onSave}>
+            {editingPlan ? '更新' : '创建'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

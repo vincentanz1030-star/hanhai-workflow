@@ -1743,6 +1743,188 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
+            {/* 本周产品销售安排 */}
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-lg sm:text-xl">本周产品销售安排</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">本周需要重点关注的销售项目和关键任务</CardDescription>
+                  </div>
+                  <Badge className="bg-blue-500 w-full sm:w-auto justify-center">
+                    {(() => {
+                      const now = new Date();
+                      const weekStart = new Date(now);
+                      weekStart.setDate(now.getDate() - now.getDay() + 1); // 周一
+                      const weekEnd = new Date(weekStart);
+                      weekEnd.setDate(weekStart.getDate() + 6); // 周日
+                      const formatDate = (d: Date) => `${d.getMonth() + 1}月${d.getDate()}日`;
+                      return `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
+                    })()}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const now = new Date();
+                  const weekStart = new Date(now);
+                  weekStart.setDate(now.getDate() - now.getDay() + 1);
+                  weekStart.setHours(0, 0, 0, 0);
+                  const weekEnd = new Date(weekStart);
+                  weekEnd.setDate(weekStart.getDate() + 6);
+                  weekEnd.setHours(23, 59, 59, 999);
+
+                  // 获取本周的销售项目（销售日期在本周内）
+                  const weekProjects = projects.filter(p => {
+                    if (brandFilter !== 'all' && p.brand !== brandFilter) return false;
+                    const salesDate = new Date(p.salesDate);
+                    return salesDate >= weekStart && salesDate <= weekEnd;
+                  });
+
+                  // 获取本月的项目（作为补充显示）
+                  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                  monthEnd.setHours(23, 59, 59, 999);
+
+                  const monthProjects = projects.filter(p => {
+                    if (brandFilter !== 'all' && p.brand !== brandFilter) return false;
+                    const salesDate = new Date(p.salesDate);
+                    return salesDate >= monthStart && salesDate <= monthEnd;
+                  });
+
+                  const displayProjects = weekProjects.length > 0 ? weekProjects : monthProjects;
+
+                  if (displayProjects.length === 0) {
+                    return (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p className="text-sm">本周暂无销售安排</p>
+                        <p className="text-xs mt-2">请查看项目列表或创建新的项目</p>
+                      </div>
+                    );
+                  }
+
+                  // 按品牌分组
+                  const groupedByBrand = displayProjects.reduce((acc, project) => {
+                    if (!acc[project.brand]) {
+                      acc[project.brand] = [];
+                    }
+                    acc[project.brand].push(project);
+                    return acc;
+                  }, {} as Record<string, typeof displayProjects>);
+
+                  return (
+                    <div className="space-y-6">
+                      {Object.entries(groupedByBrand).map(([brand, brandProjects]) => (
+                        <div key={brand} className="space-y-3">
+                          <div className="flex items-center gap-2 pb-2 border-b">
+                            <Badge variant="outline" className="text-xs font-medium px-3 py-1">
+                              {BRAND_NAMES[brand as keyof typeof BRAND_NAMES]}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {weekProjects.length > 0 ? '本周销售' : '本月销售'} · {brandProjects.length}个项目
+                            </span>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            {brandProjects.map(project => {
+                              const projectTasks = project.tasks || [];
+                              const overallProgress = projectTasks.length > 0
+                                ? Math.round(projectTasks.reduce((sum, t) => sum + t.progress, 0) / projectTasks.length)
+                                : 0;
+                              
+                              // 找出进度较低或催促次数较多的任务
+                              const urgentTasks = projectTasks
+                                .filter(t => t.progress < 80 || (t.reminderCount && t.reminderCount > 0))
+                                .sort((a, b) => a.progress - b.progress)
+                                .slice(0, 5);
+
+                              // 计算距离销售日期的天数
+                              const salesDate = new Date(project.salesDate);
+                              const daysToSales = Math.ceil((salesDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                              
+                              let urgencyColor = 'text-muted-foreground';
+                              let urgencyBg = 'bg-muted';
+                              if (daysToSales <= 3) {
+                                urgencyColor = 'text-red-600';
+                                urgencyBg = 'bg-red-50 dark:bg-red-900/20';
+                              } else if (daysToSales <= 7) {
+                                urgencyColor = 'text-orange-600';
+                                urgencyBg = 'bg-orange-50 dark:bg-orange-900/20';
+                              }
+
+                              return (
+                                <div
+                                  key={project.id}
+                                  className={`
+                                    border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer
+                                    ${daysToSales <= 3 ? 'border-red-300 dark:border-red-800' : ''}
+                                    ${daysToSales <= 7 && daysToSales > 3 ? 'border-orange-300 dark:border-orange-800' : ''}
+                                  `}
+                                  onClick={() => {
+                                    loadProjectDetails(project.id);
+                                    setSelectedProject(project);
+                                  }}
+                                >
+                                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <h4 className="font-semibold text-base">{project.name}</h4>
+                                        <span className={`text-xs px-2 py-0.5 rounded-full ${urgencyBg} ${urgencyColor} font-medium`}>
+                                          {daysToSales <= 0 ? '今日销售' : daysToSales === 1 ? '明天销售' : `${daysToSales}天后销售`}
+                                        </span>
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        销售日期: {format(project.salesDate, 'yyyy-MM-dd', { locale: zhCN })}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      <div className="text-right">
+                                        <div className="text-lg font-bold">{overallProgress}%</div>
+                                        <div className="text-xs text-muted-foreground">整体进度</div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <Progress value={overallProgress} className="h-2 mb-3" />
+
+                                  {/* 关键任务提醒 */}
+                                  {urgentTasks.length > 0 && (
+                                    <div className="mt-3 pt-3 border-t">
+                                      <div className="text-xs font-medium text-muted-foreground mb-2">
+                                        ⚠️ 需要关注的岗位
+                                      </div>
+                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        {urgentTasks.map(task => {
+                                          const isUrgent = task.progress < 50 || (task.reminderCount && task.reminderCount >= 3);
+                                          return (
+                                            <div
+                                              key={task.id}
+                                              className={`
+                                                text-xs px-2 py-1.5 rounded-md text-center font-medium
+                                                ${isUrgent ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'}
+                                              `}
+                                            >
+                                              {ROLE_NAMES[task.role]}
+                                              <span className="ml-1 opacity-75">{task.progress}%</span>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+
             {/* 近期项目 */}
             <Card>
               <CardHeader>
@@ -3062,25 +3244,22 @@ function MindMapNode({
 
   return (
     <div className="relative">
-      {/* 连接线 */}
+      {/* 垂直连接线 */}
       {category.level > 1 && (
-        <div className="absolute left-[-20px] top-1/2 w-[20px] h-[2px] bg-border" />
-      )}
-      {hasChildren && (
-        <div className={`absolute left-[-20px] top-1/2 w-[2px] bg-border transition-all ${isExpanded ? 'h-full' : 'h-[50%] bottom-1/2'}`} />
+        <div className="absolute left-0 top-0 w-[2px] h-full bg-gradient-to-b from-transparent via-border to-transparent" style={{ left: `${(category.level - 1.5) * 40}px` }} />
       )}
 
       {/* 节点卡片 */}
       <div
         className={`
-          relative inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2
-          transition-all hover:shadow-md cursor-pointer
-          ${category.level === 1 ? 'bg-primary text-primary-foreground border-primary' : ''}
-          ${category.level === 2 ? 'bg-card border-primary hover:border-primary/70' : ''}
-          ${category.level === 3 ? 'bg-card border-muted hover:border-muted-foreground' : ''}
-          ${category.level === 4 ? 'bg-card border-dashed border-muted hover:border-muted-foreground' : ''}
+          relative flex items-center gap-3 px-4 py-3 rounded-xl border-2
+          transition-all hover:shadow-lg hover:scale-[1.02] cursor-pointer
+          ${category.level === 1 ? 'bg-gradient-to-r from-primary to-primary/80 text-primary-foreground border-primary shadow-lg' : ''}
+          ${category.level === 2 ? 'bg-card border-primary shadow-md hover:border-primary' : ''}
+          ${category.level === 3 ? 'bg-card border-muted-foreground/50 hover:border-muted-foreground' : ''}
+          ${category.level === 4 ? 'bg-card border-dashed border-muted hover:border-muted-foreground/50' : ''}
         `}
-        style={{ marginLeft: `${(category.level - 1) * 40}px` }}
+        style={{ marginLeft: `${(category.level - 1) * 30}px` }}
       >
         {/* 展开/折叠按钮 */}
         {hasChildren && (
@@ -3089,22 +3268,31 @@ function MindMapNode({
               e.stopPropagation();
               onToggleExpand(category.id);
             }}
-            className="flex items-center justify-center w-6 h-6 rounded-full bg-background hover:bg-muted transition-colors"
+            className="flex items-center justify-center w-7 h-7 rounded-full bg-background hover:bg-muted transition-colors shadow-sm border"
           >
             {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </button>
         )}
 
+        {/* 品类图标 */}
+        <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${category.level === 1 ? 'bg-white/20' : 'bg-muted'}`}>
+          <FolderOpen className={`h-4 w-4 ${category.level === 1 ? 'text-white' : 'text-muted-foreground'}`} />
+        </div>
+
         {/* 品类信息 */}
         <div className="flex-1 min-w-0">
-          <div className="font-medium truncate">{category.name}</div>
+          <div className={`font-medium truncate ${category.level === 1 ? 'text-lg' : 'text-sm'}`}>
+            {category.name}
+          </div>
           {category.code && (
-            <div className="text-xs opacity-70 truncate">{category.code}</div>
+            <div className={`text-xs opacity-70 truncate ${category.level === 1 ? 'text-white/80' : 'text-muted-foreground'}`}>
+              编码: {category.code}
+            </div>
           )}
         </div>
 
         {/* 级别标签 */}
-        <div className="text-xs px-2 py-0.5 rounded-full bg-background/20">
+        <div className={`text-xs px-2.5 py-1 rounded-full font-medium ${category.level === 1 ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'}`}>
           L{category.level}
         </div>
 
@@ -3115,10 +3303,10 @@ function MindMapNode({
               e.stopPropagation();
               onEdit(category);
             }}
-            className="p-1.5 rounded hover:bg-background/20 transition-colors"
+            className="p-2 rounded-lg hover:bg-background/20 transition-colors"
             title="编辑"
           >
-            <Pencil className="h-3.5 w-3.5" />
+            <Pencil className="h-4 w-4" />
           </button>
           <button
             onClick={(e) => {
@@ -3127,17 +3315,17 @@ function MindMapNode({
                 onDelete(category.id);
               }
             }}
-            className="p-1.5 rounded hover:bg-red-500/20 transition-colors text-red-500"
+            className="p-2 rounded-lg hover:bg-red-500/20 transition-colors text-red-500"
             title="删除"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       </div>
 
       {/* 子节点 */}
       {hasChildren && isExpanded && (
-        <div className="ml-[40px] mt-2 space-y-2">
+        <div className="mt-3 space-y-3">
           {category.children!.map(child => (
             <MindMapNode
               key={child.id}

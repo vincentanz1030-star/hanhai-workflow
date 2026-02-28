@@ -865,48 +865,48 @@ function OrgTreeNode({
       {/* 当前节点 */}
       <div
         className={`
-          relative flex items-center gap-3 px-4 py-3 rounded-lg border-2
+          relative flex items-center gap-2 px-3 py-2 rounded-lg border-2
           transition-all hover:shadow-md
           ${levelColors[level]}
           border-current
         `}
-        style={{ marginLeft: `${(level - 1) * 40}px` }}
+        style={{ marginLeft: `${(level - 1) * 24}px` }}
       >
         {/* 连接线 */}
         {level > 1 && (
-          <div className="absolute left-[-20px] top-1/2 w-[20px] h-[2px] bg-current opacity-30" />
+          <div className="absolute left-[-12px] top-1/2 w-[12px] h-[2px] bg-current opacity-30" />
         )}
 
         {/* 品类图标 */}
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/20">
-          <FolderOpen className="h-4 w-4" />
+        <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-white/20">
+          <FolderOpen className="h-3.5 w-3.5" />
         </div>
 
         {/* 品类信息 */}
         <div className="flex-1 min-w-0">
-          <div className="font-medium truncate">{category.name}</div>
+          <div className="font-medium text-sm truncate">{category.name}</div>
           {category.code && (
-            <div className="text-xs opacity-70 truncate">{category.code}</div>
+            <div className="text-[11px] opacity-70 truncate">{category.code}</div>
           )}
         </div>
 
         {/* 操作按钮 */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           {canAddMore && (
             <button
               onClick={() => onAddChild(category.id)}
-              className="flex items-center justify-center w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+              className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
               title="添加子品类"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3 w-3" />
             </button>
           )}
           <button
             onClick={() => onEdit(category)}
-            className="p-1.5 rounded hover:bg-white/20 transition-colors"
+            className="p-1 rounded hover:bg-white/20 transition-colors"
             title="编辑"
           >
-            <Pencil className="h-3.5 w-3.5" />
+            <Pencil className="h-3 w-3" />
           </button>
           <button
             onClick={() => {
@@ -914,10 +914,10 @@ function OrgTreeNode({
                 onDelete(category.id);
               }
             }}
-            className="p-1.5 rounded hover:bg-red-500/20 transition-colors text-red-500"
+            className="p-1 rounded hover:bg-red-500/20 transition-colors text-red-500"
             title="删除"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-3 w-3" />
           </button>
         </div>
       </div>
@@ -927,9 +927,9 @@ function OrgTreeNode({
         <div className="relative flex flex-col">
           {/* 垂直连接线 */}
           <div
-            className="absolute left-[20px] top-0 w-[2px] bg-current opacity-20"
+            className="absolute left-[12px] top-0 w-[2px] bg-current opacity-20"
             style={{
-              height: `${category.children!.length * 50}px`,
+              height: `${category.children!.length * 36}px`,
             }}
           />
           {category.children!.map(child => (
@@ -1998,7 +1998,24 @@ export default function HomePage() {
                         return `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
                       })()}
                     </Badge>
-                    <Button onClick={() => setIsWeeklyWorkPlanDialogOpen(true)} size="sm" className="w-full sm:w-auto">
+                    <Button onClick={() => {
+                      setEditingWeeklyWorkPlan(null);
+                      const now = new Date();
+                      const weekStart = new Date(now);
+                      weekStart.setDate(now.getDate() - now.getDay() + 1);
+                      const weekStartStr = weekStart.toISOString().split('T')[0];
+                      const weekEnd = new Date(weekStart);
+                      weekEnd.setDate(weekStart.getDate() + 6);
+                      const weekEndStr = weekEnd.toISOString().split('T')[0];
+                      setNewWeeklyWorkPlan({
+                        brand: brandFilter === 'all' ? 'he_zhe' as const : brandFilter,
+                        weekStart: weekStartStr,
+                        weekEnd: weekEndStr,
+                        content: '',
+                        priority: 'normal',
+                      });
+                      setIsWeeklyWorkPlanDialogOpen(true);
+                    }} size="sm" className="w-full sm:w-auto">
                       <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                       新增工作
                     </Button>

@@ -1884,7 +1884,7 @@ export default function HomePage() {
                 <FolderOpen className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">电商工作流程管理系统</h1>
+                <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">瀚海集团工作流程管理系统</h1>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">以销售为驱动的项目进度管理</p>
               </div>
             </div>
@@ -2243,8 +2243,10 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
-            {/* 本周工作安排 */}
-            <Card>
+            {/* 本周工作安排和协同合作 - 横向布局 */}
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* 本周工作安排 */}
+              <Card>
               <CardHeader>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <div>
@@ -2470,6 +2472,7 @@ export default function HomePage() {
                 )}
               </CardContent>
             </Card>
+            </div>
 
             {/* 近期项目 */}
             <Card>

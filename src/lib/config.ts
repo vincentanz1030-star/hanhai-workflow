@@ -2,9 +2,9 @@
 export const BRAND_CONFIG = {
   all: { name: '全部品牌', key: 'all' },
   he_zhe: { name: '禾哲', key: 'he_zhe' },
-  baobao: { name: '宝包', key: 'baobao' },
+  baobao: { name: 'BAOBAO', key: 'baobao' },
   ai_he: { name: '爱禾', key: 'ai_he' },
-  bao_deng_yuan: { name: '宝登元', key: 'bao_deng_yuan' },
+  bao_deng_yuan: { name: '宝登源', key: 'bao_deng_yuan' },
 } as const;
 
 export type BrandKey = keyof typeof BRAND_CONFIG;

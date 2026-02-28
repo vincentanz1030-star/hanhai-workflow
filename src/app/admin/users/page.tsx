@@ -16,9 +16,9 @@ import { Check, X, Shield, UserCheck, UserX, RefreshCw, Edit, History, Loader2 }
 const BRAND_NAMES: Record<string, string> = {
   all: '全部品牌',
   he_zhe: '禾哲',
-  baobao: '宝包',
+  baobao: 'BAOBAO',
   ai_he: '爱禾',
-  bao_deng_yuan: '宝登元',
+  bao_deng_yuan: '宝登源',
 };
 
 const ROLE_NAMES: Record<string, string> = {

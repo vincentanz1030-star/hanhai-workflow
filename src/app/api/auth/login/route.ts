@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { createClient } from '@supabase/supabase-js';
 import { verifyPassword, generateToken, setTokenCookie } from '@/lib/auth';
 import { getPrimaryRole } from '@/lib/permissions';
+
+// 直接从环境变量获取 Supabase 配置
+const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('[登录API] Supabase 环境变量未设置');
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +27,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = getSupabaseClient();
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      db: { schema: 'public' as const }
+    });
 
     // 查询用户
     console.log('[登录API] 查询用户...');

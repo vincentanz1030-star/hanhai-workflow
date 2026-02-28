@@ -9,17 +9,10 @@ interface SupabaseCredentials {
 }
 
 function loadEnv(): void {
-  if (envLoaded || (process.env.COZE_SUPABASE_URL && process.env.COZE_SUPABASE_ANON_KEY)) {
-    return;
-  }
-
+  // 强制每次都重新加载环境变量，确保在 Next.js API Route 中能正确获取
   try {
     try {
       require('dotenv').config();
-      if (process.env.COZE_SUPABASE_URL && process.env.COZE_SUPABASE_ANON_KEY) {
-        envLoaded = true;
-        return;
-      }
     } catch {
       // dotenv not available
     }
@@ -55,9 +48,8 @@ except Exception as e:
             (value.startsWith('"') && value.endsWith('"'))) {
           value = value.slice(1, -1);
         }
-        if (!process.env[key]) {
-          process.env[key] = value;
-        }
+        // 更新环境变量
+        process.env[key] = value;
       }
     }
 

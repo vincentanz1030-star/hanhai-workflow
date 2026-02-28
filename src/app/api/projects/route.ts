@@ -91,8 +91,8 @@ export async function GET(request: NextRequest) {
 // 创建新项目
 export async function POST(request: NextRequest) {
   try {
-    // 认证和权限检查
-    const authResult = await requireAuth(request, 'project', 'create');
+    // 只检查用户是否登录，不检查权限
+    const authResult = await requireAuth(request);
     if (authResult instanceof NextResponse) {
       return authResult;
     }
@@ -101,14 +101,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, brand, category, salesDate, description } = body;
 
-    // 品牌权限检查
-    if (authResult.brand !== 'all' && authResult.brand !== brand) {
-      return NextResponse.json(
-        { error: '无权为其他品牌创建项目' },
-        { status: 403 }
-      );
-    }
-
+    // 验证必填项
     if (!name || !salesDate || !brand || !category) {
       return NextResponse.json(
         { error: '项目名称、品牌、分类和销售日期为必填项' },

@@ -89,7 +89,7 @@ function getSupabaseClient(token?: string): SupabaseClient {
   const commonOptions = {
     db: {
       timeout: 60000,
-      schema: 'public',
+      schema: 'public' as const,
     },
     auth: {
       autoRefreshToken: false,
@@ -98,10 +98,10 @@ function getSupabaseClient(token?: string): SupabaseClient {
     },
     global: {
       // 添加缓存控制，防止数据不一致
-      fetch: (url, options) => {
+      fetch: (url: RequestInfo | URL, options?: RequestInit) => {
         return fetch(url, {
           ...options,
-          cache: 'no-store', // 禁用缓存
+          cache: 'no-store' as RequestCache, // 禁用缓存
         });
       },
     },

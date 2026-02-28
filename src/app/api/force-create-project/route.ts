@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { getCurrentUser } from '@/lib/auth';
-import { createTasksForProject } from '@/app/api/projects/route';
+import { createTasksForProject } from '@/lib/project-tasks';
 
 export async function POST(request: NextRequest) {
   const client = getSupabaseClient();
@@ -82,11 +82,11 @@ export async function POST(request: NextRequest) {
 
     // 7. 更新项目预计完成时间
     const estimatedDates = tasks
-      .filter(t => t.estimated_completion_date)
-      .map(t => new Date(t.estimated_completion_date));
+      .filter((t: any) => t.estimated_completion_date)
+      .map((t: any) => new Date(t.estimated_completion_date));
 
     if (estimatedDates.length > 0) {
-      const maxDate = new Date(Math.max(...estimatedDates.map(d => d.getTime())));
+      const maxDate = new Date(Math.max(...estimatedDates.map((d: any) => d.getTime())));
       await client
         .from('projects')
         .update({ overall_completion_date: maxDate.toISOString() })

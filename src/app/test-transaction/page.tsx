@@ -150,7 +150,7 @@ export default function TestTransactionPage() {
                       </div>
                       <div className="flex justify-between p-2 bg-muted rounded col-span-2">
                         <span className="text-muted-foreground">并发查询成功率:</span>
-                        <Badge variant={result.summary.concurrentSuccessRate === '5/5' ? 'default' : 'warning'}>
+                        <Badge variant={result.summary.concurrentSuccessRate === '5/5' ? 'default' : 'secondary'}>
                           {result.summary.concurrentSuccessRate}
                         </Badge>
                       </div>

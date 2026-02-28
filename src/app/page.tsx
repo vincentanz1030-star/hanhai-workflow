@@ -1148,8 +1148,11 @@ export default function HomePage() {
   // 加载项目列表
   const loadProjects = async () => {
     try {
-      const response = await fetch('/api/projects');
+      const response = await fetch('/api/projects', {
+        credentials: 'include'
+      });
       const data = await response.json();
+      console.log('加载项目:', data);
       setProjects(data.projects || []);
     } catch (error) {
       console.error('加载项目失败:', error);
@@ -1483,12 +1486,17 @@ export default function HomePage() {
       setIsCreatingProject(true);
       setCreateProjectError('');
       
+      console.log('创建项目数据:', newProject);
+      
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(newProject),
       });
+
+      const data = await response.json();
+      console.log('创建项目响应:', data);
 
       if (response.ok) {
         setIsCreateDialogOpen(false);
@@ -1499,9 +1507,9 @@ export default function HomePage() {
           salesDate: '', 
           description: '' 
         });
+        console.log('创建成功，重新加载项目列表');
         loadProjects();
       } else {
-        const data = await response.json();
         setCreateProjectError(data.error || '创建项目失败，请重试');
       }
     } catch (error) {
@@ -1795,9 +1803,12 @@ export default function HomePage() {
   // 按品牌筛选项目
   const getFilteredProjects = () => {
     if (brandFilter === 'all') {
+      console.log('品牌筛选: all，返回所有项目，数量:', projects.length);
       return projects;
     }
-    return projects.filter(p => p.brand === brandFilter);
+    const filtered = projects.filter(p => p.brand === brandFilter);
+    console.log(`品牌筛选: ${brandFilter}，过滤后数量: ${filtered.length}`);
+    return filtered;
   };
 
   const filteredProjects = getFilteredProjects();

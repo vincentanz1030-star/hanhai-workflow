@@ -86,30 +86,38 @@ function getSupabaseCredentials(): SupabaseCredentials {
 function getSupabaseClient(token?: string): SupabaseClient {
   const { url, anonKey } = getSupabaseCredentials();
 
-  if (token) {
-    return createClient(url, anonKey, {
-      global: {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-      db: {
-        timeout: 60000,
-      },
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
-  }
-
-  return createClient(url, anonKey, {
+  const commonOptions = {
     db: {
       timeout: 60000,
+      schema: 'public',
     },
     auth: {
       autoRefreshToken: false,
       persistSession: false,
+      detectSessionInUrl: false,
     },
-  });
+    global: {
+      // 添加缓存控制，防止数据不一致
+      fetch: (url, options) => {
+        return fetch(url, {
+          ...options,
+          cache: 'no-store', // 禁用缓存
+        });
+      },
+    },
+  };
+
+  if (token) {
+    return createClient(url, anonKey, {
+      ...commonOptions,
+      global: {
+        ...commonOptions.global,
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    });
+  }
+
+  return createClient(url, anonKey, commonOptions);
 }
 
 export { loadEnv, getSupabaseCredentials, getSupabaseClient };

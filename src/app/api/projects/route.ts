@@ -68,8 +68,29 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`查询成功，项目数量: ${projects?.length || 0}`);
+
     if (projects && projects.length > 0) {
-      console.log(`第一个项目:`, projects[0]);
+      console.log(`第一个项目:`, {
+        id: projects[0].id,
+        name: projects[0].name,
+        brand: projects[0].brand,
+        category: projects[0].category,
+        created_at: projects[0].created_at,
+      });
+
+      // 统计各品牌的项目数量
+      const brandCount: Record<string, number> = {};
+      projects.forEach(p => {
+        brandCount[p.brand] = (brandCount[p.brand] || 0) + 1;
+      });
+      console.log(`各品牌项目分布:`, brandCount);
+    } else {
+      console.warn(`⚠️ 未查询到任何项目`);
+      // 查询数据库中的总项目数（忽略品牌过滤）
+      const { count: totalCount } = await client
+        .from('projects')
+        .select('*', { count: 'exact', head: true });
+      console.log(`数据库总项目数: ${totalCount || 0}`);
     }
 
     // 获取每个项目的任务
@@ -126,6 +147,7 @@ export async function POST(request: NextRequest) {
     projectConfirmDateObj.setMonth(projectConfirmDateObj.getMonth() - 3);
 
     // 创建项目
+    console.log(`开始插入项目到数据库...`);
     const { data: project, error: projectError } = await client
       .from('projects')
       .insert({
@@ -142,7 +164,38 @@ export async function POST(request: NextRequest) {
 
     if (projectError) {
       console.error('创建项目失败:', projectError);
+      console.error('错误详情:', {
+        message: projectError.message,
+        code: projectError.code,
+        details: projectError.details,
+        hint: projectError.hint,
+      });
       return NextResponse.json({ error: projectError.message }, { status: 500 });
+    }
+
+    if (!project) {
+      console.error('项目插入后未返回数据');
+      return NextResponse.json({ error: '项目创建失败，未返回数据' }, { status: 500 });
+    }
+
+    console.log(`✅ 项目插入成功，ID: ${project.id}, 名称: ${project.name}`);
+
+    // 立即验证项目是否真的在数据库中
+    console.log(`验证项目是否存在于数据库...`);
+    const { data: verifyProject, error: verifyError } = await client
+      .from('projects')
+      .select('*')
+      .eq('id', project.id)
+      .single();
+
+    if (verifyError) {
+      console.error(`❌ 验证失败: ${verifyError.message}`);
+    } else if (!verifyProject) {
+      console.error(`❌ 验证失败: 项目 ${project.id} 不存在于数据库`);
+      return NextResponse.json({ error: '项目创建后验证失败' }, { status: 500 });
+    } else {
+      console.log(`✅ 验证成功，项目存在于数据库`);
+      console.log(`验证返回数据:`, verifyProject);
     }
 
     // 创建各岗位任务（根据项目类型）

@@ -1536,36 +1536,51 @@ export default function HomePage() {
           description: ''
         });
 
-        // 方法2：检查项目是否真的在数据库中
-        console.log(`=== 检查项目是否在数据库中 ===`);
-        setTimeout(async () => {
-          try {
-            const checkResponse = await fetch(`/api/check-project/${projectId}`, {
-              credentials: 'include'
-            });
-            const checkData = await checkResponse.json();
-            console.log('检查结果:', checkData);
+        // 方法2：立即检查项目是否真的在数据库中
+        console.log(`=== 立即检查项目是否在数据库中 ===`);
+        const checkResponse = await fetch(`/api/check-project/${projectId}`, {
+          credentials: 'include'
+        });
+        const checkData = await checkResponse.json();
+        console.log('检查结果:', checkData);
 
-            if (checkData.success && checkData.exists) {
-              console.log('✅ 项目在数据库中存在');
-              console.log(`项目名称: ${checkData.project.name}`);
-              console.log(`项目品牌: ${checkData.project.brand}`);
-              console.log(`任务数量: ${checkData.taskCount}`);
-            } else {
-              console.error('❌ 项目在数据库中不存在');
-              console.error('原因:', checkData.message || checkData.error);
-            }
-          } catch (error) {
-            console.error('❌ 检查项目失败:', error);
-          }
-        }, 1000);
+        if (checkData.success && checkData.exists) {
+          console.log('✅ 项目在数据库中存在');
+          console.log(`项目名称: ${checkData.project.name}`);
+          console.log(`项目品牌: ${checkData.project.brand}`);
+          console.log(`任务数量: ${checkData.taskCount}`);
+          console.log(`创建时间: ${checkData.project.createdAt}`);
+        } else {
+          console.error('❌ 项目在数据库中不存在');
+          console.error('原因:', checkData.message || checkData.error);
+          setCreateProjectError('项目创建后验证失败，请刷新页面查看最新状态');
+          // 即使验证失败，也不关闭对话框，让用户知道有问题
+          setIsCreatingProject(false);
+          return;
+        }
 
-        // 方法3：等待3秒后重新加载项目列表（模拟问题发生的时间点）
+        // 方法3：1秒后再次检查（确认数据持久化）
+        console.log('等待1秒后再次检查...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const checkResponse2 = await fetch(`/api/check-project/${projectId}`, {
+          credentials: 'include'
+        });
+        const checkData2 = await checkResponse2.json();
+        console.log('1秒后检查结果:', checkData2);
+
+        if (!checkData2.success || !checkData2.exists) {
+          console.error('❌ 1秒后项目消失了！');
+          setCreateProjectError('项目创建后短暂消失，可能存在数据库一致性问题');
+          setIsCreatingProject(false);
+          return;
+        }
+
+        // 方法4：3秒后重新加载项目列表
         console.log('等待3秒后重新加载项目列表...');
         await new Promise(resolve => setTimeout(resolve, 3000));
         loadProjects();
 
-        // 方法4：5秒后再次检查（确认数据是否持久化）
+        // 方法5：5秒后再次确认
         setTimeout(() => {
           console.log('5秒后再次检查项目列表...');
           loadProjects();

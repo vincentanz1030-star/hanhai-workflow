@@ -1056,6 +1056,9 @@ export default function HomePage() {
     })),
   });
 
+  // 岗位展开状态
+  const [expandedRoles, setExpandedRoles] = useState<Record<string, boolean>>({});
+
   // 产品开发框架相关状态
   const [productCategories, setProductCategories] = useState<ProductCategory[]>([]);
   const [isProductCategoryDialogOpen, setIsProductCategoryDialogOpen] = useState(false);
@@ -1918,13 +1921,14 @@ export default function HomePage() {
                 </Link>
               )}
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2 h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full sm:w-auto">
+                <Button
+                  className="gap-2 h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full sm:w-auto"
+                  onClick={() => setIsCreateDialogOpen(true)}
+                >
                   <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                   创建项目
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="w-[95vw] sm:w-auto">
+                <DialogContent className="w-[95vw] sm:w-auto">
                 <DialogHeader>
                   <DialogTitle className="text-base sm:text-lg">创建新项目</DialogTitle>
                   <DialogDescription className="text-xs sm:text-sm">填写项目信息，系统将自动生成各岗位任务</DialogDescription>
@@ -3031,16 +3035,26 @@ export default function HomePage() {
                     const pendingTasks = roleTasks.filter(t => t.progress === 0).length;
 
                     return (
-                      <Card key={role} className="border-2 hover:border-primary transition-colors">
-                        <CardHeader className="pb-3">
+                      <Card key={role} className={`border-2 hover:border-primary transition-colors cursor-pointer ${expandedRoles[role] ? 'border-primary' : ''}`}>
+                        <CardHeader 
+                          className="pb-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                          onClick={() => setExpandedRoles(prev => ({ ...prev, [role]: !prev[role] }))}
+                        >
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-base flex items-center gap-2">
                               <Users className="h-4 w-4" />
                               {ROLE_NAMES[role]}
                             </CardTitle>
-                            <Badge variant="outline" className="text-lg font-semibold">
-                              {avgProgress}%
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-lg font-semibold">
+                                {avgProgress}%
+                              </Badge>
+                              {expandedRoles[role] ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </div>
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -3070,8 +3084,77 @@ export default function HomePage() {
                             总计 {roleTasks.length} 个任务
                           </div>
 
-                          {/* 最近的任务 */}
-                          {roleTasks.length > 0 && (
+                          {/* 展开的任务详情 */}
+                          {expandedRoles[role] && roleTasks.length > 0 && (
+                            <div className="pt-3 border-t space-y-3">
+                              {/* 已完成的任务 */}
+                              <div>
+                                <div className="text-xs font-medium mb-2 flex items-center gap-1">
+                                  <CheckCircle className="h-3 w-3 text-green-600" />
+                                  已完成 ({completedTasks})
+                                </div>
+                                <div className="space-y-1 max-h-40 overflow-y-auto">
+                                  {roleTasks.filter(t => t.progress === 100).map(task => (
+                                    <div key={task.id} className="flex items-center justify-between text-xs bg-green-50 dark:bg-green-900/10 rounded p-2">
+                                      <span className="truncate flex-1 mr-2">{task.taskName}</span>
+                                      <Badge variant="outline" className="text-[9px] text-green-700 dark:text-green-400">
+                                        {STATUS_NAMES[task.status]}
+                                      </Badge>
+                                    </div>
+                                  ))}
+                                  {completedTasks === 0 && (
+                                    <div className="text-xs text-muted-foreground text-center py-2">暂无已完成任务</div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* 进行中的任务 */}
+                              <div>
+                                <div className="text-xs font-medium mb-2 flex items-center gap-1">
+                                  <Clock className="h-3 w-3 text-blue-600" />
+                                  进行中 ({inProgressTasks})
+                                </div>
+                                <div className="space-y-1 max-h-40 overflow-y-auto">
+                                  {roleTasks.filter(t => t.progress > 0 && t.progress < 100).map(task => (
+                                    <div key={task.id} className="flex items-center justify-between text-xs bg-blue-50 dark:bg-blue-900/10 rounded p-2">
+                                      <span className="truncate flex-1 mr-2">{task.taskName}</span>
+                                      <div className="flex items-center gap-1">
+                                        <Progress value={task.progress} className="h-1 w-12" />
+                                        <span className="text-[9px] w-6 text-right">{task.progress}%</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {inProgressTasks === 0 && (
+                                    <div className="text-xs text-muted-foreground text-center py-2">暂无进行中任务</div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* 待开始的任务 */}
+                              <div>
+                                <div className="text-xs font-medium mb-2 flex items-center gap-1">
+                                  <AlertCircle className="h-3 w-3 text-gray-600" />
+                                  待开始 ({pendingTasks})
+                                </div>
+                                <div className="space-y-1 max-h-40 overflow-y-auto">
+                                  {roleTasks.filter(t => t.progress === 0).map(task => (
+                                    <div key={task.id} className="flex items-center justify-between text-xs bg-gray-50 dark:bg-gray-900/10 rounded p-2">
+                                      <span className="truncate flex-1 mr-2">{task.taskName}</span>
+                                      <Badge variant="outline" className="text-[9px]">
+                                        {STATUS_NAMES[task.status]}
+                                      </Badge>
+                                    </div>
+                                  ))}
+                                  {pendingTasks === 0 && (
+                                    <div className="text-xs text-muted-foreground text-center py-2">暂无待开始任务</div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 未展开时显示最近的任务 */}
+                          {!expandedRoles[role] && roleTasks.length > 0 && (
                             <div className="pt-2 border-t">
                               <div className="text-xs font-medium mb-2">最近任务:</div>
                               <div className="space-y-1">

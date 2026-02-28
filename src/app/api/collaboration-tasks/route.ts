@@ -1,0 +1,113 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
+
+// 蛇形转驼峰
+function toCamelCase(obj: any): any {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(toCamelCase);
+  }
+  const result: any = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      result[camelKey] = toCamelCase(obj[key]);
+    }
+  }
+  return result;
+}
+
+// 获取协同合作任务列表
+export async function GET(request: NextRequest) {
+  try {
+    const client = getSupabaseClient();
+    const { searchParams } = new URL(request.url);
+    const brand = searchParams.get('brand');
+    const requestingRole = searchParams.get('requestingRole');
+    const targetRole = searchParams.get('targetRole');
+
+    let query = client
+      .from('collaboration_tasks')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (brand && brand !== 'all') {
+      query = query.eq('brand', brand);
+    }
+    if (requestingRole) {
+      query = query.eq('requesting_role', requestingRole);
+    }
+    if (targetRole) {
+      query = query.eq('target_role', targetRole);
+    }
+
+    const { data: tasks, error } = await query;
+
+    if (error) {
+      console.error('获取协同合作任务失败:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ tasks: toCamelCase(tasks || []) });
+  } catch (error) {
+    console.error('服务器错误:', error);
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+  }
+}
+
+// 创建协同合作任务
+export async function POST(request: NextRequest) {
+  try {
+    const client = getSupabaseClient();
+    const body = await request.json();
+    const {
+      requestingRole,
+      targetRole,
+      taskTitle,
+      description,
+      deadline,
+      priority,
+      brand,
+    } = body;
+
+    console.log('=== POST 创建协同合作任务 ===');
+    console.log('body:', body);
+
+    if (!requestingRole || !targetRole || !taskTitle || !brand) {
+      return NextResponse.json(
+        { error: '请求岗位、目标岗位、任务标题和品牌为必填项' },
+        { status: 400 }
+      );
+    }
+
+    // 创建协同合作任务
+    const { data: task, error } = await client
+      .from('collaboration_tasks')
+      .insert({
+        requesting_role: requestingRole,
+        target_role: targetRole,
+        task_title: taskTitle,
+        description: description || '',
+        deadline: deadline || null,
+        progress: 0,
+        status: 'pending',
+        priority: priority || 'normal',
+        brand,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('创建协同合作任务失败:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    console.log('创建成功:', task);
+    return NextResponse.json({ task: toCamelCase(task) });
+  } catch (error) {
+    console.error('服务器错误:', error);
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+  }
+}

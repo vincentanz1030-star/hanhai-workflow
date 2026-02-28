@@ -122,6 +122,22 @@ interface WeeklyWorkPlan {
   updatedAt: string | null;
 }
 
+// 协同合作任务接口
+interface CollaborationTask {
+  id: string;
+  requestingRole: string; // 请求岗位
+  targetRole: string; // 目标岗位
+  taskTitle: string; // 任务标题
+  description: string; // 工作描述
+  deadline: string; // 截止日期
+  progress: number; // 进度（0-100）
+  status: 'pending' | 'in_progress' | 'completed'; // 状态
+  priority: 'urgent' | 'important' | 'normal'; // 优先级
+  brand: 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan';
+  createdAt: string;
+  updatedAt: string | null;
+}
+
 // 品类树组件
 interface CategoryTreeProps {
   category: ProductCategory;
@@ -860,10 +876,10 @@ function OrgTreeNode({
   const canAddMore = level < 4;
 
   const levelColors: Record<number, string> = {
-    1: 'bg-blue-500 text-white',
-    2: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    3: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
-    4: 'bg-gray-50 text-gray-600 dark:bg-gray-900/20 dark:text-gray-500',
+    1: 'bg-slate-700 text-slate-50 border-slate-600',
+    2: 'bg-slate-100 text-slate-700 dark:bg-slate-800/50 dark:text-slate-300 border-slate-300 dark:border-slate-600',
+    3: 'bg-slate-50 text-slate-600 dark:bg-slate-900/50 dark:text-slate-400 border-slate-200 dark:border-slate-700',
+    4: 'bg-slate-50/80 text-slate-500 dark:bg-slate-900/30 dark:text-slate-500 border-slate-200/60 dark:border-slate-800',
   };
 
   const isEditingChild = editingChildId === category.id;
@@ -1060,6 +1076,22 @@ export default function HomePage() {
     weekEnd: '',
     content: '',
     priority: 'normal' as 'urgent' | 'important' | 'normal',
+  });
+
+  // 协同合作相关状态
+  const [collaborationTasks, setCollaborationTasks] = useState<CollaborationTask[]>([]);
+  const [isCollaborationDialogOpen, setIsCollaborationDialogOpen] = useState(false);
+  const [editingCollaborationTask, setEditingCollaborationTask] = useState<CollaborationTask | null>(null);
+  const [newCollaborationTask, setNewCollaborationTask] = useState({
+    requestingRole: '',
+    targetRole: '',
+    taskTitle: '',
+    description: '',
+    deadline: '',
+    progress: 0,
+    status: 'pending' as 'pending' | 'in_progress' | 'completed',
+    priority: 'normal' as 'urgent' | 'important' | 'normal',
+    brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
   });
 
   // 构建树形结构
@@ -1351,6 +1383,87 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('删除本周工作安排失败:', error);
+    }
+  };
+
+  // 加载协同合作任务
+  const loadCollaborationTasks = async () => {
+    try {
+      const response = await fetch(`/api/collaboration-tasks?brand=${brandFilter}`);
+      const data = await response.json();
+      setCollaborationTasks(data.tasks || []);
+    } catch (error) {
+      console.error('加载协同合作任务失败:', error);
+    }
+  };
+
+  // 创建或更新协同合作任务
+  const handleCreateOrUpdateCollaborationTask = async () => {
+    try {
+      const url = editingCollaborationTask
+        ? `/api/collaboration-tasks/${editingCollaborationTask.id}`
+        : '/api/collaboration-tasks';
+
+      const response = await fetch(url, {
+        method: editingCollaborationTask ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCollaborationTask),
+      });
+
+      if (response.ok) {
+        setIsCollaborationDialogOpen(false);
+        setEditingCollaborationTask(null);
+        setNewCollaborationTask({
+          requestingRole: '',
+          targetRole: '',
+          taskTitle: '',
+          description: '',
+          deadline: '',
+          progress: 0,
+          status: 'pending' as 'pending' | 'in_progress' | 'completed',
+          priority: 'normal' as 'urgent' | 'important' | 'normal',
+          brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
+        });
+        loadCollaborationTasks();
+      } else {
+        const data = await response.json();
+        alert(data.error || '操作失败');
+      }
+    } catch (error) {
+      console.error('保存协同合作任务失败:', error);
+      alert('保存失败，请重试');
+    }
+  };
+
+  // 编辑协同合作任务
+  const handleEditCollaborationTask = (task: CollaborationTask) => {
+    setEditingCollaborationTask(task);
+    setNewCollaborationTask({
+      requestingRole: task.requestingRole,
+      targetRole: task.targetRole,
+      taskTitle: task.taskTitle,
+      description: task.description,
+      deadline: task.deadline,
+      progress: task.progress,
+      status: task.status,
+      priority: task.priority,
+      brand: task.brand,
+    });
+    setIsCollaborationDialogOpen(true);
+  };
+
+  // 删除协同合作任务
+  const handleDeleteCollaborationTask = async (id: string) => {
+    try {
+      const response = await fetch(`/api/collaboration-tasks/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        loadCollaborationTasks();
+      }
+    } catch (error) {
+      console.error('删除协同合作任务失败:', error);
     }
   };
 
@@ -1701,6 +1814,7 @@ export default function HomePage() {
     loadFeedback();
     loadSalesTargets();
     loadWeeklyWorkPlans();
+    loadCollaborationTasks();
   }, []);
 
   useEffect(() => {
@@ -1709,6 +1823,7 @@ export default function HomePage() {
 
   useEffect(() => {
     loadWeeklyWorkPlans();
+    loadCollaborationTasks();
   }, [brandFilter]);
 
   if (loading) {
@@ -2157,6 +2272,129 @@ export default function HomePage() {
                                 >
                                   <Trash2 className="h-3 w-3" />
                                 </Button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* 协同合作 */}
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-lg sm:text-xl">协同合作</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">各岗位之间的工作协同与配合</CardDescription>
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      setEditingCollaborationTask(null);
+                      setNewCollaborationTask({
+                        requestingRole: '',
+                        targetRole: '',
+                        taskTitle: '',
+                        description: '',
+                        deadline: '',
+                        progress: 0,
+                        status: 'pending',
+                        priority: 'normal',
+                        brand: brandFilter === 'all' ? 'he_zhe' as const : brandFilter,
+                      });
+                      setIsCollaborationDialogOpen(true);
+                    }} 
+                    size="sm" 
+                    className="w-full sm:w-auto"
+                  >
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    新增协同任务
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {collaborationTasks.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-sm">暂无协同合作任务</p>
+                    <p className="text-xs mt-2">点击上方按钮添加协同任务</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {collaborationTasks
+                      .filter(task => brandFilter === 'all' || task.brand === brandFilter)
+                      .map(task => {
+                        const statusConfig = {
+                          pending: { label: '待开始', color: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400', border: 'border-gray-300 dark:border-gray-700' },
+                          in_progress: { label: '进行中', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', border: 'border-blue-300 dark:border-blue-800' },
+                          completed: { label: '已完成', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', border: 'border-green-300 dark:border-green-800' },
+                        };
+                        const priorityConfig = {
+                          urgent: { label: '紧急', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+                          important: { label: '重要', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
+                          normal: { label: '一般', color: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' },
+                        };
+                        
+                        return (
+                          <div
+                            key={task.id}
+                            className={`border-2 ${statusConfig[task.status].border} rounded-lg p-4 hover:shadow-md transition-all`}
+                          >
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-medium text-sm">{task.taskTitle}</h4>
+                                  <Badge className={`text-xs ${priorityConfig[task.priority].color}`}>
+                                    {priorityConfig[task.priority].label}
+                                  </Badge>
+                                  <Badge className={`text-xs ${statusConfig[task.status].color}`}>
+                                    {statusConfig[task.status].label}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground mb-2">
+                                  <span className="font-medium">请求岗位:</span> {task.requestingRole} → 
+                                  <span className="font-medium ml-2">目标岗位:</span> {task.targetRole}
+                                </p>
+                                {task.description && (
+                                  <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{task.description}</p>
+                                )}
+                                {task.deadline && (
+                                  <p className="text-xs text-muted-foreground mb-2">
+                                    <Calendar className="h-3 w-3 inline mr-1" />
+                                    截止日期: {task.deadline}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditCollaborationTask(task)}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteCollaborationTask(task.id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            {/* 进度条 */}
+                            <div className="mt-2">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs text-muted-foreground">进度</span>
+                                <span className="text-xs font-medium">{task.progress}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div 
+                                  className="bg-blue-500 h-2 rounded-full transition-all" 
+                                  style={{ width: `${task.progress}%` }}
+                                />
                               </div>
                             </div>
                           </div>
@@ -3517,6 +3755,165 @@ export default function HomePage() {
               </Button>
               <Button onClick={handleCreateOrUpdateWeeklyWorkPlan}>
                 {editingWeeklyWorkPlan ? '更新' : '创建'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 创建/编辑协同合作对话框 */}
+        <Dialog open={isCollaborationDialogOpen} onOpenChange={setIsCollaborationDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{editingCollaborationTask ? '编辑协同任务' : '新增协同任务'}</DialogTitle>
+              <DialogDescription>
+                {editingCollaborationTask ? '编辑协同合作任务内容' : '添加岗位协同工作需求'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>品牌 *</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={newCollaborationTask.brand}
+                  onChange={(e) => setNewCollaborationTask({ ...newCollaborationTask, brand: e.target.value as any })}
+                >
+                  <option value="">选择品牌</option>
+                  <option value="he_zhe">禾哲</option>
+                  <option value="baobao">BAOBAO</option>
+                  <option value="ai_he">爱禾</option>
+                  <option value="bao_deng_yuan">宝登源</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>请求岗位 *</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={newCollaborationTask.requestingRole}
+                    onChange={(e) => setNewCollaborationTask({ ...newCollaborationTask, requestingRole: e.target.value })}
+                  >
+                    <option value="">选择请求岗位</option>
+                    <option value="插画">插画</option>
+                    <option value="产品">产品</option>
+                    <option value="详情">详情</option>
+                    <option value="文案">文案</option>
+                    <option value="采购">采购</option>
+                    <option value="包装">包装</option>
+                    <option value="财务">财务</option>
+                    <option value="客服">客服</option>
+                    <option value="仓储">仓储</option>
+                    <option value="运营">运营</option>
+                  </select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>目标岗位 *</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={newCollaborationTask.targetRole}
+                    onChange={(e) => setNewCollaborationTask({ ...newCollaborationTask, targetRole: e.target.value })}
+                  >
+                    <option value="">选择目标岗位</option>
+                    <option value="插画">插画</option>
+                    <option value="产品">产品</option>
+                    <option value="详情">详情</option>
+                    <option value="文案">文案</option>
+                    <option value="采购">采购</option>
+                    <option value="包装">包装</option>
+                    <option value="财务">财务</option>
+                    <option value="客服">客服</option>
+                    <option value="仓储">仓储</option>
+                    <option value="运营">运营</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>任务标题 *</Label>
+                <Input
+                  value={newCollaborationTask.taskTitle}
+                  onChange={(e) => setNewCollaborationTask({ ...newCollaborationTask, taskTitle: e.target.value })}
+                  placeholder="请输入任务标题"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>工作描述</Label>
+                <Textarea
+                  value={newCollaborationTask.description}
+                  onChange={(e) => setNewCollaborationTask({ ...newCollaborationTask, description: e.target.value })}
+                  placeholder="请详细描述需要配合完成的工作内容"
+                  rows={4}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>截止日期</Label>
+                  <Input
+                    type="date"
+                    value={newCollaborationTask.deadline}
+                    onChange={(e) => setNewCollaborationTask({ ...newCollaborationTask, deadline: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>优先级</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={newCollaborationTask.priority}
+                    onChange={(e) => setNewCollaborationTask({ ...newCollaborationTask, priority: e.target.value as any })}
+                  >
+                    <option value="urgent">🔴 紧急</option>
+                    <option value="important">🟠 重要</option>
+                    <option value="normal">⚪ 一般</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>进度（0-100）</Label>
+                <div className="flex items-center gap-3">
+                  <Slider
+                    value={[newCollaborationTask.progress]}
+                    onValueChange={([value]) => setNewCollaborationTask({ ...newCollaborationTask, progress: value })}
+                    max={100}
+                    step={5}
+                    className="flex-1"
+                  />
+                  <span className="text-sm font-medium w-12 text-right">{newCollaborationTask.progress}%</span>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>状态</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={newCollaborationTask.status}
+                  onChange={(e) => setNewCollaborationTask({ ...newCollaborationTask, status: e.target.value as any })}
+                >
+                  <option value="pending">⏳ 待开始</option>
+                  <option value="in_progress">🔄 进行中</option>
+                  <option value="completed">✅ 已完成</option>
+                </select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsCollaborationDialogOpen(false);
+                  setEditingCollaborationTask(null);
+                  setNewCollaborationTask({
+                    requestingRole: '',
+                    targetRole: '',
+                    taskTitle: '',
+                    description: '',
+                    deadline: '',
+                    progress: 0,
+                    status: 'pending',
+                    priority: 'normal',
+                    brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
+                  });
+                }}
+              >
+                取消
+              </Button>
+              <Button onClick={handleCreateOrUpdateCollaborationTask}>
+                {editingCollaborationTask ? '更新' : '创建'}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -1994,6 +1994,7 @@ export default function HomePage() {
             </Dialog>
           </div>
         </div>
+      </div>
       </header>
 
       {/* 主内容 */}

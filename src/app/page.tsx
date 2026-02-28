@@ -1908,6 +1908,13 @@ export default function HomePage() {
               >
                 <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
+              {user.roles.some((r: any) => r.role === 'admin') && (
+                <Link href="/admin/users">
+                  <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0" title="用户管理">
+                    <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </Button>
+                </Link>
+              )}
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2 h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full sm:w-auto">

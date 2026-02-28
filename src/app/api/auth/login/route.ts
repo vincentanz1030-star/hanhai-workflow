@@ -34,6 +34,22 @@ export async function POST(request: NextRequest) {
 
     // 检查用户是否启用
     if (!user.is_active) {
+      if (user.status === 'pending') {
+        return NextResponse.json(
+          { error: '账号正在审核中，请耐心等待' },
+          { status: 403 }
+        );
+      } else if (user.status === 'rejected') {
+        return NextResponse.json(
+          { error: '账号审核未通过' },
+          { status: 403 }
+        );
+      } else if (user.status === 'suspended') {
+        return NextResponse.json(
+          { error: '账号已被暂停' },
+          { status: 403 }
+        );
+      }
       return NextResponse.json(
         { error: '账号已被禁用' },
         { status: 403 }

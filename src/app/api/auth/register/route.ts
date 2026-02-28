@@ -60,6 +60,8 @@ export async function POST(request: NextRequest) {
         password_hash: passwordHash,
         name,
         brand,
+        status: 'pending', // 待审核状态
+        is_active: false, // 未激活
       })
       .select()
       .single();

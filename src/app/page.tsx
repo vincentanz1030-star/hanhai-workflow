@@ -95,6 +95,101 @@ interface AnnualSalesTarget {
   monthlyTargets?: MonthlySalesTarget[];
 }
 
+// 产品开发框架接口
+interface ProductCategory {
+  id: string;
+  brand: 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan';
+  level: number; // 1-4级品类
+  parentId: string | null; // 父节点ID，一级品类为null
+  name: string; // 品类名称
+  code: string | null; // 品类编码（可选）
+  description: string | null; // 描述（可选）
+  sortOrder: number; // 排序
+  createdAt: string;
+  updatedAt: string | null;
+  children?: ProductCategory[]; // 子品类（前端计算）
+}
+
+// 品类树组件
+interface CategoryTreeProps {
+  category: ProductCategory;
+  allCategories: ProductCategory[];
+  onEdit: (category: ProductCategory) => void;
+  onDelete: (id: string) => void;
+  level: number;
+}
+
+function CategoryTree({ category, allCategories, onEdit, onDelete, level }: CategoryTreeProps) {
+  const children = allCategories.filter(c => c.parentId === category.id);
+  const hasChildren = children.length > 0;
+  const indent = (level - 1) * 16;
+
+  return (
+    <div className="border-l-2 border-slate-200 dark:border-slate-700 pl-3 sm:pl-4">
+      <div
+        className={`flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${hasChildren ? 'mb-2' : ''}`}
+        style={{ marginLeft: `${indent}px` }}
+      >
+        <FolderOpen className={`h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5 text-slate-500 dark:text-slate-400`} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 sm:gap-2 mb-1">
+            <Badge variant="outline" className="text-[9px] sm:text-[10px]">
+              {level}级品类
+            </Badge>
+            {category.code && (
+              <Badge variant="secondary" className="text-[9px] sm:text-[10px]">
+                {category.code}
+              </Badge>
+            )}
+          </div>
+          <h4 className="text-sm sm:text-base font-medium truncate">{category.name}</h4>
+          {category.description && (
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{category.description}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(category)}
+            className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+          >
+            <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (window.confirm('确定要删除此品类吗？删除后无法恢复。')) {
+                onDelete(category.id);
+              }
+            }}
+            className="h-7 w-7 sm:h-8 sm:w-8 p-0 text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          </Button>
+        </div>
+      </div>
+      {hasChildren && (
+        <div className="space-y-1">
+          {children.sort((a, b) => a.sortOrder - b.sortOrder).map(child => (
+            <CategoryTree
+              key={child.id}
+              category={child}
+              allCategories={allCategories}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              level={level + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 // 岗位映射
 const ROLE_NAMES: Record<string, string> = {
@@ -745,8 +840,8 @@ export default function HomePage() {
     // 根据屏幕宽度设置默认缩放比例
     if (typeof window !== 'undefined') {
       const screenWidth = window.innerWidth;
-      if (screenWidth < 640) return 70; // 手机端默认70%
-      if (screenWidth < 1024) return 85; // 平板端默认85%
+      if (screenWidth < 640) return 100; // 手机端默认100%
+      if (screenWidth < 1024) return 100; // 平板端默认100%
     }
     return 100; // 桌面端默认100%
   });
@@ -769,6 +864,20 @@ export default function HomePage() {
       targetAmount: 0,
       actualAmount: 0,
     })),
+  });
+
+  // 产品开发框架相关状态
+  const [productCategories, setProductCategories] = useState<ProductCategory[]>([]);
+  const [isProductCategoryDialogOpen, setIsProductCategoryDialogOpen] = useState(false);
+  const [editingProductCategory, setEditingProductCategory] = useState<ProductCategory | null>(null);
+  const [newProductCategory, setNewProductCategory] = useState({
+    brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
+    level: 1,
+    parentId: '' as string | null,
+    name: '',
+    code: '',
+    description: '',
+    sortOrder: 0,
   });
   
   // 时间线编辑状态
@@ -799,6 +908,79 @@ export default function HomePage() {
       console.error('加载项目失败:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 加载产品开发框架
+  const loadProductCategories = async (brand: string = 'all') => {
+    try {
+      const response = await fetch(`/api/product-categories?brand=${brand}`);
+      const data = await response.json();
+      setProductCategories(data.categories || []);
+    } catch (error) {
+      console.error('加载产品开发框架失败:', error);
+    }
+  };
+
+  // 创建或更新产品品类
+  const handleCreateOrUpdateProductCategory = async () => {
+    try {
+      const url = editingProductCategory
+        ? `/api/product-categories/${editingProductCategory.id}`
+        : '/api/product-categories';
+
+      const response = await fetch(url, {
+        method: editingProductCategory ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProductCategory),
+      });
+
+      if (response.ok) {
+        setIsProductCategoryDialogOpen(false);
+        setEditingProductCategory(null);
+        setNewProductCategory({
+          brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
+          level: 1,
+          parentId: '' as string | null,
+          name: '',
+          code: '',
+          description: '',
+          sortOrder: 0,
+        });
+        loadProductCategories(brandFilter);
+      }
+    } catch (error) {
+      console.error('保存产品品类失败:', error);
+    }
+  };
+
+  // 编辑产品品类
+  const handleEditProductCategory = (category: ProductCategory) => {
+    setEditingProductCategory(category);
+    setNewProductCategory({
+      brand: category.brand,
+      level: category.level,
+      parentId: category.parentId || '',
+      name: category.name,
+      code: category.code || '',
+      description: category.description || '',
+      sortOrder: category.sortOrder,
+    });
+    setIsProductCategoryDialogOpen(true);
+  };
+
+  // 删除产品品类
+  const handleDeleteProductCategory = async (id: string) => {
+    try {
+      const response = await fetch(`/api/product-categories/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        loadProductCategories(brandFilter);
+      }
+    } catch (error) {
+      console.error('删除产品品类失败:', error);
     }
   };
 
@@ -1150,6 +1332,10 @@ export default function HomePage() {
     loadSalesTargets();
   }, []);
 
+  useEffect(() => {
+    loadProductCategories(brandFilter);
+  }, [brandFilter]);
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -1267,11 +1453,12 @@ export default function HomePage() {
       {/* 主内容 */}
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <Tabs defaultValue="dashboard" className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 gap-1 h-auto">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 gap-1 h-auto">
             <TabsTrigger value="dashboard" className="text-xs sm:text-sm py-2 px-2">数据看板</TabsTrigger>
             <TabsTrigger value="projects" className="text-xs sm:text-sm py-2 px-2">项目列表</TabsTrigger>
             <TabsTrigger value="timeline" className="text-xs sm:text-sm py-2 px-2">时间线</TabsTrigger>
             <TabsTrigger value="roles" className="text-xs sm:text-sm py-2 px-2">岗位进度</TabsTrigger>
+            <TabsTrigger value="product-framework" className="text-xs sm:text-sm py-2 px-2">产品框架</TabsTrigger>
             <TabsTrigger value="feedback" className="text-xs sm:text-sm py-2 px-2">支持协助</TabsTrigger>
           </TabsList>
 
@@ -1527,6 +1714,15 @@ export default function HomePage() {
                       const urgentReminders = reminders.filter(r => r >= 3).length;
                       const warningReminders = reminders.filter(r => r >= 2 && r < 3).length;
                       
+                      // 收集被催促的岗位
+                      const remindedRoles = projectTasks
+                        .filter(t => t.reminderCount && t.reminderCount > 0)
+                        .map(t => ({
+                          role: ROLE_NAMES[t.role] || t.role,
+                          count: t.reminderCount
+                        }))
+                        .sort((a, b) => b.count - a.count);
+                      
                       return (
                       <div
                         key={project.id}
@@ -1603,6 +1799,21 @@ export default function HomePage() {
                                   warningReminders > 0 ? '请加快任务进度' :
                                   '请关注催促的任务'}
                                 </div>
+                                {/* 被催促的岗位 */}
+                                {remindedRoles.length > 0 && (
+                                  <div className="mt-1 pt-1 border-t border-current border-opacity-20">
+                                    <div className="text-[9px] opacity-90">
+                                      岗位: {remindedRoles.slice(0, 3).map((r, i) => (
+                                        <span key={i} className="inline-block">
+                                          {r.role}
+                                          {r.count > 1 && <span className="opacity-70">({r.count}次)</span>}
+                                          {i < Math.min(remindedRoles.length, 3) - 1 && <span className="mx-1">·</span>}
+                                        </span>
+                                      ))}
+                                      {remindedRoles.length > 3 && <span className="opacity-70"> 等{remindedRoles.length}个岗位</span>}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1670,11 +1881,15 @@ export default function HomePage() {
                         const avgProgress = roleTasks.length > 0
                           ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)
                           : 0;
+                        const totalReminders = roleTasks.reduce((sum, t) => sum + (t.reminderCount || 0), 0);
+                        const remindedTasks = roleTasks.filter(t => t.reminderCount && t.reminderCount > 0).length;
                         return {
                           role: ROLE_NAMES[role],
                           roleKey: role,
                           progress: avgProgress,
                           taskCount: roleTasks.length,
+                          totalReminders,
+                          remindedTasks,
                         };
                       })}
                       margin={{ top: 10, right: 20, left: 10, bottom: 50 }}
@@ -1696,7 +1911,12 @@ export default function HomePage() {
                         ]}
                         labelFormatter={(label: string, props: any) => {
                           if (props && props.payload) {
-                            return `${props.payload.role} (${props.payload.taskCount}个任务)`;
+                            const { taskCount, totalReminders, remindedTasks } = props.payload;
+                            let extraInfo = `${label} (${taskCount}个任务)`;
+                            if (totalReminders > 0) {
+                              extraInfo += ` | ${totalReminders}次催促`;
+                            }
+                            return extraInfo;
                           }
                           return label;
                         }}
@@ -1726,6 +1946,7 @@ export default function HomePage() {
                         ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)
                         : 0;
                       const completedTasks = roleTasks.filter(t => t.progress === 100).length;
+                      const totalReminders = roleTasks.reduce((sum, t) => sum + (t.reminderCount || 0), 0);
                       return (
                         <div key={role} className="flex items-center justify-between text-xs sm:text-sm">
                           <span className="flex-1 truncate pr-2">{ROLE_NAMES[role]}</span>
@@ -1735,9 +1956,20 @@ export default function HomePage() {
                               {avgProgress}%
                             </span>
                           </div>
-                          <span className="w-16 sm:w-24 text-right text-muted-foreground text-[10px] sm:text-xs">
-                            {completedTasks}/{roleTasks.length}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="w-16 sm:w-24 text-right text-muted-foreground text-[10px] sm:text-xs">
+                              {completedTasks}/{roleTasks.length}
+                            </span>
+                            {totalReminders > 0 && (
+                              <Badge variant="outline" className={`text-[9px] sm:text-[10px] px-1 sm:px-2 ${
+                                totalReminders >= 3 ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700' :
+                                totalReminders >= 2 ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700' :
+                                'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700'
+                              }`}>
+                                {totalReminders}次催促
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
@@ -2075,6 +2307,176 @@ export default function HomePage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* 产品开发框架 */}
+          <TabsContent value="product-framework" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <Card className="flex-1 mr-4">
+                <CardHeader>
+                  <CardTitle>产品开发框架</CardTitle>
+                  <CardDescription>管理各品牌的产品分类体系（一级到四级品类）</CardDescription>
+                </CardHeader>
+              </Card>
+              <Dialog open={isProductCategoryDialogOpen} onOpenChange={setIsProductCategoryDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    新增品类
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>{editingProductCategory ? '编辑品类' : '新增品类'}</DialogTitle>
+                    <DialogDescription>
+                      {editingProductCategory ? '编辑现有品类信息' : '添加新的产品品类'}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label>品牌</Label>
+                      <select
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={newProductCategory.brand}
+                        onChange={(e) => setNewProductCategory({ ...newProductCategory, brand: e.target.value as any })}
+                      >
+                        <option value="">选择品牌</option>
+                        <option value="he_zhe">禾哲</option>
+                        <option value="baobao">BAOBAO</option>
+                        <option value="ai_he">爱禾</option>
+                        <option value="bao_deng_yuan">宝登源</option>
+                      </select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>品类级别</Label>
+                      <select
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={newProductCategory.level}
+                        onChange={(e) => setNewProductCategory({ ...newProductCategory, level: Number(e.target.value) })}
+                      >
+                        <option value={1}>一级品类</option>
+                        <option value={2}>二级品类</option>
+                        <option value={3}>三级品类</option>
+                        <option value={4}>四级品类</option>
+                      </select>
+                    </div>
+                    {newProductCategory.level > 1 && (
+                      <div className="grid gap-2">
+                        <Label>父品类</Label>
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={newProductCategory.parentId || ''}
+                          onChange={(e) => setNewProductCategory({ ...newProductCategory, parentId: e.target.value || null })}
+                        >
+                          <option value="">选择父品类</option>
+                          {productCategories
+                            .filter(c => c.level === newProductCategory.level - 1)
+                            .map(c => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                        </select>
+                      </div>
+                    )}
+                    <div className="grid gap-2">
+                      <Label>品类名称</Label>
+                      <Input
+                        value={newProductCategory.name}
+                        onChange={(e) => setNewProductCategory({ ...newProductCategory, name: e.target.value })}
+                        placeholder="请输入品类名称"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>品类编码</Label>
+                      <Input
+                        value={newProductCategory.code}
+                        onChange={(e) => setNewProductCategory({ ...newProductCategory, code: e.target.value })}
+                        placeholder="请输入品类编码（可选）"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>描述</Label>
+                      <Textarea
+                        value={newProductCategory.description}
+                        onChange={(e) => setNewProductCategory({ ...newProductCategory, description: e.target.value })}
+                        placeholder="请输入品类描述（可选）"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>排序</Label>
+                      <Input
+                        type="number"
+                        value={newProductCategory.sortOrder}
+                        onChange={(e) => setNewProductCategory({ ...newProductCategory, sortOrder: Number(e.target.value) })}
+                        placeholder="排序值，数字越小越靠前"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsProductCategoryDialogOpen(false);
+                        setEditingProductCategory(null);
+                        setNewProductCategory({
+                          brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
+                          level: 1,
+                          parentId: '' as string | null,
+                          name: '',
+                          code: '',
+                          description: '',
+                          sortOrder: 0,
+                        });
+                      }}
+                    >
+                      取消
+                    </Button>
+                    <Button onClick={handleCreateOrUpdateProductCategory}>
+                      {editingProductCategory ? '更新' : '创建'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* 按品牌展示产品开发框架 */}
+            {Object.keys(BRAND_NAMES).filter(k => k !== 'all').map((brandKey) => {
+              const brandCategories = productCategories.filter(c => c.brand === brandKey);
+              const rootCategories = brandCategories.filter(c => c.level === 1);
+
+              if (rootCategories.length === 0) {
+                return null;
+              }
+
+              return (
+                <Card key={brandKey}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FolderOpen className="h-5 w-5" />
+                      {BRAND_NAMES[brandKey]} - 产品开发框架
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {rootCategories.map(category => (
+                        <CategoryTree
+                          key={category.id}
+                          category={category}
+                          allCategories={brandCategories}
+                          onEdit={handleEditProductCategory}
+                          onDelete={handleDeleteProductCategory}
+                          level={1}
+                        />
+                      ))}
+                      {brandCategories.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          暂无品类数据，请点击上方"新增品类"按钮添加
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </TabsContent>
 
           {/* 员工反馈 */}

@@ -1588,8 +1588,28 @@ export default function HomePage() {
           }, 0);
         }
 
-        // 方法3：3秒后重新加载项目列表，确保数据同步
-        console.log('等待3秒后重新加载项目列表...');
+        // 方法3：立即进行完整诊断
+        console.log('\n=== 开始完整诊断 ===');
+        const diagResponse = await fetch(`/api/full-diagnostic?id=${projectId}`, {
+          credentials: 'include'
+        });
+        const diagData = await diagResponse.json();
+        console.log('完整诊断结果:', diagData);
+
+        if (diagData.success) {
+          console.log(`✅ 诊断成功`);
+          console.log(`总项目数: ${diagData.allProjectsCount}`);
+          console.log(`任务数: ${diagData.tasksCount}`);
+
+          if (diagData.allProjectsCount > 0) {
+            console.log(`各品牌项目数量已统计`);
+          }
+        } else {
+          console.error(`❌ 诊断失败: ${diagData.error}`);
+        }
+
+        // 方法4：3秒后重新加载项目列表，确保数据同步
+        console.log('\n等待3秒后重新加载项目列表...');
         await new Promise(resolve => setTimeout(resolve, 3000));
         loadProjects();
       } else {
@@ -1933,9 +1953,6 @@ export default function HomePage() {
 
   useEffect(() => {
     loadProductCategories(brandFilter);
-  }, [brandFilter]);
-
-  useEffect(() => {
     loadWeeklyWorkPlans();
     loadCollaborationTasks();
   }, [brandFilter]);

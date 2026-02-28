@@ -1536,6 +1536,21 @@ export default function HomePage() {
           description: ''
         });
 
+        // 重要：将品牌过滤器设置为创建项目的品牌，确保用户能看到新创建的项目
+        const createdBrand = data.project?.brand;
+        if (createdBrand && createdBrand !== 'all') {
+          console.log(`设置品牌过滤器: 从 ${brandFilter} 改为 ${createdBrand}`);
+          // 使用 setTimeout 确保状态更新顺序，避免 React 批处理问题
+          setTimeout(() => {
+            setBrandFilter(createdBrand);
+          }, 0);
+        } else {
+          console.log(`⚠️ 创建项目的品牌为空或为 'all'，设置为 all`);
+          setTimeout(() => {
+            setBrandFilter('all');
+          }, 0);
+        }
+
         // 方法2：立即检查项目是否真的在数据库中
         console.log(`=== 立即检查项目是否在数据库中 ===`);
         const checkResponse = await fetch(`/api/check-project/${projectId}`, {

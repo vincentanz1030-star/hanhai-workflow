@@ -5,8 +5,8 @@ import { getUserRoles, getPrimaryRole } from '@/lib/permissions';
 
 export async function GET(request: NextRequest) {
   try {
-    // 获取当前用户
-    const user = await getCurrentUser();
+    // 获取当前用户，传入request对象以支持Authorization header
+    const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json(
         { error: '未登录' },

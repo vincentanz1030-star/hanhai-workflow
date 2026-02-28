@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', // 确保包含Cookie
+      credentials: 'include',
       body: JSON.stringify({ email, password }),
     });
 
@@ -75,8 +75,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(data.error || '登录失败');
     }
 
-    // 等待一小段时间确保Cookie被设置
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // 保存token到localStorage
+    if (data.token) {
+      localStorage.setItem('auth_token', data.token);
+    }
 
     // 重新获取用户信息
     await fetchUser();

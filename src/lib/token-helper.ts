@@ -1,9 +1,9 @@
 /**
  * 辅助函数：从请求中获取Token（支持Cookie和Authorization header）
  */
-export async function getTokenFromRequest(request?: Request): Promise<string | null> {
+export async function getTokenFromRequest(request?: Request | any): Promise<string | null> {
   // 如果传入了request，先尝试从Authorization header获取
-  if (request) {
+  if (request && request.headers) {
     const authHeader = request.headers.get('authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
       return authHeader.substring(7);

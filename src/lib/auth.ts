@@ -87,7 +87,7 @@ export async function clearTokenCookie(): Promise<void> {
 /**
  * 从请求中获取当前用户信息（支持Request对象）
  */
-export async function getCurrentUser(request?: Request): Promise<{
+export async function getCurrentUser(request?: Request | any): Promise<{
   userId: string;
   email: string;
   brand: string;

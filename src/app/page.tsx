@@ -1041,6 +1041,29 @@ export default function HomePage() {
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'product_development' | 'operations_activity'>('all');
   const [brandFilter, setBrandFilter] = useState<'all' | 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan'>('all');
   const [deleteConfirmProject, setDeleteConfirmProject] = useState<Project | null>(null);
+
+  // 包装 setBrandFilter 以追踪所有调用
+  const setBrandFilterWithLog = (newBrand: 'all' | 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan') => {
+    const timestamp = new Date().toISOString();
+    console.log(`\n[${timestamp}] === setBrandFilter 被调用 ===`);
+    console.log(`从: ${brandFilter} -> 到: ${newBrand}`);
+    setBrandFilter(newBrand);
+  };
+
+  // 包装 setProjectsWithLog 以追踪所有调用
+  const setProjectsWithLog = (newProjects: Project[] | ((prev: Project[]) => Project[])) => {
+    const timestamp = new Date().toISOString();
+    console.log(`\n[${timestamp}] === setProjects 被调用 ===`);
+    console.log(`调用类型: ${typeof newProjects === 'function' ? '函数式更新' : '直接赋值'}`);
+    console.log(`调用前长度: ${projects.length}`);
+
+    setProjects(newProjects);
+
+    // 延迟一点打印调用后长度，因为 setState 是异步的
+    setTimeout(() => {
+      console.log(`调用后长度: ${projects.length}`);
+    }, 0);
+  };
   
   // 销售目标相关状态
   const [salesTargets, setSalesTargets] = useState<AnnualSalesTarget[]>([]);
@@ -1147,6 +1170,11 @@ export default function HomePage() {
   
   // 加载项目列表
   const loadProjects = async () => {
+    const timestamp = new Date().toISOString();
+    console.log(`\n[${timestamp}] === loadProjects 被调用 ===`);
+    console.log(`调用前列表长度: ${projects.length}`);
+    console.log(`当前品牌过滤器: ${brandFilter}`);
+
     try {
       // 明确请求所有项目，不应用品牌过滤
       const response = await fetch('/api/projects?brand=all&category=all', {
@@ -1166,7 +1194,7 @@ export default function HomePage() {
         });
         console.log('各品牌项目分布:', brandCount);
       }
-      setProjects(data.projects || []);
+      setProjectsWithLog(data.projects || []);
     } catch (error) {
       console.error('加载项目失败:', error);
     } finally {
@@ -1558,7 +1586,7 @@ export default function HomePage() {
         setIsCreateDialogOpen(false);
 
         // 关键：使用函数式更新，确保基于最新的状态
-        setProjects(prev => {
+        setProjectsWithLog(prev => {
           console.log('更新projects状态，当前长度:', prev.length);
           const newList = [newProjectData, ...prev];
           console.log('更新后长度:', newList.length);
@@ -1579,12 +1607,12 @@ export default function HomePage() {
         if (createdBrand && createdBrand !== 'all') {
           console.log(`设置品牌过滤器: 从 ${brandFilter} 改为 ${createdBrand}`);
           setTimeout(() => {
-            setBrandFilter(createdBrand);
+            setBrandFilterWithLog(createdBrand);
           }, 0);
         } else {
           console.log(`⚠️ 创建项目的品牌为空或为 'all'，设置为 all`);
           setTimeout(() => {
-            setBrandFilter('all');
+            setBrandFilterWithLog('all');
           }, 0);
         }
 
@@ -1681,7 +1709,7 @@ export default function HomePage() {
       if (response.ok) {
         const data = await response.json();
         // 更新本地项目列表
-        setProjects(projects.map(p => 
+        setProjectsWithLog(projects.map(p => 
           p.id === projectId ? { ...p, ...data.project } : p
         ));
         setEditingProjectId(null);
@@ -2184,7 +2212,7 @@ export default function HomePage() {
                       key={brandKey}
                       variant={brandFilter === brandKey ? "default" : "outline"}
                       size="sm"
-                      onClick={() => setBrandFilter(brandKey as any)}
+                      onClick={() => setBrandFilterWithLog(brandKey as any)}
                       className={`gap-1 sm:gap-2 text-xs sm:text-sm ${brandFilter === brandKey ? 'gap-1 sm:gap-2' : 'gap-1 sm:gap-2'}`}
                     >
                       {brandFilter === brandKey && <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />}

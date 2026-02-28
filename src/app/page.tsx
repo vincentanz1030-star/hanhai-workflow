@@ -843,12 +843,18 @@ function OrgTreeNode({
   onEdit,
   onDelete,
   onAddChild,
+  editingChildId,
+  onCreateChild,
+  brand,
 }: {
   category: ProductCategory;
   level: number;
   onEdit: (category: ProductCategory) => void;
   onDelete: (id: string) => void;
-  onAddChild: (parentId: string) => void;
+  onAddChild: (parentId: string | null) => void;
+  editingChildId: string | null;
+  onCreateChild: (parentId: string, name: string) => Promise<void>;
+  brand: 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan' | 'all';
 }) {
   const hasChildren = category.children && category.children.length > 0;
   const canAddMore = level < 4;
@@ -860,12 +866,14 @@ function OrgTreeNode({
     4: 'bg-gray-50 text-gray-600 dark:bg-gray-900/20 dark:text-gray-500',
   };
 
+  const isEditingChild = editingChildId === category.id;
+
   return (
     <div className="flex flex-col">
       {/* 当前节点 */}
       <div
         className={`
-          relative flex items-center gap-2 px-3 py-2 rounded-lg border-2
+          relative inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2
           transition-all hover:shadow-md
           ${levelColors[level]}
           border-current
@@ -878,20 +886,20 @@ function OrgTreeNode({
         )}
 
         {/* 品类图标 */}
-        <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-white/20">
+        <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-white/20 flex-shrink-0">
           <FolderOpen className="h-3.5 w-3.5" />
         </div>
 
         {/* 品类信息 */}
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm truncate">{category.name}</div>
+        <div className="min-w-0 max-w-max">
+          <div className="font-medium text-sm whitespace-nowrap">{category.name}</div>
           {category.code && (
-            <div className="text-[11px] opacity-70 truncate">{category.code}</div>
+            <div className="text-[11px] opacity-70 whitespace-nowrap">{category.code}</div>
           )}
         </div>
 
         {/* 操作按钮 */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5 flex-shrink-0">
           {canAddMore && (
             <button
               onClick={() => onAddChild(category.id)}
@@ -922,6 +930,40 @@ function OrgTreeNode({
         </div>
       </div>
 
+      {/* 内联编辑输入框 */}
+      {isEditingChild && (
+        <div 
+          style={{ marginLeft: `${level * 24}px` }}
+          className="mt-1 flex items-center gap-1"
+        >
+          <FolderOpen className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+          <input
+            type="text"
+            autoFocus
+            placeholder="输入品类名称，按Enter确认"
+            className="flex-1 min-w-0 px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+            onKeyDown={async (e) => {
+              if (e.key === 'Enter') {
+                const name = e.currentTarget.value.trim();
+                if (name) {
+                  await onCreateChild(category.id, name);
+                }
+              } else if (e.key === 'Escape') {
+                onAddChild(null);
+              }
+            }}
+            onBlur={() => {
+              // 失去焦点时也可以取消编辑
+              setTimeout(() => {
+                if (editingChildId === category.id) {
+                  onAddChild(null);
+                }
+              }, 200);
+            }}
+          />
+        </div>
+      )}
+
       {/* 子节点 */}
       {hasChildren && (
         <div className="relative flex flex-col">
@@ -940,6 +982,9 @@ function OrgTreeNode({
               onEdit={onEdit}
               onDelete={onDelete}
               onAddChild={onAddChild}
+              editingChildId={editingChildId}
+              onCreateChild={onCreateChild}
+              brand={brand}
             />
           ))}
         </div>
@@ -994,6 +1039,7 @@ export default function HomePage() {
   const [productCategories, setProductCategories] = useState<ProductCategory[]>([]);
   const [isProductCategoryDialogOpen, setIsProductCategoryDialogOpen] = useState(false);
   const [editingProductCategory, setEditingProductCategory] = useState<ProductCategory | null>(null);
+  const [editingChildId, setEditingChildId] = useState<string | null>(null);
   const [newProductCategory, setNewProductCategory] = useState({
     brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
     level: 1,
@@ -1192,6 +1238,44 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('删除产品品类失败:', error);
+    }
+  };
+
+  // 内联创建子品类
+  const handleCreateChildCategory = async (parentId: string, name: string) => {
+    try {
+      // 找到父品类信息
+      const parentCategory = productCategories.find(c => c.id === parentId);
+      if (!parentCategory) {
+        alert('父品类不存在');
+        return;
+      }
+
+      // 创建新品类
+      const response = await fetch('/api/product-categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brand: parentCategory.brand,
+          level: parentCategory.level + 1,
+          parentId,
+          name,
+          code: '',
+          description: '',
+          sortOrder: 0,
+        }),
+      });
+
+      if (response.ok) {
+        setEditingChildId(null);
+        loadProductCategories(brandFilter);
+      } else {
+        const data = await response.json();
+        alert(data.error || '创建失败');
+      }
+    } catch (error) {
+      console.error('创建子品类失败:', error);
+      alert('创建失败，请重试');
     }
   };
 
@@ -2752,19 +2836,10 @@ export default function HomePage() {
                               level={1}
                               onEdit={handleEditCategory}
                               onDelete={handleDeleteProductCategory}
-                              onAddChild={(parentId) => {
-                                setEditingProductCategory(null);
-                                setNewProductCategory({
-                                  brand: brandKey as any,
-                                  level: 2,
-                                  parentId,
-                                  name: '',
-                                  code: '',
-                                  description: '',
-                                  sortOrder: 0,
-                                });
-                                setIsProductCategoryDialogOpen(true);
-                              }}
+                              onAddChild={setEditingChildId}
+                              editingChildId={editingChildId}
+                              onCreateChild={handleCreateChildCategory}
+                              brand={brandKey as any}
                             />
                           ))}
                         </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { createClient } from '@storage/database/supabase-client';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { checkPermission } from '@/lib/permissions';
 
 export async function GET(
@@ -28,7 +28,7 @@ export async function GET(
       );
     }
 
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
 
     // 获取用户详情
     const { data: user, error } = await supabase
@@ -98,7 +98,7 @@ export async function PUT(
       );
     }
 
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
 
     // 构建更新数据
     const updateData: any = {};
@@ -160,7 +160,7 @@ export async function DELETE(
       );
     }
 
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
 
     // 不能删除自己
     if (currentUser.userId === id) {

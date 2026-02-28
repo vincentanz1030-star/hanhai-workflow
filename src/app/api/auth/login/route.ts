@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@storage/database/supabase-client';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { verifyPassword, generateToken, setTokenCookie } from '@/lib/auth';
 import { getPrimaryRole } from '@/lib/permissions';
 
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
 
     // 查询用户
     const { data: user, error } = await supabase

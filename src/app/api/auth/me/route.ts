@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { createClient } from '@storage/database/supabase-client';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { getUserRoles, getPrimaryRole } from '@/lib/permissions';
 
 export async function GET(request: NextRequest) {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
 
     // 查询用户详细信息
     const { data: userData, error } = await supabase

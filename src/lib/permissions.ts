@@ -1,4 +1,4 @@
-import { createClient } from '@storage/database/supabase-client';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 /**
  * 检查用户是否有指定权限
@@ -8,7 +8,7 @@ export async function checkPermission(
   resource: string,
   action: string
 ): Promise<boolean> {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
 
   // 查询用户的所有角色
   const { data: userRoles, error: rolesError } = await supabase
@@ -60,7 +60,7 @@ export async function canViewAllBrands(userId: string): Promise<boolean> {
  * 获取用户的所有权限
  */
 export async function getUserPermissions(userId: string) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
 
   // 查询用户的所有角色
   const { data: userRoles, error: rolesError } = await supabase
@@ -102,7 +102,7 @@ export async function getUserPermissions(userId: string) {
  * 获取用户的角色列表
  */
 export async function getUserRoles(userId: string) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
 
   const { data, error } = await supabase
     .from('user_roles')

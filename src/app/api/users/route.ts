@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { createClient } from '@storage/database/supabase-client';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { checkPermission, canViewAllBrands } from '@/lib/permissions';
 
 export async function GET(request: NextRequest) {
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supabase = createClient();
+    const supabase = getSupabaseClient();
     const searchParams = request.nextUrl.searchParams;
     const brand = searchParams.get('brand');
 

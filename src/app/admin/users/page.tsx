@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
-import { Check, X, Shield, UserCheck, UserX, RefreshCw, Edit, History, Loader2 } from 'lucide-react';
+import { Check, X, Shield, UserCheck, UserX, RefreshCw, Edit, History, Loader2, Trash2 } from 'lucide-react';
 
 const BRAND_NAMES: Record<string, string> = {
   all: '全部品牌',
@@ -53,6 +53,7 @@ export default function UserManagementPage() {
   const [showAuditDialog, setShowAuditDialog] = useState(false);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
   const [showAuditLogsDialog, setShowAuditLogsDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [auditReason, setAuditReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -152,6 +153,32 @@ export default function UserManagementPage() {
       }
     } catch (error) {
       console.error('获取审核日志错误:', error);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedUser) return;
+
+    try {
+      setActionLoading(true);
+      const response = await fetch(`/api/admin/users/${selectedUser.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowDeleteDialog(false);
+        setSelectedUser(null);
+        fetchUsers();
+      } else {
+        alert(data.error || '删除失败');
+      }
+    } catch (error) {
+      console.error('删除用户错误:', error);
+      alert('删除失败');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -377,6 +404,17 @@ export default function UserManagementPage() {
                           <History className="h-4 w-4 mr-1" />
                           日志
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => {
+                            setSelectedUser(userItem);
+                            setShowDeleteDialog(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          删除
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -512,6 +550,32 @@ export default function UserManagementPage() {
                 </div>
               )}
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* 删除确认对话框 */}
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>确认删除用户</DialogTitle>
+              <DialogDescription>
+                确定要删除用户 "{selectedUser?.name}" ({selectedUser?.email}) 吗？
+                此操作不可撤销，该用户的所有数据也将被删除。
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+                取消
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={actionLoading}
+              >
+                {actionLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                确认删除
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

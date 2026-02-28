@@ -141,3 +141,62 @@ export async function PATCH(
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }
+
+// 删除用户
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    // 验证管理员权限
+    const currentUser = await getCurrentUser(request);
+    if (!currentUser) {
+      return NextResponse.json({ error: '未登录' }, { status: 401 });
+    }
+
+    const supabase = getSupabaseClient();
+
+    // 检查用户角色
+    const { data: adminRole } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', currentUser.userId)
+      .eq('is_primary', true)
+      .single();
+
+    if (!adminRole || adminRole.role !== 'admin') {
+      return NextResponse.json({ error: '无权限' }, { status: 403 });
+    }
+
+    // 获取目标用户信息（用于记录日志）
+    const { data: targetUser } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (!targetUser) {
+      return NextResponse.json({ error: '用户不存在' }, { status: 404 });
+    }
+
+    // 删除用户（由于有外键约束，user_roles和user_audit_logs会自动删除）
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      return NextResponse.json({ error: '删除失败' }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: '用户已删除',
+    });
+  } catch (error) {
+    console.error('删除用户错误:', error);
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
+  }
+}

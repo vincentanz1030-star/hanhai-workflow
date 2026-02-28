@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
@@ -11,12 +10,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, Users, CheckCircle, AlertCircle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, LogOut, User } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, AlertCircle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 import { format, differenceInDays, isBefore, isAfter, isToday } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Slider } from '@/components/ui/slider';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { supabase } from '@/lib/supabase';
 
 // 类型定义
 interface Project {
@@ -732,8 +730,6 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
 }
 
 export default function HomePage() {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -804,35 +800,6 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // 获取当前用户信息
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUser(user);
-      }
-    };
-    
-    getUser();
-
-    // 监听认证状态变化
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-      } else {
-        setUser(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // 退出登录
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
   };
 
   // 创建项目
@@ -1200,7 +1167,6 @@ export default function HomePage() {
       <header className="border-b bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 sticky top-0 z-50">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            {/* 左侧：Logo 和标题 */}
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
                 <FolderOpen className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
@@ -1210,119 +1176,90 @@ export default function HomePage() {
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">以销售为驱动的项目进度管理</p>
               </div>
             </div>
-
-            {/* 右侧：用户信息、创建项目按钮、退出登录 */}
-            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
-              {user && (
-                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2">
-                  <User className="h-3 w-3 sm:h-4 sm:w-4 text-slate-600 dark:text-slate-400" />
-                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 hidden sm:inline">
-                    {user.user_metadata?.full_name || user.email}
-                  </span>
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300 sm:hidden">
-                    {user.user_metadata?.full_name ? user.user_metadata.full_name.slice(0, 1) : user.email?.slice(0, 1)}
-                  </span>
-                </div>
-              )}
-              
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2 h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm">
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">创建项目</span>
-                    <span className="sm:hidden">创建</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="w-[95vw] sm:w-auto">
-                  <DialogHeader>
-                    <DialogTitle className="text-base sm:text-lg">创建新项目</DialogTitle>
-                    <DialogDescription className="text-xs sm:text-sm">填写项目信息，系统将自动生成各岗位任务</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-3 sm:space-y-4 py-3 sm:py-4 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
-                    <div className="space-y-2">
-                      <Label htmlFor="brand" className="text-xs sm:text-sm">选择品牌 *</Label>
-                      <select
-                        id="brand"
-                        value={newProject.brand}
-                        onChange={(e) => setNewProject({ ...newProject, brand: e.target.value as any })}
-                        className="flex h-9 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs sm:text-sm"
-                      >
-                        <option value="">请选择品牌...</option>
-                        {Object.keys(BRAND_NAMES).map(key => {
-                          if (key === 'all') return null;
-                          return (
-                            <option key={key} value={key}>{BRAND_NAMES[key]}</option>
-                          );
-                        })}
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="category" className="text-xs sm:text-sm">项目分类 *</Label>
-                      <select
-                        id="category"
-                        value={newProject.category}
-                        onChange={(e) => setNewProject({ ...newProject, category: e.target.value as any })}
-                        className="flex h-9 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs sm:text-sm"
-                      >
-                        <option value="">请选择分类...</option>
-                        {Object.keys(CATEGORY_NAMES).map(key => (
-                          <option key={key} value={key}>{CATEGORY_NAMES[key]}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-xs sm:text-sm">项目名称 *</Label>
-                      <Input
-                        id="name"
-                        value={newProject.name}
-                        onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                        placeholder="例如：夏季新品推广"
-                        className="h-9 sm:h-10"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="salesDate" className="text-xs sm:text-sm">销售日期 *</Label>
-                      <Input
-                        id="salesDate"
-                        type="date"
-                        value={newProject.salesDate}
-                        onChange={(e) => setNewProject({ ...newProject, salesDate: e.target.value })}
-                        className="h-9 sm:h-10"
-                      />
-                      <p className="text-[10px] sm:text-sm text-muted-foreground">系统将自动向前推3个月作为项目确认时间</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="description" className="text-xs sm:text-sm">项目描述</Label>
-                      <Textarea
-                        id="description"
-                        value={newProject.description}
-                        onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                        placeholder="简要描述项目内容和目标"
-                        rows={3}
-                        className="text-xs sm:text-sm"
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={handleCreateProject} disabled={!newProject.name || !newProject.salesDate || !newProject.brand || !newProject.category} className="h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full">
-                      创建项目
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
-              {user && (
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={handleLogout}
-                  className="h-9 w-9 sm:h-10 sm:w-10"
-                  title="退出登录"
-                >
-                  <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2 h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full sm:w-auto">
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                  创建项目
                 </Button>
-              )}
-            </div>
+              </DialogTrigger>
+              <DialogContent className="w-[95vw] sm:w-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-base sm:text-lg">创建新项目</DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm">填写项目信息，系统将自动生成各岗位任务</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 sm:space-y-4 py-3 sm:py-4 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
+                  <div className="space-y-2">
+                    <Label htmlFor="brand" className="text-xs sm:text-sm">选择品牌 *</Label>
+                    <select
+                      id="brand"
+                      value={newProject.brand}
+                      onChange={(e) => setNewProject({ ...newProject, brand: e.target.value as any })}
+                      className="flex h-9 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs sm:text-sm"
+                    >
+                      <option value="">请选择品牌...</option>
+                      {Object.keys(BRAND_NAMES).map(key => {
+                        if (key === 'all') return null; // 不在创建项目时显示"全部"
+                        return (
+                          <option key={key} value={key}>{BRAND_NAMES[key]}</option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="category" className="text-xs sm:text-sm">项目分类 *</Label>
+                    <select
+                      id="category"
+                      value={newProject.category}
+                      onChange={(e) => setNewProject({ ...newProject, category: e.target.value as any })}
+                      className="flex h-9 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs sm:text-sm"
+                    >
+                      <option value="">请选择分类...</option>
+                      {Object.keys(CATEGORY_NAMES).map(key => (
+                        <option key={key} value={key}>{CATEGORY_NAMES[key]}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-xs sm:text-sm">项目名称 *</Label>
+                    <Input
+                      id="name"
+                      value={newProject.name}
+                      onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                      placeholder="例如：夏季新品推广"
+                      className="h-9 sm:h-10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="salesDate" className="text-xs sm:text-sm">销售日期 *</Label>
+                    <Input
+                      id="salesDate"
+                      type="date"
+                      value={newProject.salesDate}
+                      onChange={(e) => setNewProject({ ...newProject, salesDate: e.target.value })}
+                      className="h-9 sm:h-10"
+                    />
+                    <p className="text-[10px] sm:text-sm text-muted-foreground">系统将自动向前推3个月作为项目确认时间</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description" className="text-xs sm:text-sm">项目描述</Label>
+                    <Textarea
+                      id="description"
+                      value={newProject.description}
+                      onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                      placeholder="简要描述项目内容和目标"
+                      rows={3}
+                      className="text-xs sm:text-sm"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleCreateProject} disabled={!newProject.name || !newProject.salesDate || !newProject.brand || !newProject.category} className="h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full">
+                    创建项目
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </header>
@@ -1590,14 +1527,6 @@ export default function HomePage() {
                       const urgentReminders = reminders.filter(r => r >= 3).length;
                       const warningReminders = reminders.filter(r => r >= 2 && r < 3).length;
                       
-                      // 获取被催促的岗位信息
-                      const remindedTasks = projectTasks.filter(t => t.reminderCount && t.reminderCount > 0);
-                      const remindedRoles = remindedTasks.map(t => ({
-                        role: t.role,
-                        count: t.reminderCount || 0,
-                        taskName: t.taskName
-                      }));
-                      
                       return (
                       <div
                         key={project.id}
@@ -1673,24 +1602,6 @@ export default function HomePage() {
                                   {urgentReminders > 0 ? '请立即处理延误任务' :
                                   warningReminders > 0 ? '请加快任务进度' :
                                   '请关注催促的任务'}
-                                </div>
-                                {/* 被催促的岗位 */}
-                                <div className="mt-1.5 flex flex-wrap gap-1">
-                                  {remindedRoles.map((item, index) => (
-                                    <Badge 
-                                      key={index} 
-                                      variant="outline" 
-                                      className={`text-[9px] px-1.5 py-0 border ${
-                                        item.count >= 3 
-                                          ? 'border-red-300 dark:border-red-700 text-red-700 dark:text-red-300' 
-                                          : item.count >= 2 
-                                            ? 'border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300'
-                                            : 'border-yellow-300 dark:border-yellow-700 text-yellow-700 dark:text-yellow-300'
-                                      }`}
-                                    >
-                                      {ROLE_NAMES[item.role]}({item.count})
-                                    </Badge>
-                                  ))}
                                 </div>
                               </div>
                             </div>

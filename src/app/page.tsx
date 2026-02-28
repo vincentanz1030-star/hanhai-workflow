@@ -1148,7 +1148,8 @@ export default function HomePage() {
   // 加载项目列表
   const loadProjects = async () => {
     try {
-      const response = await fetch('/api/projects', {
+      // 明确请求所有项目，不应用品牌过滤
+      const response = await fetch('/api/projects?brand=all&category=all', {
         credentials: 'include'
       });
       const data = await response.json();
@@ -1158,6 +1159,12 @@ export default function HomePage() {
       if (data.projects && data.projects.length > 0) {
         console.log('第一个项目:', data.projects[0]);
         console.log('第一个项目品牌:', data.projects[0].brand);
+        // 统计各品牌项目数量
+        const brandCount: Record<string, number> = {};
+        data.projects.forEach((p: Project) => {
+          brandCount[p.brand] = (brandCount[p.brand] || 0) + 1;
+        });
+        console.log('各品牌项目分布:', brandCount);
       }
       setProjects(data.projects || []);
     } catch (error) {
@@ -1524,35 +1531,9 @@ export default function HomePage() {
           tasks: data.tasks || []
         };
         console.log('立即添加项目:', newProjectData);
-        setProjects(prev => [newProjectData, ...prev]);
+        console.log('当前projects状态长度:', projects.length);
 
-        // 关闭对话框并重置表单
-        setIsCreateDialogOpen(false);
-        setNewProject({
-          name: '',
-          brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan' | 'all',
-          category: '' as 'product_development' | 'operations_activity',
-          salesDate: '',
-          description: ''
-        });
-
-        // 重要：将品牌过滤器设置为创建项目的品牌，确保用户能看到新创建的项目
-        const createdBrand = data.project?.brand;
-        if (createdBrand && createdBrand !== 'all') {
-          console.log(`设置品牌过滤器: 从 ${brandFilter} 改为 ${createdBrand}`);
-          // 使用 setTimeout 确保状态更新顺序，避免 React 批处理问题
-          setTimeout(() => {
-            setBrandFilter(createdBrand);
-          }, 0);
-        } else {
-          console.log(`⚠️ 创建项目的品牌为空或为 'all'，设置为 all`);
-          setTimeout(() => {
-            setBrandFilter('all');
-          }, 0);
-        }
-
-        // 方法2：立即检查项目是否真的在数据库中
-        console.log(`=== 立即检查项目是否在数据库中 ===`);
+        // 重要：先验证数据库是否真的保存了项目，再关闭对话框
         const checkResponse = await fetch(`/api/check-project/${projectId}`, {
           credentials: 'include'
         });
@@ -1568,38 +1549,49 @@ export default function HomePage() {
         } else {
           console.error('❌ 项目在数据库中不存在');
           console.error('原因:', checkData.message || checkData.error);
-          setCreateProjectError('项目创建后验证失败，请刷新页面查看最新状态');
-          // 即使验证失败，也不关闭对话框，让用户知道有问题
+          setCreateProjectError('项目创建后验证失败，项目未保存到数据库');
           setIsCreatingProject(false);
           return;
         }
 
-        // 方法3：1秒后再次检查（确认数据持久化）
-        console.log('等待1秒后再次检查...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const checkResponse2 = await fetch(`/api/check-project/${projectId}`, {
-          credentials: 'include'
+        // 验证通过后，关闭对话框
+        setIsCreateDialogOpen(false);
+
+        // 关键：使用函数式更新，确保基于最新的状态
+        setProjects(prev => {
+          console.log('更新projects状态，当前长度:', prev.length);
+          const newList = [newProjectData, ...prev];
+          console.log('更新后长度:', newList.length);
+          return newList;
         });
-        const checkData2 = await checkResponse2.json();
-        console.log('1秒后检查结果:', checkData2);
 
-        if (!checkData2.success || !checkData2.exists) {
-          console.error('❌ 1秒后项目消失了！');
-          setCreateProjectError('项目创建后短暂消失，可能存在数据库一致性问题');
-          setIsCreatingProject(false);
-          return;
+        // 重置表单
+        setNewProject({
+          name: '',
+          brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan' | 'all',
+          category: '' as 'product_development' | 'operations_activity',
+          salesDate: '',
+          description: ''
+        });
+
+        // 重要：将品牌过滤器设置为创建项目的品牌，确保用户能看到新创建的项目
+        const createdBrand = data.project?.brand;
+        if (createdBrand && createdBrand !== 'all') {
+          console.log(`设置品牌过滤器: 从 ${brandFilter} 改为 ${createdBrand}`);
+          setTimeout(() => {
+            setBrandFilter(createdBrand);
+          }, 0);
+        } else {
+          console.log(`⚠️ 创建项目的品牌为空或为 'all'，设置为 all`);
+          setTimeout(() => {
+            setBrandFilter('all');
+          }, 0);
         }
 
-        // 方法4：3秒后重新加载项目列表
+        // 方法3：3秒后重新加载项目列表，确保数据同步
         console.log('等待3秒后重新加载项目列表...');
         await new Promise(resolve => setTimeout(resolve, 3000));
         loadProjects();
-
-        // 方法5：5秒后再次确认
-        setTimeout(() => {
-          console.log('5秒后再次检查项目列表...');
-          loadProjects();
-        }, 5000);
       } else {
         setCreateProjectError(data.error || '创建项目失败，请重试');
       }

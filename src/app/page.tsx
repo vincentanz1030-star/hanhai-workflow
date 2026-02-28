@@ -1601,17 +1601,18 @@ export default function HomePage() {
           console.log(`总项目数: ${diagData.allProjectsCount}`);
           console.log(`任务数: ${diagData.tasksCount}`);
 
+          // 关键修复：不使用 loadProjects() 替换整个列表
+          // 而是检查项目是否真的在数据库中，如果数据库查询不到，才重新加载
           if (diagData.allProjectsCount > 0) {
+            console.log(`数据库中存在项目，不重新加载列表，保持当前状态`);
             console.log(`各品牌项目数量已统计`);
+          } else {
+            console.warn(`⚠️ 数据库中无项目，可能有问题，重新加载...`);
+            loadProjects();
           }
         } else {
           console.error(`❌ 诊断失败: ${diagData.error}`);
         }
-
-        // 方法4：3秒后重新加载项目列表，确保数据同步
-        console.log('\n等待3秒后重新加载项目列表...');
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        loadProjects();
       } else {
         setCreateProjectError(data.error || '创建项目失败，请重试');
       }

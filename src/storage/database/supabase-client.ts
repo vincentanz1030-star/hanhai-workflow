@@ -102,6 +102,12 @@ function getSupabaseClient(token?: string): SupabaseClient {
         return fetch(url, {
           ...options,
           cache: 'no-store' as RequestCache, // 禁用缓存
+          headers: {
+            ...options?.headers,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
         });
       },
     },

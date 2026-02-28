@@ -28,12 +28,25 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // 使用AuthContext的login方法
-      await authLogin(email, password);
+      // 直接调用登录API
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
 
-      // 登录成功，跳转到目标页面
-      router.push(redirect);
-      router.refresh();
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '登录失败');
+      }
+
+      // 将token保存到localStorage
+      localStorage.setItem('auth_token', data.token);
+
+      // 使用硬跳转而不是软跳转，确保页面重新加载
+      window.location.href = redirect || '/';
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败，请重试');
     } finally {

@@ -35,13 +35,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUser = async () => {
     try {
-      const response = await fetch('/api/auth/me');
+      // 从localStorage获取token
+      const token = localStorage.getItem('auth_token');
+
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      });
+
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+      } else {
+        // 如果返回401，说明未登录，清除用户状态和token
+        setUser(null);
+        localStorage.removeItem('auth_token');
       }
     } catch (error) {
       console.error('获取用户信息失败:', error);
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -51,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // 确保包含Cookie
       body: JSON.stringify({ email, password }),
     });
 
@@ -60,12 +75,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(data.error || '登录失败');
     }
 
-    setUser(data.user);
+    // 等待一小段时间确保Cookie被设置
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // 重新获取用户信息
+    await fetchUser();
   };
 
   const logout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
+    localStorage.removeItem('auth_token');
     window.location.href = '/login';
   };
 

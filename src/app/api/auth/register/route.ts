@@ -96,10 +96,8 @@ export async function POST(request: NextRequest) {
       brand: newUser.brand,
     });
 
-    // 设置Cookie
-    await setTokenCookie(token);
-
-    return NextResponse.json({
+    // 创建响应并设置Cookie
+    const response = NextResponse.json({
       success: true,
       user: {
         id: newUser.id,
@@ -110,6 +108,17 @@ export async function POST(request: NextRequest) {
       },
       token,
     });
+
+    // 设置Cookie
+    response.cookies.set('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7天
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('注册错误:', error);
     return NextResponse.json(

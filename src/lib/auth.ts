@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
+import { getTokenFromRequest as getTokenFromRequestHelper } from '@/lib/token-helper';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRES_IN = '7d'; // Token过期时间
@@ -84,14 +85,14 @@ export async function clearTokenCookie(): Promise<void> {
 }
 
 /**
- * 从请求中获取当前用户信息
+ * 从请求中获取当前用户信息（支持Request对象）
  */
-export async function getCurrentUser(): Promise<{
+export async function getCurrentUser(request?: Request): Promise<{
   userId: string;
   email: string;
   brand: string;
 } | null> {
-  const token = await getTokenFromRequest();
+  const token = await getTokenFromRequestHelper(request);
   if (!token) return null;
 
   return verifyToken(token);

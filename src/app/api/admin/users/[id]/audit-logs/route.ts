@@ -5,10 +5,10 @@ import { getCurrentUser } from '@/lib/auth';
 // 获取用户审核日志
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // 验证管理员权限
     const currentUser = await getCurrentUser(request);

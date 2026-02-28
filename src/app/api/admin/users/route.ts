@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { getCurrentUser } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions';
+import { checkPermission as hasPermission } from '@/lib/permissions';
 
 // 获取用户列表（仅管理员）
 export async function GET(request: NextRequest) {

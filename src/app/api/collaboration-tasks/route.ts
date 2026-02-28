@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { createCollaborationNotification } from '@/lib/notifications';
 
 // 蛇形转驼峰
 function toCamelCase(obj: any): any {
@@ -102,6 +103,39 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('创建协同合作任务失败:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // 发送通知给目标角色的用户
+    try {
+      // 获取该品牌下目标角色的用户
+      const { data: targetUsers } = await client
+        .from('users')
+        .select('id')
+        .eq('brand', brand)
+        .eq('status', 'active');
+
+      if (targetUsers && targetUsers.length > 0) {
+        const userIds = targetUsers.map((u) => u.id);
+        const { data: userRoles } = await client
+          .from('user_roles')
+          .select('user_id')
+          .in('user_id', userIds)
+          .eq('role', targetRole);
+
+        if (userRoles) {
+          for (const userRole of userRoles) {
+            await createCollaborationNotification(
+              userRole.user_id,
+              taskTitle,
+              requestingRole,
+              deadline || ''
+            );
+          }
+        }
+      }
+    } catch (notifyError) {
+      console.error('发送通知失败:', notifyError);
+      // 通知发送失败不影响协同任务创建
     }
 
     console.log('创建成功:', task);

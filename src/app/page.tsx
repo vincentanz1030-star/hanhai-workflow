@@ -17,6 +17,7 @@ import { Slider } from '@/components/ui/slider';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import { NotificationBell } from '@/components/NotificationBell';
 
 // 类型定义
 interface Project {
@@ -1888,6 +1889,7 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <NotificationBell />
               <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 flex-1 sm:flex-none">
                 <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary flex items-center justify-center">
                   <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />

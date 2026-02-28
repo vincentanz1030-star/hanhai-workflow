@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { getCurrentUser } from 'lib/auth';
+import { getCurrentUser } from '@/lib/auth';
 
 // 分配角色给用户
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { roles } = body; // 角色数组: [{ role: string, is_primary: boolean }]
 

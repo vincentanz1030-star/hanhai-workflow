@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 // 需要认证的路由
 const protectedRoutes = ['/'];
 // 公开路由（不需要认证）
-const publicRoutes = ['/login', '/register'];
+const publicRoutes = ['/login', '/register', '/diagnostic', '/test-'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

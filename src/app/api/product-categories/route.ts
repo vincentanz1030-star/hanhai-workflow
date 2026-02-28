@@ -74,6 +74,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { brand, level, parentId, name, code, description, sortOrder } = body;
 
+    console.log('=== POST 接收到的数据 ===');
+    console.log('body:', body);
+    console.log('parentId:', parentId);
+    console.log('parentId type:', typeof parentId);
+
     if (!brand || !level || !name) {
       return NextResponse.json(
         { error: '品牌、级别和名称为必填项' },
@@ -81,13 +86,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 修复：如果parentId是空字符串，转换为null
+    const processedParentId = parentId === '' ? null : parentId;
+    console.log('processedParentId:', processedParentId);
+
     // 创建品类
     const { data: category, error } = await client
       .from('product_categories')
       .insert({
         brand,
         level,
-        parent_id: parentId || null,
+        parent_id: processedParentId,
         name,
         code: code || null,
         description: description || null,

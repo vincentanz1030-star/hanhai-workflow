@@ -64,12 +64,22 @@ export async function PUT(
     const body = await request.json();
     const { brand, level, parentId, name, code, description, sortOrder } = body;
 
+    console.log('=== PUT 接收到的数据 ===');
+    console.log('body:', body);
+    console.log('parentId:', parentId);
+    console.log('parentId type:', typeof parentId);
+    console.log('parentId === undefined:', parentId === undefined);
+    console.log('parentId === null:', parentId === null);
+    console.log("parentId === '':", parentId === '');
+
     // 先获取当前品类信息
     const { data: currentCategory } = await client
       .from('product_categories')
       .select('*')
       .eq('id', id)
       .single();
+
+    console.log('当前品类:', currentCategory);
 
     if (!currentCategory) {
       return NextResponse.json({ error: '品类不存在' }, { status: 404 });
@@ -92,6 +102,10 @@ export async function PUT(
     if (code !== undefined) updateData.code = code;
     if (description !== undefined) updateData.description = description;
     if (sortOrder !== undefined) updateData.sort_order = sortOrder;
+
+    console.log('=== updateData ===');
+    console.log('updateData:', updateData);
+    console.log('updateData.parent_id:', updateData.parent_id);
 
     const { data: category, error } = await client
       .from('product_categories')

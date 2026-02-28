@@ -941,6 +941,12 @@ export default function HomePage() {
 
   // 创建或更新产品品类
   const handleCreateOrUpdateProductCategory = async () => {
+    console.log('=== 提交品类数据 ===');
+    console.log('editingProductCategory:', editingProductCategory);
+    console.log('newProductCategory:', newProductCategory);
+    console.log('parentId type:', typeof newProductCategory.parentId);
+    console.log('parentId value:', newProductCategory.parentId);
+    
     try {
       const url = editingProductCategory
         ? `/api/product-categories/${editingProductCategory.id}`
@@ -951,6 +957,10 @@ export default function HomePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newProductCategory),
       });
+      
+      console.log('Response status:', response.status);
+      const responseData = await response.json();
+      console.log('Response data:', responseData);
 
       if (response.ok) {
         setIsProductCategoryDialogOpen(false);
@@ -973,6 +983,11 @@ export default function HomePage() {
 
   // 编辑产品品类
   const handleEditProductCategory = (category: ProductCategory) => {
+    console.log('=== 编辑品类 ===');
+    console.log('category:', category);
+    console.log('category.parentId:', category.parentId);
+    console.log('category.parentId type:', typeof category.parentId);
+    
     setEditingProductCategory(category);
     setNewProductCategory({
       brand: category.brand,

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { cookies } from 'next/headers';
 
 // 需要认证的路由
 const protectedRoutes = ['/'];
@@ -16,24 +16,19 @@ export async function middleware(request: NextRequest) {
   }
 
   // 获取Token
-  const token = request.cookies.get('auth_token')?.value;
+  let token: string | null = null;
+
+  // 尝试从Cookie获取
+  const cookieStore = await cookies();
+  token = cookieStore.get('auth_token')?.value || null;
 
   // 如果没有Token且不是公开路由，重定向到登录页
+  // 注意：这里只检查Token是否存在，不验证有效性
+  // 实际的Token验证在页面组件中进行
   if (!token && protectedRoutes.some(route => pathname.startsWith(route))) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
-  }
-
-  // 验证Token
-  if (token) {
-    const payload = verifyToken(token);
-    if (!payload) {
-      // Token无效，清除并重定向到登录页
-      const response = NextResponse.redirect(new URL('/login', request.url));
-      response.cookies.delete('auth_token');
-      return response;
-    }
   }
 
   return NextResponse.next();

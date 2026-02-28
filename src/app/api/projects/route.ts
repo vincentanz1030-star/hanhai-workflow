@@ -179,7 +179,13 @@ export async function POST(request: NextRequest) {
       project.overall_completion_date = maxDate.toISOString();
     }
 
-    return NextResponse.json({ project, tasks });
+    // 转换为驼峰命名
+    const camelProject = toCamelCase(project);
+    const camelTasks = tasks.map((t: any) => toCamelCase(t));
+
+    console.log(`创建项目成功 - 返回数据: brand=${camelProject.brand}, salesDate=${camelProject.salesDate}`);
+
+    return NextResponse.json({ project: camelProject, tasks: camelTasks });
   } catch (error) {
     console.error('服务器错误:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });

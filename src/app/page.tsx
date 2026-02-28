@@ -1153,10 +1153,11 @@ export default function HomePage() {
       });
       const data = await response.json();
       console.log('加载项目响应状态:', response.status);
-      console.log('加载项目数据:', data);
-      console.log('项目数量:', data.projects?.length || 0);
+      console.log('加载项目数量:', data.projects?.length || 0);
+      console.log('当前品牌过滤器:', brandFilter);
       if (data.projects && data.projects.length > 0) {
         console.log('第一个项目:', data.projects[0]);
+        console.log('第一个项目品牌:', data.projects[0].brand);
       }
       setProjects(data.projects || []);
     } catch (error) {
@@ -1507,12 +1508,15 @@ export default function HomePage() {
 
       if (response.ok) {
         console.log('创建成功，项目ID:', data.project?.id);
+        console.log('返回项目品牌:', data.project?.brand);
+        console.log('当前品牌过滤器:', brandFilter);
 
         // 方法1：直接将新项目添加到列表中（立即显示）
         const newProjectData = {
           ...data.project,
           tasks: data.tasks || []
         };
+        console.log('立即添加项目:', newProjectData);
         setProjects(prev => [newProjectData, ...prev]);
 
         // 关闭对话框并重置表单

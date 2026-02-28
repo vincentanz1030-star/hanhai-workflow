@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     // 构建树形结构
     const buildTree = (items: any[], parentId: string | null = null): any[] => {
       return items
-        .filter(item => item.parent_id === parentId)
+        .filter(item => item.parentId === parentId)
         .map(item => ({
           ...item,
           children: buildTree(items, item.id),

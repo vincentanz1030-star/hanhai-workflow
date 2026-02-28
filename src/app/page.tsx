@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, Users, CheckCircle, AlertCircle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2 } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, AlertCircle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil } from 'lucide-react';
 import { format, differenceInDays, isBefore, isAfter, isToday } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Slider } from '@/components/ui/slider';
@@ -873,29 +873,36 @@ export default function HomePage() {
   const [newProductCategory, setNewProductCategory] = useState({
     brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
     level: 1,
-    parentId: '' as string | null,
+    parentId: null as string | null,
     name: '',
     code: '',
     description: '',
     sortOrder: 0,
   });
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
-  // 将树形结构扁平化
-  const flattenCategories = (categories: ProductCategory[]): ProductCategory[] => {
-    const result: ProductCategory[] = [];
-    const traverse = (items: ProductCategory[]) => {
-      items.forEach(item => {
-        result.push(item);
-        if (item.children && item.children.length > 0) {
-          traverse(item.children);
-        }
-      });
-    };
-    traverse(categories);
-    return result;
+  // 构建树形结构
+  const buildCategoryTree = (categories: ProductCategory[]): ProductCategory[] => {
+    const map = new Map<string, ProductCategory>();
+    
+    // 先扁平化处理
+    categories.forEach(cat => {
+      map.set(cat.id, { ...cat, children: [] });
+    });
+    
+    const tree: ProductCategory[] = [];
+    
+    categories.forEach(cat => {
+      const node = map.get(cat.id)!;
+      if (cat.parentId && map.has(cat.parentId)) {
+        map.get(cat.parentId)!.children!.push(node);
+      } else {
+        tree.push(node);
+      }
+    });
+    
+    return tree;
   };
-
-  const flatCategories = flattenCategories(productCategories);
   
   // 时间线编辑状态
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
@@ -939,35 +946,48 @@ export default function HomePage() {
     }
   };
 
+  // 简化：打开新建对话框
+  const handleCreateNewCategory = () => {
+    setEditingProductCategory(null);
+    setNewProductCategory({
+      brand: brandFilter === 'all' ? ('he_zhe' as const) : brandFilter,
+      level: 1,
+      parentId: null,
+      name: '',
+      code: '',
+      description: '',
+      sortOrder: 0,
+    });
+    setIsProductCategoryDialogOpen(true);
+  };
+
+  // 简化：打开编辑对话框
+  const handleEditCategory = (category: ProductCategory) => {
+    setEditingProductCategory(category);
+    setNewProductCategory({
+      brand: category.brand,
+      level: category.level,
+      parentId: category.parentId,
+      name: category.name,
+      code: category.code || '',
+      description: category.description || '',
+      sortOrder: category.sortOrder,
+    });
+    setIsProductCategoryDialogOpen(true);
+  };
+
   // 创建或更新产品品类
   const handleCreateOrUpdateProductCategory = async () => {
     console.log('=== 提交品类数据 ===');
     console.log('editingProductCategory:', editingProductCategory);
     console.log('newProductCategory:', newProductCategory);
-    console.log('parentId type:', typeof newProductCategory.parentId);
-    console.log('parentId value:', newProductCategory.parentId);
     
     try {
-      // 如果是编辑，只发送修改过的字段
-      let body: any = {};
-      if (editingProductCategory) {
-        // 编辑模式：只发送修改过的字段
-        if (newProductCategory.brand !== editingProductCategory.brand) body.brand = newProductCategory.brand;
-        if (newProductCategory.level !== editingProductCategory.level) body.level = newProductCategory.level;
-        // 处理parentId：只有当值真正改变时才发送
-        if (newProductCategory.parentId !== editingProductCategory.parentId) {
-          body.parentId = newProductCategory.parentId;
-        }
-        if (newProductCategory.name !== editingProductCategory.name) body.name = newProductCategory.name;
-        if (newProductCategory.code !== editingProductCategory.code) body.code = newProductCategory.code;
-        if (newProductCategory.description !== editingProductCategory.description) body.description = newProductCategory.description;
-        if (newProductCategory.sortOrder !== editingProductCategory.sortOrder) body.sortOrder = newProductCategory.sortOrder;
-      } else {
-        // 新建模式：发送所有字段
-        body = newProductCategory;
+      // 验证必填字段
+      if (!newProductCategory.brand || !newProductCategory.level || !newProductCategory.name) {
+        alert('品牌、级别和名称为必填项');
+        return;
       }
-      
-      console.log('提交body:', body);
 
       const url = editingProductCategory
         ? `/api/product-categories/${editingProductCategory.id}`
@@ -976,7 +996,7 @@ export default function HomePage() {
       const response = await fetch(url, {
         method: editingProductCategory ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(newProductCategory),
       });
       
       console.log('Response status:', response.status);
@@ -989,37 +1009,20 @@ export default function HomePage() {
         setNewProductCategory({
           brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
           level: 1,
-          parentId: '' as string | null,
+          parentId: null,
           name: '',
           code: '',
           description: '',
           sortOrder: 0,
         });
         loadProductCategories(brandFilter);
+      } else {
+        alert(responseData.error || '操作失败');
       }
     } catch (error) {
       console.error('保存产品品类失败:', error);
+      alert('保存失败，请重试');
     }
-  };
-
-  // 编辑产品品类
-  const handleEditProductCategory = (category: ProductCategory) => {
-    console.log('=== 编辑品类 ===');
-    console.log('category:', category);
-    console.log('category.parentId:', category.parentId);
-    console.log('category.parentId type:', typeof category.parentId);
-    
-    setEditingProductCategory(category);
-    setNewProductCategory({
-      brand: category.brand,
-      level: category.level,
-      parentId: category.parentId,  // 保持原始值，不要转换
-      name: category.name,
-      code: category.code || '',
-      description: category.description || '',
-      sortOrder: category.sortOrder,
-    });
-    setIsProductCategoryDialogOpen(true);
   };
 
   // 删除产品品类
@@ -2362,7 +2365,7 @@ export default function HomePage() {
             </Card>
           </TabsContent>
 
-          {/* 产品开发框架 */}
+          {/* 产品开发框架 - 思维导图风格 */}
           <TabsContent value="product-framework" className="space-y-6">
             <div className="flex items-center justify-between">
               <Card className="flex-1 mr-4">
@@ -2371,132 +2374,18 @@ export default function HomePage() {
                   <CardDescription>管理各品牌的产品分类体系（一级到四级品类）</CardDescription>
                 </CardHeader>
               </Card>
-              <Dialog open={isProductCategoryDialogOpen} onOpenChange={setIsProductCategoryDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    新增品类
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>{editingProductCategory ? '编辑品类' : '新增品类'}</DialogTitle>
-                    <DialogDescription>
-                      {editingProductCategory ? '编辑现有品类信息' : '添加新的产品品类'}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label>品牌</Label>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        value={newProductCategory.brand}
-                        onChange={(e) => setNewProductCategory({ ...newProductCategory, brand: e.target.value as any })}
-                      >
-                        <option value="">选择品牌</option>
-                        <option value="he_zhe">禾哲</option>
-                        <option value="baobao">BAOBAO</option>
-                        <option value="ai_he">爱禾</option>
-                        <option value="bao_deng_yuan">宝登源</option>
-                      </select>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>品类级别</Label>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        value={newProductCategory.level}
-                        onChange={(e) => setNewProductCategory({ ...newProductCategory, level: Number(e.target.value) })}
-                      >
-                        <option value={1}>一级品类</option>
-                        <option value={2}>二级品类</option>
-                        <option value={3}>三级品类</option>
-                        <option value={4}>四级品类</option>
-                      </select>
-                    </div>
-                    {newProductCategory.level > 1 && (
-                      <div className="grid gap-2">
-                        <Label>父品类</Label>
-                        <select
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                          value={newProductCategory.parentId || ''}
-                          onChange={(e) => setNewProductCategory({ ...newProductCategory, parentId: e.target.value || null })}
-                        >
-                          <option value="">选择父品类</option>
-                          {flatCategories
-                            .filter(c => c.level === newProductCategory.level - 1)
-                            .map(c => (
-                              <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                        </select>
-                      </div>
-                    )}
-                    <div className="grid gap-2">
-                      <Label>品类名称</Label>
-                      <Input
-                        value={newProductCategory.name}
-                        onChange={(e) => setNewProductCategory({ ...newProductCategory, name: e.target.value })}
-                        placeholder="请输入品类名称"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>品类编码</Label>
-                      <Input
-                        value={newProductCategory.code}
-                        onChange={(e) => setNewProductCategory({ ...newProductCategory, code: e.target.value })}
-                        placeholder="请输入品类编码（可选）"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>描述</Label>
-                      <Textarea
-                        value={newProductCategory.description}
-                        onChange={(e) => setNewProductCategory({ ...newProductCategory, description: e.target.value })}
-                        placeholder="请输入品类描述（可选）"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>排序</Label>
-                      <Input
-                        type="number"
-                        value={newProductCategory.sortOrder}
-                        onChange={(e) => setNewProductCategory({ ...newProductCategory, sortOrder: Number(e.target.value) })}
-                        placeholder="排序值，数字越小越靠前"
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsProductCategoryDialogOpen(false);
-                        setEditingProductCategory(null);
-                        setNewProductCategory({
-                          brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
-                          level: 1,
-                          parentId: '' as string | null,
-                          name: '',
-                          code: '',
-                          description: '',
-                          sortOrder: 0,
-                        });
-                      }}
-                    >
-                      取消
-                    </Button>
-                    <Button onClick={handleCreateOrUpdateProductCategory}>
-                      {editingProductCategory ? '更新' : '创建'}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <Button onClick={handleCreateNewCategory} className="gap-2">
+                <Plus className="h-4 w-4" />
+                新增品类
+              </Button>
             </div>
 
-            {/* 按品牌展示产品开发框架 */}
+            {/* 按品牌展示思维导图 */}
             {Object.keys(BRAND_NAMES).filter(k => k !== 'all').map((brandKey) => {
               const brandCategories = productCategories.filter(c => c.brand === brandKey);
-              const rootCategories = brandCategories.filter(c => c.level === 1);
+              const categoryTree = buildCategoryTree(brandCategories);
 
-              if (rootCategories.length === 0) {
+              if (categoryTree.length === 0) {
                 return null;
               }
 
@@ -2509,17 +2398,22 @@ export default function HomePage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-6">
-                      {rootCategories.map(category => (
-                        <CategoryTree
-                          key={category.id}
-                          category={category}
-                          allCategories={brandCategories}
-                          onEdit={handleEditProductCategory}
-                          onDelete={handleDeleteProductCategory}
-                          level={1}
-                        />
-                      ))}
+                    <div className="p-4 bg-muted/30 rounded-lg min-h-[200px]">
+                      <MindMapTree
+                        categories={categoryTree}
+                        onEdit={handleEditCategory}
+                        onDelete={handleDeleteProductCategory}
+                        expandedCategories={expandedCategories}
+                        onToggleExpand={(id) => {
+                          const newExpanded = new Set(expandedCategories);
+                          if (newExpanded.has(id)) {
+                            newExpanded.delete(id);
+                          } else {
+                            newExpanded.add(id);
+                          }
+                          setExpandedCategories(newExpanded);
+                        }}
+                      />
                       {brandCategories.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">
                           暂无品类数据，请点击上方"新增品类"按钮添加
@@ -3000,7 +2894,262 @@ export default function HomePage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* 创建/编辑产品品类对话框 */}
+        <Dialog open={isProductCategoryDialogOpen} onOpenChange={setIsProductCategoryDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingProductCategory ? '编辑品类' : '新增品类'}</DialogTitle>
+              <DialogDescription>
+                {editingProductCategory ? '编辑现有品类信息' : '添加新的产品品类'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>品牌 *</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={newProductCategory.brand}
+                  onChange={(e) => setNewProductCategory({ ...newProductCategory, brand: e.target.value as any })}
+                >
+                  <option value="">选择品牌</option>
+                  <option value="he_zhe">禾哲</option>
+                  <option value="baobao">BAOBAO</option>
+                  <option value="ai_he">爱禾</option>
+                  <option value="bao_deng_yuan">宝登源</option>
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <Label>品类级别 *</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={newProductCategory.level}
+                  onChange={(e) => setNewProductCategory({ ...newProductCategory, level: Number(e.target.value) })}
+                >
+                  <option value={1}>一级品类</option>
+                  <option value={2}>二级品类</option>
+                  <option value={3}>三级品类</option>
+                  <option value={4}>四级品类</option>
+                </select>
+              </div>
+              {newProductCategory.level > 1 && (
+                <div className="grid gap-2">
+                  <Label>父品类 *</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={newProductCategory.parentId || ''}
+                    onChange={(e) => setNewProductCategory({ ...newProductCategory, parentId: e.target.value || null })}
+                  >
+                    <option value="">选择父品类</option>
+                    {productCategories
+                      .filter(c => c.brand === newProductCategory.brand && c.level === newProductCategory.level - 1)
+                      .map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                  </select>
+                </div>
+              )}
+              <div className="grid gap-2">
+                <Label>品类名称 *</Label>
+                <Input
+                  value={newProductCategory.name}
+                  onChange={(e) => setNewProductCategory({ ...newProductCategory, name: e.target.value })}
+                  placeholder="请输入品类名称"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>品类编码</Label>
+                <Input
+                  value={newProductCategory.code}
+                  onChange={(e) => setNewProductCategory({ ...newProductCategory, code: e.target.value })}
+                  placeholder="请输入品类编码（可选）"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>描述</Label>
+                <Textarea
+                  value={newProductCategory.description}
+                  onChange={(e) => setNewProductCategory({ ...newProductCategory, description: e.target.value })}
+                  placeholder="请输入品类描述（可选）"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>排序</Label>
+                <Input
+                  type="number"
+                  value={newProductCategory.sortOrder}
+                  onChange={(e) => setNewProductCategory({ ...newProductCategory, sortOrder: Number(e.target.value) })}
+                  placeholder="排序值，数字越小越靠前"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsProductCategoryDialogOpen(false);
+                  setEditingProductCategory(null);
+                  setNewProductCategory({
+                    brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
+                    level: 1,
+                    parentId: null,
+                    name: '',
+                    code: '',
+                    description: '',
+                    sortOrder: 0,
+                  });
+                }}
+              >
+                取消
+              </Button>
+              <Button onClick={handleCreateOrUpdateProductCategory}>
+                {editingProductCategory ? '更新' : '创建'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
+    </div>
+  );
+}
+
+// 思维导图树形组件
+function MindMapTree({
+  categories,
+  onEdit,
+  onDelete,
+  expandedCategories,
+  onToggleExpand,
+}: {
+  categories: ProductCategory[];
+  onEdit: (category: ProductCategory) => void;
+  onDelete: (id: string) => void;
+  expandedCategories: Set<string>;
+  onToggleExpand: (id: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      {categories.map(category => (
+        <MindMapNode
+          key={category.id}
+          category={category}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          expandedCategories={expandedCategories}
+          onToggleExpand={onToggleExpand}
+        />
+      ))}
+    </div>
+  );
+}
+
+// 思维导图节点组件
+function MindMapNode({
+  category,
+  onEdit,
+  onDelete,
+  expandedCategories,
+  onToggleExpand,
+}: {
+  category: ProductCategory;
+  onEdit: (category: ProductCategory) => void;
+  onDelete: (id: string) => void;
+  expandedCategories: Set<string>;
+  onToggleExpand: (id: string) => void;
+}) {
+  const hasChildren = category.children && category.children.length > 0;
+  const isExpanded = expandedCategories.has(category.id);
+
+  return (
+    <div className="relative">
+      {/* 连接线 */}
+      {category.level > 1 && (
+        <div className="absolute left-[-20px] top-1/2 w-[20px] h-[2px] bg-border" />
+      )}
+      {hasChildren && (
+        <div className={`absolute left-[-20px] top-1/2 w-[2px] bg-border transition-all ${isExpanded ? 'h-full' : 'h-[50%] bottom-1/2'}`} />
+      )}
+
+      {/* 节点卡片 */}
+      <div
+        className={`
+          relative inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2
+          transition-all hover:shadow-md cursor-pointer
+          ${category.level === 1 ? 'bg-primary text-primary-foreground border-primary' : ''}
+          ${category.level === 2 ? 'bg-card border-primary hover:border-primary/70' : ''}
+          ${category.level === 3 ? 'bg-card border-muted hover:border-muted-foreground' : ''}
+          ${category.level === 4 ? 'bg-card border-dashed border-muted hover:border-muted-foreground' : ''}
+        `}
+        style={{ marginLeft: `${(category.level - 1) * 40}px` }}
+      >
+        {/* 展开/折叠按钮 */}
+        {hasChildren && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleExpand(category.id);
+            }}
+            className="flex items-center justify-center w-6 h-6 rounded-full bg-background hover:bg-muted transition-colors"
+          >
+            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
+        )}
+
+        {/* 品类信息 */}
+        <div className="flex-1 min-w-0">
+          <div className="font-medium truncate">{category.name}</div>
+          {category.code && (
+            <div className="text-xs opacity-70 truncate">{category.code}</div>
+          )}
+        </div>
+
+        {/* 级别标签 */}
+        <div className="text-xs px-2 py-0.5 rounded-full bg-background/20">
+          L{category.level}
+        </div>
+
+        {/* 操作按钮 */}
+        <div className="flex items-center gap-1 ml-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(category);
+            }}
+            className="p-1.5 rounded hover:bg-background/20 transition-colors"
+            title="编辑"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm('确定要删除这个品类吗？')) {
+                onDelete(category.id);
+              }
+            }}
+            className="p-1.5 rounded hover:bg-red-500/20 transition-colors text-red-500"
+            title="删除"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* 子节点 */}
+      {hasChildren && isExpanded && (
+        <div className="ml-[40px] mt-2 space-y-2">
+          {category.children!.map(child => (
+            <MindMapNode
+              key={child.id}
+              category={child}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              expandedCategories={expandedCategories}
+              onToggleExpand={onToggleExpand}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

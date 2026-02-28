@@ -1,41 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
-// 将蛇形命名转换为驼峰命名
-function toCamelCase(obj: any): any {
-  if (obj === null || obj === undefined) return obj;
-  if (Array.isArray(obj)) return obj.map(toCamelCase);
-  if (typeof obj !== 'object') return obj;
-
-  const newObj: any = {};
-  for (const key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      // 移除所有下划线，并将下划线后的字母大写
-      const camelKey = key.split('_').reduce((result, word, index) => {
-        if (index === 0) {
-          return word;
-        }
-        return result + word.charAt(0).toUpperCase() + word.slice(1);
-      }, '');
-      newObj[camelKey] = toCamelCase(obj[key]);
-    }
+// 辅助函数：将下划线命名转为驼峰命名
+const toCamelCase = (obj: any): any => {
+  if (obj === null || typeof obj !== 'object') return obj;
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => toCamelCase(item));
   }
-  return newObj;
-}
+  
+  const result: any = {};
+  for (const key in obj) {
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    result[camelKey] = toCamelCase(obj[key]);
+  }
+  return result;
+};
 
-// 获取所有产品品类（支持按品牌筛选）
+// 获取产品品类列表
 export async function GET(request: NextRequest) {
   try {
     const client = getSupabaseClient();
-    const searchParams = request.nextUrl.searchParams;
+    const { searchParams } = new URL(request.url);
     const brand = searchParams.get('brand');
 
     let query = client
       .from('product_categories')
       .select('*')
-      .order('level', { ascending: true })
       .order('sort_order', { ascending: true })
-      .order('name', { ascending: true });
+      .order('created_at', { ascending: true });
 
     if (brand && brand !== 'all') {
       query = query.eq('brand', brand);
@@ -48,19 +41,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // 构建树形结构
-    const buildTree = (items: any[], parentId: string | null = null): any[] => {
-      return items
-        .filter(item => item.parentId === parentId)
-        .map(item => ({
-          ...item,
-          children: buildTree(items, item.id),
-        }));
-    };
-
-    const tree = buildTree(toCamelCase(categories || []));
-
-    return NextResponse.json({ categories: tree });
+    // 返回扁平化列表，让前端自己构建树
+    return NextResponse.json({ categories: toCamelCase(categories || []) });
   } catch (error) {
     console.error('服务器错误:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });
@@ -74,7 +56,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { brand, level, parentId, name, code, description, sortOrder } = body;
 
-    console.log('=== POST 接收到的数据 ===');
+    console.log('=== POST 创建品类 ===');
     console.log('body:', body);
     console.log('parentId:', parentId);
     console.log('parentId type:', typeof parentId);
@@ -86,8 +68,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 修复：如果parentId是空字符串，转换为null
-    const processedParentId = parentId === '' ? null : parentId;
+    // 处理parentId：如果为空字符串，设置为null
+    const processedParentId = (parentId === '' || parentId === undefined) ? null : parentId;
+    
     console.log('processedParentId:', processedParentId);
 
     // 创建品类
@@ -109,6 +92,8 @@ export async function POST(request: NextRequest) {
       console.error('创建产品品类失败:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    console.log('创建成功:', category);
 
     return NextResponse.json({ category: toCamelCase(category) });
   } catch (error) {

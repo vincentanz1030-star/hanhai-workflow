@@ -1,26 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
-// 将蛇形命名转换为驼峰命名
-function toCamelCase(obj: any): any {
-  if (obj === null || obj === undefined) return obj;
-  if (Array.isArray(obj)) return obj.map(toCamelCase);
-  if (typeof obj !== 'object') return obj;
-
-  const newObj: any = {};
-  for (const key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      const camelKey = key.split('_').reduce((result, word, index) => {
-        if (index === 0) {
-          return word;
-        }
-        return result + word.charAt(0).toUpperCase() + word.slice(1);
-      }, '');
-      newObj[camelKey] = toCamelCase(obj[key]);
-    }
+// 辅助函数：将下划线命名转为驼峰命名
+const toCamelCase = (obj: any): any => {
+  if (obj === null || typeof obj !== 'object') return obj;
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => toCamelCase(item));
   }
-  return newObj;
-}
+  
+  const result: any = {};
+  for (const key in obj) {
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    result[camelKey] = toCamelCase(obj[key]);
+  }
+  return result;
+};
 
 // 获取单个产品品类
 export async function GET(
@@ -64,13 +59,11 @@ export async function PUT(
     const body = await request.json();
     const { brand, level, parentId, name, code, description, sortOrder } = body;
 
-    console.log('=== PUT 接收到的数据 ===');
+    console.log('=== PUT 更新品类 ===');
+    console.log('id:', id);
     console.log('body:', body);
     console.log('parentId:', parentId);
     console.log('parentId type:', typeof parentId);
-    console.log('parentId === undefined:', parentId === undefined);
-    console.log('parentId === null:', parentId === null);
-    console.log("parentId === '':", parentId === '');
 
     // 先获取当前品类信息
     const { data: currentCategory } = await client
@@ -79,58 +72,32 @@ export async function PUT(
       .eq('id', id)
       .single();
 
-    console.log('当前品类:', currentCategory);
-    console.log('当前品类.parent_id:', currentCategory?.parent_id);
-
     if (!currentCategory) {
       return NextResponse.json({ error: '品类不存在' }, { status: 404 });
     }
 
-    // 构建更新对象
+    console.log('当前品类.parent_id:', currentCategory.parent_id);
+
+    // 构建更新数据
     const updateData: any = {
       updated_at: new Date().toISOString(),
     };
 
-    if (brand !== undefined) {
-      updateData.brand = brand;
-      console.log('更新 brand:', brand);
-    }
-    if (level !== undefined) {
-      updateData.level = level;
-      console.log('更新 level:', level);
-    }
+    // 只更新提供的字段
+    if (brand !== undefined) updateData.brand = brand;
+    if (level !== undefined) updateData.level = level;
+    if (name !== undefined) updateData.name = name;
+    if (code !== undefined) updateData.code = code;
+    if (description !== undefined) updateData.description = description;
+    if (sortOrder !== undefined) updateData.sort_order = sortOrder;
     
-    // 修复：正确处理parentId更新
-    // 规则：
-    // 1. 如果parentId === undefined，不更新parent_id（用户未修改）
-    // 2. 如果parentId === ''，更新parent_id为null（用户明确选择了"无"）
-    // 3. 如果parentId是有效字符串，更新parent_id为该值
+    // 处理parentId：如果提供了，就更新；否则保持原值
     if (parentId !== undefined) {
       updateData.parent_id = parentId === '' ? null : parentId;
-      console.log('更新 parent_id:', updateData.parent_id);
-    } else {
-      console.log('parent_id 未修改，保持原值:', currentCategory.parent_id);
-    }
-    
-    if (name !== undefined) {
-      updateData.name = name;
-      console.log('更新 name:', name);
-    }
-    if (code !== undefined) {
-      updateData.code = code;
-      console.log('更新 code:', code);
-    }
-    if (description !== undefined) {
-      updateData.description = description;
-      console.log('更新 description:', description);
-    }
-    if (sortOrder !== undefined) {
-      updateData.sort_order = sortOrder;
-      console.log('更新 sort_order:', sortOrder);
     }
 
-    console.log('=== 最终 updateData ===');
     console.log('updateData:', updateData);
+    console.log('updateData.parent_id:', updateData.parent_id);
 
     const { data: category, error } = await client
       .from('product_categories')
@@ -148,6 +115,8 @@ export async function PUT(
       return NextResponse.json({ error: '品类不存在' }, { status: 404 });
     }
 
+    console.log('更新成功:', category);
+
     return NextResponse.json({ category: toCamelCase(category) });
   } catch (error) {
     console.error('服务器错误:', error);
@@ -163,6 +132,19 @@ export async function DELETE(
   try {
     const client = getSupabaseClient();
     const { id } = await params;
+
+    // 先检查是否有子品类
+    const { data: children } = await client
+      .from('product_categories')
+      .select('id')
+      .eq('parent_id', id);
+
+    if (children && children.length > 0) {
+      return NextResponse.json(
+        { error: '该品类下存在子品类，无法删除' },
+        { status: 400 }
+      );
+    }
 
     const { error } = await client
       .from('product_categories')

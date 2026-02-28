@@ -2289,9 +2289,9 @@ export default function HomePage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="h-[400px] overflow-y-auto">
                 {weeklyWorkPlans.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-center py-8 text-muted-foreground h-full flex flex-col items-center justify-center">
                     <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p className="text-sm">本周暂无工作安排</p>
                     <p className="text-xs mt-2">点击上方按钮添加工作重点</p>
@@ -2382,9 +2382,9 @@ export default function HomePage() {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="h-[400px] overflow-y-auto">
                 {collaborationTasks.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-center py-8 text-muted-foreground h-full flex flex-col items-center justify-center">
                     <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p className="text-sm">暂无协同合作任务</p>
                     <p className="text-xs mt-2">点击上方按钮添加协同任务</p>
@@ -2487,7 +2487,7 @@ export default function HomePage() {
                     <p>暂无项目，点击上方按钮创建新项目</p>
                   </div>
                 ) : (
-                  <div className="space-y-3 sm:space-y-4">
+                  <div className={projects.length >= 2 ? "grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "space-y-3 sm:space-y-4"}>
                     {projects.slice(0, 5).map((project) => {
                       // 计算项目整体进度
                       const projectTasks = project.tasks || [];

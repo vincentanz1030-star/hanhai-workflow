@@ -143,18 +143,18 @@ export function NotificationBell() {
               </Button>
             )}
           </DialogTitle>
-          <DialogDescription>
-            {loading ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin" />
-              </div>
-            ) : notifications.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                暂无通知
-              </div>
-            ) : (
-              <>
-                <div className="space-y-3 mt-4">
+        </DialogHeader>
+        <div>
+          {loading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              暂无通知
+            </div>
+          ) : (
+            <div className="space-y-3 mt-4">
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
@@ -209,11 +209,9 @@ export function NotificationBell() {
                     </div>
                   ))}
                 </div>
-              </>
             )}
-          </DialogDescription>
-        </DialogHeader>
-      </DialogContent>
+          </div>
+        </DialogContent>
     </Dialog>
   );
 }

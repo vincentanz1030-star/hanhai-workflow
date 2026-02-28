@@ -12,12 +12,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
 
-    const canManageUsers = await hasPermission(currentUser.userId, 'user', 'manage');
-    if (!canManageUsers) {
+    const supabase = getSupabaseClient();
+
+    // 检查用户是否有 admin 角色
+    const { data: userRoles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', currentUser.userId)
+      .eq('is_primary', true)
+      .single();
+
+    if (!userRoles || userRoles.role !== 'admin') {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
-
-    const supabase = getSupabaseClient();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const brand = searchParams.get('brand');
@@ -39,20 +46,8 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', status);
     }
 
-    // 过滤品牌（非管理员只能看自己品牌的用户）
-    const userBrand = currentUser.brand;
-    const userPrimaryRole = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', currentUser.userId)
-      .eq('is_primary', true)
-      .single();
-
-    const isSuperAdmin = userPrimaryRole?.data?.role === 'admin';
-
-    if (!isSuperAdmin && userBrand) {
-      query = query.eq('brand', userBrand);
-    } else if (brand && brand !== 'all') {
+    // 过滤品牌
+    if (brand && brand !== 'all') {
       query = query.eq('brand', brand);
     }
 

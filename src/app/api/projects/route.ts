@@ -42,20 +42,16 @@ export async function GET(request: NextRequest) {
 
     console.log(`请求参数 - brand: ${brand}, category: ${category}`);
 
-    // 构建查询
+    // 构建查询 - 不应用品牌过滤，所有用户都可以查看所有项目
     let query = client
       .from('projects')
       .select('*')
       .order('created_at', { ascending: false });
 
-    // 应用品牌过滤
-    query = applyBrandFilter(authResult.brand, query) as any;
-    console.log(`应用品牌过滤: ${authResult.brand !== 'all' ? '只返回用户品牌' : '返回所有品牌'}`);
-
-    // 如果指定了品牌且不是all，进一步过滤
-    if (brand && brand !== 'all' && authResult.brand === 'all') {
+    // 如果指定了品牌，进一步过滤
+    if (brand && brand !== 'all') {
       query = query.eq('brand', brand);
-      console.log(`进一步过滤品牌: ${brand}`);
+      console.log(`过滤品牌: ${brand}`);
     }
 
     // 项目分类过滤
@@ -122,13 +118,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查品牌权限：非管理员用户只能创建自己品牌的项目
-    let finalBrand = brand;
-    if (authResult.brand !== 'all') {
-      console.log(`用户品牌: ${authResult.brand}, 请求品牌: ${brand}, 强制使用用户品牌`);
-      finalBrand = authResult.brand;
-    }
-
-    console.log(`创建项目 - 名称: ${name}, 最终品牌: ${finalBrand}, 分类: ${category}`);
+    console.log(`创建项目 - 名称: ${name}, 品牌: ${brand}, 分类: ${category}`);
 
     // 计算项目确认日期（销售前3个月）
     const salesDateObj = new Date(salesDate);
@@ -140,7 +130,7 @@ export async function POST(request: NextRequest) {
       .from('projects')
       .insert({
         name,
-        brand: finalBrand,
+        brand,
         category,
         sales_date: salesDate,
         project_confirm_date: projectConfirmDateObj.toISOString(),

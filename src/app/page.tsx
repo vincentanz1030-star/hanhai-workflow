@@ -1514,30 +1514,102 @@ export default function HomePage() {
                   </div>
                 ) : (
                   <div className="space-y-3 sm:space-y-4">
-                    {projects.slice(0, 5).map((project) => (
+                    {projects.slice(0, 5).map((project) => {
+                      // 计算项目整体进度
+                      const projectTasks = project.tasks || [];
+                      const overallProgress = projectTasks.length > 0
+                        ? Math.round(projectTasks.reduce((sum, t) => sum + t.progress, 0) / projectTasks.length)
+                        : 0;
+                      
+                      // 计算催促情况
+                      const reminders = projectTasks.map(t => t.reminderCount || 0);
+                      const totalReminders = reminders.reduce((sum, count) => sum + count, 0);
+                      const urgentReminders = reminders.filter(r => r >= 3).length;
+                      const warningReminders = reminders.filter(r => r >= 2 && r < 3).length;
+                      
+                      return (
                       <div
                         key={project.id}
-                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors gap-2 sm:gap-4"
+                        className="flex flex-col gap-2 p-3 sm:p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
                         onClick={() => {
                           loadProjectDetails(project.id);
                           setSelectedProject(project);
                         }}
                       >
-                        <div className="flex items-center gap-2 sm:gap-4 flex-1">
-                          <div className={`h-2 w-2 sm:h-3 sm:w-3 rounded-full shrink-0 ${STATUS_COLORS[project.status]}`} />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1">
-                              <h3 className="text-sm sm:text-base font-medium truncate">{project.name}</h3>
-                              <Badge variant="outline" className="text-[10px] sm:text-xs">{BRAND_NAMES[project.brand]}</Badge>
+                        {/* 项目基本信息 */}
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+                          <div className="flex items-center gap-2 sm:gap-4 flex-1">
+                            <div className={`h-2 w-2 sm:h-3 sm:w-3 rounded-full shrink-0 ${STATUS_COLORS[project.status]}`} />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1">
+                                <h3 className="text-sm sm:text-base font-medium truncate">{project.name}</h3>
+                                <Badge variant="outline" className="text-[10px] sm:text-xs">{BRAND_NAMES[project.brand]}</Badge>
+                              </div>
+                              <p className="text-xs sm:text-sm text-muted-foreground">
+                                销售日期: {formatDateSafely(project.salesDate)}
+                              </p>
                             </div>
-                            <p className="text-xs sm:text-sm text-muted-foreground">
-                              销售日期: {formatDateSafely(project.salesDate)}
-                            </p>
                           </div>
+                          <Badge variant="outline" className="text-[10px] sm:text-xs shrink-0">{STATUS_NAMES[project.status]}</Badge>
                         </div>
-                        <Badge variant="outline" className="text-[10px] sm:text-xs shrink-0">{STATUS_NAMES[project.status]}</Badge>
+                        
+                        {/* 整体进度 */}
+                        {projectTasks.length > 0 && (
+                          <div className="mt-2">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs text-muted-foreground">整体进度</span>
+                              <span className={`text-xs font-medium ${
+                                overallProgress === 0 ? 'text-muted-foreground' :
+                                overallProgress < 50 ? 'text-blue-600' :
+                                overallProgress < 100 ? 'text-yellow-600' :
+                                'text-green-600'
+                              }`}>{overallProgress}%</span>
+                            </div>
+                            <Progress value={overallProgress} className="h-1.5" />
+                          </div>
+                        )}
+                        
+                        {/* 催促提醒 */}
+                        {totalReminders > 0 && (
+                          <div className={`mt-2 p-2 rounded-lg border ${
+                            urgentReminders > 0 
+                              ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' 
+                              : warningReminders > 0 
+                                ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700' 
+                                : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+                          }`}>
+                            <div className="flex items-start gap-2">
+                              <AlertCircle className={`h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5 ${
+                                urgentReminders > 0 ? 'text-red-600 dark:text-red-400' :
+                                warningReminders > 0 ? 'text-orange-600 dark:text-orange-400' :
+                                'text-yellow-600 dark:text-yellow-400'
+                              } ${urgentReminders > 0 ? 'animate-pulse' : ''}`} />
+                              <div className="flex-1 min-w-0">
+                                <div className={`font-medium text-xs ${
+                                  urgentReminders > 0 ? 'text-red-700 dark:text-red-300' :
+                                  warningReminders > 0 ? 'text-orange-700 dark:text-orange-300' :
+                                  'text-yellow-700 dark:text-yellow-300'
+                                }`}>
+                                  {urgentReminders > 0 ? `🚨 ${urgentReminders}个任务严重延误！` :
+                                  warningReminders > 0 ? `⚠️ ${warningReminders}个任务需要关注` :
+                                  `📢 共${totalReminders}次催促提醒`}
+                                </div>
+                                <div className={`text-[10px] mt-0.5 ${
+                                  urgentReminders > 0 ? 'text-red-600 dark:text-red-400' :
+                                  warningReminders > 0 ? 'text-orange-600 dark:text-orange-400' :
+                                  'text-yellow-600 dark:text-yellow-400'
+                                }`}>
+                                  {urgentReminders > 0 ? '请立即处理延误任务' :
+                                  warningReminders > 0 ? '请加快任务进度' :
+                                  '请关注催促的任务'}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    ))}
+                    );
+                  })}
                   </div>
                 )}
               </CardContent>

@@ -15,6 +15,29 @@ export default function TestCreateProjectPage() {
     console.log(message);
   };
 
+  const testDebug = async () => {
+    addLog('=== 运行完整诊断 ===');
+    setLoading(true);
+    clearLogs();
+
+    try {
+      const response = await fetch('/api/test-debug', {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      addLog(`诊断响应状态: ${response.status}`);
+      addLog('--- 诊断日志 ---');
+      data.logs.forEach((log: string) => addLog(log));
+      if (data.error) {
+        addLog(`错误: ${data.error}`);
+      }
+    } catch (error) {
+      addLog(`请求失败: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const testAuth = async () => {
     addLog('=== 测试用户认证 ===');
     try {
@@ -111,10 +134,16 @@ export default function TestCreateProjectPage() {
     <div className="container mx-auto p-6 max-w-4xl">
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>项目创建测试工具</CardTitle>
+          <CardTitle>🔍 项目创建完整诊断工具</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            请先点击"完整诊断"按钮，系统会自动检测所有可能的问题
+          </p>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 mb-4">
+          <div className="flex flex-wrap gap-4 mb-4">
+            <Button onClick={testDebug} disabled={loading} className="bg-red-600 hover:bg-red-700">
+              🔍 完整诊断（推荐先运行）
+            </Button>
             <Button onClick={testAuth} disabled={loading}>
               测试认证
             </Button>

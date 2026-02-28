@@ -1511,6 +1511,13 @@ export default function HomePage() {
         console.log('返回项目品牌:', data.project?.brand);
         console.log('当前品牌过滤器:', brandFilter);
 
+        const projectId = data.project?.id;
+        if (!projectId) {
+          console.error('❌ 项目ID为空');
+          setCreateProjectError('创建项目失败：未返回项目ID');
+          return;
+        }
+
         // 方法1：直接将新项目添加到列表中（立即显示）
         const newProjectData = {
           ...data.project,
@@ -1529,12 +1536,36 @@ export default function HomePage() {
           description: ''
         });
 
-        // 方法2：等待2秒后重新加载项目列表（确保数据同步）
-        console.log('等待2秒后重新加载项目列表...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // 方法2：检查项目是否真的在数据库中
+        console.log(`=== 检查项目是否在数据库中 ===`);
+        setTimeout(async () => {
+          try {
+            const checkResponse = await fetch(`/api/check-project/${projectId}`, {
+              credentials: 'include'
+            });
+            const checkData = await checkResponse.json();
+            console.log('检查结果:', checkData);
+
+            if (checkData.success && checkData.exists) {
+              console.log('✅ 项目在数据库中存在');
+              console.log(`项目名称: ${checkData.project.name}`);
+              console.log(`项目品牌: ${checkData.project.brand}`);
+              console.log(`任务数量: ${checkData.taskCount}`);
+            } else {
+              console.error('❌ 项目在数据库中不存在');
+              console.error('原因:', checkData.message || checkData.error);
+            }
+          } catch (error) {
+            console.error('❌ 检查项目失败:', error);
+          }
+        }, 1000);
+
+        // 方法3：等待3秒后重新加载项目列表（模拟问题发生的时间点）
+        console.log('等待3秒后重新加载项目列表...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
         loadProjects();
 
-        // 方法3：5秒后再次检查（确保数据完全同步）
+        // 方法4：5秒后再次检查（确认数据是否持久化）
         setTimeout(() => {
           console.log('5秒后再次检查项目列表...');
           loadProjects();

@@ -33,10 +33,14 @@ export async function GET(request: NextRequest) {
       return authResult;
     }
 
+    console.log(`GET /api/projects - 用户: ${authResult.email}, 用户品牌: ${authResult.brand}`);
+
     const client = getSupabaseClient();
     const searchParams = request.nextUrl.searchParams;
     const brand = searchParams.get('brand');
     const category = searchParams.get('category');
+
+    console.log(`请求参数 - brand: ${brand}, category: ${category}`);
 
     // 构建查询
     let query = client
@@ -46,15 +50,18 @@ export async function GET(request: NextRequest) {
 
     // 应用品牌过滤
     query = applyBrandFilter(authResult.brand, query) as any;
+    console.log(`应用品牌过滤: ${authResult.brand !== 'all' ? '只返回用户品牌' : '返回所有品牌'}`);
 
     // 如果指定了品牌且不是all，进一步过滤
     if (brand && brand !== 'all' && authResult.brand === 'all') {
       query = query.eq('brand', brand);
+      console.log(`进一步过滤品牌: ${brand}`);
     }
 
     // 项目分类过滤
     if (category && category !== 'all') {
       query = query.eq('category', category);
+      console.log(`过滤分类: ${category}`);
     }
 
     const { data: projects, error } = await query;
@@ -62,6 +69,11 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('获取项目失败:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    console.log(`查询成功，项目数量: ${projects?.length || 0}`);
+    if (projects && projects.length > 0) {
+      console.log(`第一个项目:`, projects[0]);
     }
 
     // 获取每个项目的任务
@@ -109,6 +121,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 检查品牌权限：非管理员用户只能创建自己品牌的项目
+    let finalBrand = brand;
+    if (authResult.brand !== 'all') {
+      console.log(`用户品牌: ${authResult.brand}, 请求品牌: ${brand}, 强制使用用户品牌`);
+      finalBrand = authResult.brand;
+    }
+
+    console.log(`创建项目 - 名称: ${name}, 最终品牌: ${finalBrand}, 分类: ${category}`);
+
     // 计算项目确认日期（销售前3个月）
     const salesDateObj = new Date(salesDate);
     const projectConfirmDateObj = new Date(salesDateObj);
@@ -119,7 +140,7 @@ export async function POST(request: NextRequest) {
       .from('projects')
       .insert({
         name,
-        brand,
+        brand: finalBrand,
         category,
         sales_date: salesDate,
         project_confirm_date: projectConfirmDateObj.toISOString(),

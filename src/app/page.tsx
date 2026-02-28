@@ -1152,7 +1152,12 @@ export default function HomePage() {
         credentials: 'include'
       });
       const data = await response.json();
-      console.log('加载项目:', data);
+      console.log('加载项目响应状态:', response.status);
+      console.log('加载项目数据:', data);
+      console.log('项目数量:', data.projects?.length || 0);
+      if (data.projects && data.projects.length > 0) {
+        console.log('第一个项目:', data.projects[0]);
+      }
       setProjects(data.projects || []);
     } catch (error) {
       console.error('加载项目失败:', error);
@@ -1487,7 +1492,8 @@ export default function HomePage() {
       setCreateProjectError('');
       
       console.log('创建项目数据:', newProject);
-      
+      console.log('当前品牌过滤器:', brandFilter);
+
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1496,7 +1502,8 @@ export default function HomePage() {
       });
 
       const data = await response.json();
-      console.log('创建项目响应:', data);
+      console.log('创建项目响应状态:', response.status);
+      console.log('创建项目响应数据:', data);
 
       if (response.ok) {
         setIsCreateDialogOpen(false);
@@ -1507,7 +1514,9 @@ export default function HomePage() {
           salesDate: '', 
           description: '' 
         });
-        console.log('创建成功，重新加载项目列表');
+        console.log('创建成功，项目ID:', data.project?.id);
+        console.log('等待1秒后重新加载项目列表...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
         loadProjects();
       } else {
         setCreateProjectError(data.error || '创建项目失败，请重试');

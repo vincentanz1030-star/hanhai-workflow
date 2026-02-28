@@ -73,6 +73,59 @@ export default function TestCreateProjectPage() {
     }
   };
 
+  const testForceCreateProject = async () => {
+    addLog('=== 测试强制创建项目 ===');
+    setLoading(true);
+
+    try {
+      const user = await testAuth();
+      if (!user || !user.user) {
+        addLog('❌ 用户未认证，无法创建项目');
+        setLoading(false);
+        return;
+      }
+
+      addLog('准备强制创建项目...');
+      const projectData = {
+        name: `强制测试项目_${Date.now()}`,
+        brand: 'he_zhe',
+        category: 'product_development',
+        salesDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        description: '这是一个强制创建的测试项目'
+      };
+
+      addLog(`项目数据: ${JSON.stringify(projectData, null, 2)}`);
+
+      const response = await fetch('/api/force-create-project', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(projectData),
+      });
+
+      const data = await response.json();
+      addLog(`响应状态: ${response.status}`);
+      addLog('--- 响应日志 ---');
+      data.logs?.forEach((log: string) => addLog(log));
+
+      if (response.ok && data.success) {
+        addLog('✅ 强制创建项目成功！');
+        addLog(`项目信息: ${JSON.stringify(data.project, null, 2)}`);
+
+        // 重新获取项目列表
+        addLog('等待2秒后重新获取项目列表...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        await testGetProjects();
+      } else {
+        addLog(`❌ 强制创建项目失败: ${data.error}`);
+      }
+    } catch (error) {
+      addLog(`❌ 强制创建项目出错: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const testCreateProject = async () => {
     addLog('=== 测试创建项目 ===');
     setLoading(true);
@@ -143,6 +196,9 @@ export default function TestCreateProjectPage() {
           <div className="flex flex-wrap gap-4 mb-4">
             <Button onClick={testDebug} disabled={loading} className="bg-red-600 hover:bg-red-700">
               🔍 完整诊断（推荐先运行）
+            </Button>
+            <Button onClick={testForceCreateProject} disabled={loading} className="bg-orange-600 hover:bg-orange-700">
+              ⚡ 强制创建项目（快速修复）
             </Button>
             <Button onClick={testAuth} disabled={loading}>
               测试认证

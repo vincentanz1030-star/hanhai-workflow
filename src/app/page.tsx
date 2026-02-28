@@ -1506,18 +1506,35 @@ export default function HomePage() {
       console.log('创建项目响应数据:', data);
 
       if (response.ok) {
+        console.log('创建成功，项目ID:', data.project?.id);
+
+        // 方法1：直接将新项目添加到列表中（立即显示）
+        const newProjectData = {
+          ...data.project,
+          tasks: data.tasks || []
+        };
+        setProjects(prev => [newProjectData, ...prev]);
+
+        // 关闭对话框并重置表单
         setIsCreateDialogOpen(false);
-        setNewProject({ 
-          name: '', 
+        setNewProject({
+          name: '',
           brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan' | 'all',
           category: '' as 'product_development' | 'operations_activity',
-          salesDate: '', 
-          description: '' 
+          salesDate: '',
+          description: ''
         });
-        console.log('创建成功，项目ID:', data.project?.id);
-        console.log('等待1秒后重新加载项目列表...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 方法2：等待2秒后重新加载项目列表（确保数据同步）
+        console.log('等待2秒后重新加载项目列表...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
         loadProjects();
+
+        // 方法3：5秒后再次检查（确保数据完全同步）
+        setTimeout(() => {
+          console.log('5秒后再次检查项目列表...');
+          loadProjects();
+        }, 5000);
       } else {
         setCreateProjectError(data.error || '创建项目失败，请重试');
       }

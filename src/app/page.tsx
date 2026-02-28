@@ -10,11 +10,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, Users, CheckCircle, AlertCircle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, AlertCircle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil, LogOut, User, Shield } from 'lucide-react';
 import { format, differenceInDays, isBefore, isAfter, isToday } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Slider } from '@/components/ui/slider';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
 
 // 类型定义
 interface Project {
@@ -1010,6 +1012,8 @@ function OrgTreeNode({
 }
 
 export default function HomePage() {
+  const { user, loading: authLoading, logout } = useAuth();
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -1839,8 +1843,39 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      {/* 头部 */}
-      <header className="border-b bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 sticky top-0 z-50">
+      {/* 登录检查 */}
+      {authLoading ? (
+        <div className="flex h-screen items-center justify-center">
+          <div className="text-center">
+            <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
+            <p className="text-muted-foreground">加载中...</p>
+          </div>
+        </div>
+      ) : !user ? (
+        <div className="flex h-screen items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>请先登录</CardTitle>
+              <CardDescription>登录后才能访问系统</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button asChild className="w-full">
+                <Link href="/login">
+                  前往登录
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/register">
+                  注册账号
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <>
+        {/* 头部 */}
+        <header className="border-b bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 sticky top-0 z-50">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -1852,7 +1887,28 @@ export default function HomePage() {
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">以销售为驱动的项目进度管理</p>
               </div>
             </div>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 flex-1 sm:flex-none">
+                <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary flex items-center justify-center">
+                  <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm font-medium truncate">{user.name}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
+                    {user.primaryRole ? user.roles.find(r => r.role === user.primaryRole)?.role : user.roles[0]?.role}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={logout}
+                className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0"
+                title="登出"
+              >
+                <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
+              </Button>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2 h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full sm:w-auto">
                   <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -3919,6 +3975,8 @@ export default function HomePage() {
           </DialogContent>
         </Dialog>
       </main>
+      </>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { requireAuth, applyBrandFilter } from '@/lib/api-auth';
 
 // 将蛇形命名转换为驼峰命名
 function toCamelCase(obj: any): any {
@@ -24,15 +25,39 @@ function toCamelCase(obj: any): any {
 }
 
 // 获取所有项目
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const client = getSupabaseClient();
+    // 认证和权限检查
+    const authResult = await requireAuth(request, 'project', 'view');
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
 
-    // 获取所有项目
-    const { data: projects, error } = await client
+    const client = getSupabaseClient();
+    const searchParams = request.nextUrl.searchParams;
+    const brand = searchParams.get('brand');
+    const category = searchParams.get('category');
+
+    // 构建查询
+    let query = client
       .from('projects')
       .select('*')
       .order('created_at', { ascending: false });
+
+    // 应用品牌过滤
+    query = applyBrandFilter(authResult.brand, query) as any;
+
+    // 如果指定了品牌且不是all，进一步过滤
+    if (brand && brand !== 'all' && authResult.brand === 'all') {
+      query = query.eq('brand', brand);
+    }
+
+    // 项目分类过滤
+    if (category && category !== 'all') {
+      query = query.eq('category', category);
+    }
+
+    const { data: projects, error } = await query;
 
     if (error) {
       console.error('获取项目失败:', error);
@@ -66,9 +91,23 @@ export async function GET() {
 // 创建新项目
 export async function POST(request: NextRequest) {
   try {
+    // 认证和权限检查
+    const authResult = await requireAuth(request, 'project', 'create');
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const client = getSupabaseClient();
     const body = await request.json();
     const { name, brand, category, salesDate, description } = body;
+
+    // 品牌权限检查
+    if (authResult.brand !== 'all' && authResult.brand !== brand) {
+      return NextResponse.json(
+        { error: '无权为其他品牌创建项目' },
+        { status: 403 }
+      );
+    }
 
     if (!name || !salesDate || !brand || !category) {
       return NextResponse.json(

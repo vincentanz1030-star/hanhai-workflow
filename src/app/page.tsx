@@ -879,6 +879,23 @@ export default function HomePage() {
     description: '',
     sortOrder: 0,
   });
+
+  // 将树形结构扁平化
+  const flattenCategories = (categories: ProductCategory[]): ProductCategory[] => {
+    const result: ProductCategory[] = [];
+    const traverse = (items: ProductCategory[]) => {
+      items.forEach(item => {
+        result.push(item);
+        if (item.children && item.children.length > 0) {
+          traverse(item.children);
+        }
+      });
+    };
+    traverse(categories);
+    return result;
+  };
+
+  const flatCategories = flattenCategories(productCategories);
   
   // 时间线编辑状态
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
@@ -2369,7 +2386,7 @@ export default function HomePage() {
                           onChange={(e) => setNewProductCategory({ ...newProductCategory, parentId: e.target.value || null })}
                         >
                           <option value="">选择父品类</option>
-                          {productCategories
+                          {flatCategories
                             .filter(c => c.level === newProductCategory.level - 1)
                             .map(c => (
                               <option key={c.id} value={c.id}>{c.name}</option>

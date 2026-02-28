@@ -64,6 +64,17 @@ export async function PUT(
     const body = await request.json();
     const { brand, level, parentId, name, code, description, sortOrder } = body;
 
+    // 先获取当前品类信息
+    const { data: currentCategory } = await client
+      .from('product_categories')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (!currentCategory) {
+      return NextResponse.json({ error: '品类不存在' }, { status: 404 });
+    }
+
     // 构建更新对象
     const updateData: any = {
       updated_at: new Date().toISOString(),
@@ -71,7 +82,12 @@ export async function PUT(
 
     if (brand !== undefined) updateData.brand = brand;
     if (level !== undefined) updateData.level = level;
-    if (parentId !== undefined) updateData.parent_id = parentId;
+    
+    // 智能处理parentId：只有当明确提供有效值时才更新
+    if (parentId !== undefined && parentId !== '') {
+      updateData.parent_id = parentId;
+    }
+    
     if (name !== undefined) updateData.name = name;
     if (code !== undefined) updateData.code = code;
     if (description !== undefined) updateData.description = description;

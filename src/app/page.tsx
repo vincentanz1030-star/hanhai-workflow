@@ -960,7 +960,7 @@ export default function HomePage() {
     setNewProductCategory({
       brand: category.brand,
       level: category.level,
-      parentId: category.parentId || '',
+      parentId: category.parentId,  // 保持原始值，不要转换
       name: category.name,
       code: category.code || '',
       description: category.description || '',

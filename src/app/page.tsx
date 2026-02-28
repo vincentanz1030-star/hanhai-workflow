@@ -948,6 +948,27 @@ export default function HomePage() {
     console.log('parentId value:', newProductCategory.parentId);
     
     try {
+      // 如果是编辑，只发送修改过的字段
+      let body: any = {};
+      if (editingProductCategory) {
+        // 编辑模式：只发送修改过的字段
+        if (newProductCategory.brand !== editingProductCategory.brand) body.brand = newProductCategory.brand;
+        if (newProductCategory.level !== editingProductCategory.level) body.level = newProductCategory.level;
+        // 处理parentId：只有当值真正改变时才发送
+        if (newProductCategory.parentId !== editingProductCategory.parentId) {
+          body.parentId = newProductCategory.parentId;
+        }
+        if (newProductCategory.name !== editingProductCategory.name) body.name = newProductCategory.name;
+        if (newProductCategory.code !== editingProductCategory.code) body.code = newProductCategory.code;
+        if (newProductCategory.description !== editingProductCategory.description) body.description = newProductCategory.description;
+        if (newProductCategory.sortOrder !== editingProductCategory.sortOrder) body.sortOrder = newProductCategory.sortOrder;
+      } else {
+        // 新建模式：发送所有字段
+        body = newProductCategory;
+      }
+      
+      console.log('提交body:', body);
+
       const url = editingProductCategory
         ? `/api/product-categories/${editingProductCategory.id}`
         : '/api/product-categories';
@@ -955,7 +976,7 @@ export default function HomePage() {
       const response = await fetch(url, {
         method: editingProductCategory ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newProductCategory),
+        body: JSON.stringify(body),
       });
       
       console.log('Response status:', response.status);

@@ -80,6 +80,7 @@ export async function PUT(
       .single();
 
     console.log('当前品类:', currentCategory);
+    console.log('当前品类.parent_id:', currentCategory?.parent_id);
 
     if (!currentCategory) {
       return NextResponse.json({ error: '品类不存在' }, { status: 404 });
@@ -90,22 +91,46 @@ export async function PUT(
       updated_at: new Date().toISOString(),
     };
 
-    if (brand !== undefined) updateData.brand = brand;
-    if (level !== undefined) updateData.level = level;
-    
-    // 智能处理parentId：只有当明确提供有效值时才更新
-    if (parentId !== undefined && parentId !== '') {
-      updateData.parent_id = parentId;
+    if (brand !== undefined) {
+      updateData.brand = brand;
+      console.log('更新 brand:', brand);
+    }
+    if (level !== undefined) {
+      updateData.level = level;
+      console.log('更新 level:', level);
     }
     
-    if (name !== undefined) updateData.name = name;
-    if (code !== undefined) updateData.code = code;
-    if (description !== undefined) updateData.description = description;
-    if (sortOrder !== undefined) updateData.sort_order = sortOrder;
+    // 修复：正确处理parentId更新
+    // 规则：
+    // 1. 如果parentId === undefined，不更新parent_id（用户未修改）
+    // 2. 如果parentId === ''，更新parent_id为null（用户明确选择了"无"）
+    // 3. 如果parentId是有效字符串，更新parent_id为该值
+    if (parentId !== undefined) {
+      updateData.parent_id = parentId === '' ? null : parentId;
+      console.log('更新 parent_id:', updateData.parent_id);
+    } else {
+      console.log('parent_id 未修改，保持原值:', currentCategory.parent_id);
+    }
+    
+    if (name !== undefined) {
+      updateData.name = name;
+      console.log('更新 name:', name);
+    }
+    if (code !== undefined) {
+      updateData.code = code;
+      console.log('更新 code:', code);
+    }
+    if (description !== undefined) {
+      updateData.description = description;
+      console.log('更新 description:', description);
+    }
+    if (sortOrder !== undefined) {
+      updateData.sort_order = sortOrder;
+      console.log('更新 sort_order:', sortOrder);
+    }
 
-    console.log('=== updateData ===');
+    console.log('=== 最终 updateData ===');
     console.log('updateData:', updateData);
-    console.log('updateData.parent_id:', updateData.parent_id);
 
     const { data: category, error } = await client
       .from('product_categories')

@@ -228,7 +228,7 @@ export async function DELETE(request: NextRequest) {
 
 
 // 为项目创建任务（根据项目类型）
-async function createTasksForProject(
+export async function createTasksForProject(
   client: any,
   projectId: string,
   salesDate: string,

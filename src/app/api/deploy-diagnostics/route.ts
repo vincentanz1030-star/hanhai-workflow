@@ -1,5 +1,13 @@
+import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+
+// 直接从环境变量获取 Supabase 配置
+const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Supabase 环境变量未设置');
+}
 
 export async function GET(request: NextRequest) {
   const logs: string[] = [];
@@ -33,7 +41,7 @@ export async function GET(request: NextRequest) {
     // 3. 数据库连接测试
     addLog('步骤3: 测试数据库连接');
     try {
-      const client = getSupabaseClient();
+      const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
       addLog('Supabase客户端创建成功');
 
       // 测试查询
@@ -67,7 +75,7 @@ export async function GET(request: NextRequest) {
       addLog(`测试项目数据: ${JSON.stringify(testProjectData)}`);
 
       // 实际创建项目
-      const client = getSupabaseClient();
+      const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
       const { data: project, error: insertError } = await client
         .from('projects')
         .insert(testProjectData)
@@ -136,7 +144,7 @@ export async function GET(request: NextRequest) {
     // 5. 检查最近创建的项目
     addLog('步骤5: 查询最近创建的5个项目');
     try {
-      const client = getSupabaseClient();
+      const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
       const { data: recentProjects, error } = await client
         .from('projects')
         .select('id, name, brand, created_at')

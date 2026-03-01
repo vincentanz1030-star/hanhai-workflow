@@ -1,6 +1,14 @@
+import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { getCurrentUser } from '@/lib/auth';
+
+// 直接从环境变量获取 Supabase 配置
+const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Supabase 环境变量未设置');
+}
 
 export async function GET(request: NextRequest) {
   const logs: string[] = [];
@@ -23,7 +31,7 @@ export async function GET(request: NextRequest) {
     // 2. 测试数据库连接
     addLog('步骤 2: 测试数据库连接');
     try {
-      const client = getSupabaseClient();
+      const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
       const { data, error } = await client.from('users').select('count').limit(1);
       if (error) {
         addLog(`❌ 数据库连接失败: ${error.message}`);
@@ -55,7 +63,7 @@ export async function GET(request: NextRequest) {
     // 4. 测试查询项目
     addLog('步骤 4: 查询现有项目');
     try {
-      const client = getSupabaseClient();
+      const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
       const { data: projects, error } = await client
         .from('projects')
         .select('id, name, brand, category')
@@ -76,7 +84,7 @@ export async function GET(request: NextRequest) {
     // 5. 测试创建简单项目
     addLog('步骤 5: 测试创建简单项目');
     try {
-      const client = getSupabaseClient();
+      const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
       const testProject = {
         name: `测试项目_${Date.now()}`,
         brand: 'he_zhe',

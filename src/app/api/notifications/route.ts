@@ -1,8 +1,16 @@
+import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { getCurrentUser } from '@/lib/auth';
 
 // 获取通知列表
+// 直接从环境变量获取 Supabase 配置
+const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Supabase 环境变量未设置');
+}
+
 export async function GET(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser(request);
@@ -10,7 +18,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
 
-    const supabase = getSupabaseClient();
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
     const { searchParams } = new URL(request.url);
     const unreadOnly = searchParams.get('unread_only') === 'true';
 
@@ -59,7 +67,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { ids, readAll } = body;
 
-    const supabase = getSupabaseClient();
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
 
     let result;
     if (readAll) {

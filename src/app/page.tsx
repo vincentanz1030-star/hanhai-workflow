@@ -1194,6 +1194,12 @@ export default function HomePage() {
     console.log(`调用前列表长度: ${projects.length}`);
     console.log(`当前品牌过滤器: ${brandFilter}`);
 
+    // 强制重置品牌过滤器为 'all'，确保总是显示所有品牌的项目
+    if (brandFilter !== 'all') {
+      console.log('🔧 loadProjects 强制重置品牌过滤器为 all');
+      setBrandFilterWithLog('all');
+    }
+
     try {
       // 明确请求所有项目，不应用品牌过滤
       const response = await fetchWithAuth('/api/projects?brand=all&category=all');
@@ -1993,23 +1999,30 @@ export default function HomePage() {
     console.log('当前用户:', user?.email);
     console.log('当前品牌过滤器:', brandFilter);
     console.log('是否已初始化:', initializationRef.current);
-    
-    // 用户登录时，总是重置品牌过滤器为 'all'
-    if (user && !initializationRef.current) {
-      console.log('🔧 用户登录，强制重置品牌过滤器为 all');
+
+    // 页面首次加载时，强制重置品牌过滤器为 'all'
+    if (!initializationRef.current) {
+      console.log('🔧 页面首次加载，强制重置品牌过滤器为 all');
       setBrandFilterWithLog('all');
       initializationRef.current = true;
     }
-    
-    // 加载项目
-    if (user) {
-      loadProjects();
-      loadFeedback();
-      loadSalesTargets();
-      loadWeeklyWorkPlans();
-      loadCollaborationTasks();
+
+    // 当用户退出登录时（user 变为 null），重置品牌过滤器
+    if (!user) {
+      if (brandFilter !== 'all') {
+        console.log('🔧 用户退出登录，重置品牌过滤器为 all');
+        setBrandFilterWithLog('all');
+      }
+      return; // 不加载项目
     }
-  }, [user?.id]); // 监听用户ID变化
+
+    // 加载项目
+    loadProjects();
+    loadFeedback();
+    loadSalesTargets();
+    loadWeeklyWorkPlans();
+    loadCollaborationTasks();
+  }, [user?.id, user]); // 监听用户ID和用户对象变化
 
   useEffect(() => {
     loadProductCategories(brandFilter);
@@ -2251,22 +2264,6 @@ export default function HomePage() {
                     </Button>
                   ))}
                 </div>
-                {/* 强制刷新按钮 */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    console.log('=== 强制刷新 ===');
-                    console.log('重置品牌过滤器为 all');
-                    setBrandFilterWithLog('all');
-                    console.log('重新加载项目');
-                    loadProjects();
-                  }}
-                  className="ml-2 text-xs"
-                  title="强制刷新项目列表"
-                >
-                  🔄 刷新
-                </Button>
               </div>
             </CardContent>
           </Card>

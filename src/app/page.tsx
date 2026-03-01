@@ -1017,6 +1017,7 @@ export default function HomePage() {
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initTimeout, setInitTimeout] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [createProjectError, setCreateProjectError] = useState('');
@@ -1980,6 +1981,7 @@ export default function HomePage() {
     // 如果没有用户，什么都不做
     if (!user) {
       console.log('用户未登录，跳过加载');
+      setLoading(false); // 确保未登录时关闭loading
       return;
     }
 
@@ -1990,6 +1992,17 @@ export default function HomePage() {
     loadSalesTargets();
     loadWeeklyWorkPlans();
     loadCollaborationTasks();
+
+    // 添加超时处理，防止页面一直卡住
+    const timeoutId = setTimeout(() => {
+      console.warn('⚠️ 数据加载超时，强制关闭loading状态');
+      setLoading(false);
+      setInitTimeout(true);
+    }, 15000); // 15秒超时
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [user?.id]); // 只监听用户ID变化
 
   useEffect(() => {
@@ -1998,15 +2011,21 @@ export default function HomePage() {
     loadCollaborationTasks();
   }, [brandFilter]);
 
-  if (loading) {
+  if (loading && !initTimeout) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
           <p className="text-muted-foreground">加载中...</p>
+          <p className="text-xs text-muted-foreground mt-2">如果长时间无响应，请刷新页面</p>
         </div>
       </div>
     );
+  }
+
+  // 如果超时，显示警告但继续渲染内容
+  if (initTimeout) {
+    console.warn('⚠️ 加载超时，但仍尝试显示内容');
   }
 
   return (
@@ -2024,6 +2043,12 @@ export default function HomePage() {
           <div className="text-center">
             <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
             <p className="text-muted-foreground">加载中...</p>
+            <p className="text-xs text-muted-foreground mt-2">如果长时间无响应，请刷新页面</p>
+            <div className="mt-4">
+              <Link href="/diagnostic/health" className="text-sm text-blue-600 hover:underline">
+                系统诊断
+              </Link>
+            </div>
           </div>
         </div>
       ) : !user ? (
@@ -2044,6 +2069,11 @@ export default function HomePage() {
                   注册账号
                 </Link>
               </Button>
+              <div className="text-center">
+                <Link href="/diagnostic/health" className="text-sm text-blue-600 hover:underline">
+                  系统诊断
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </div>

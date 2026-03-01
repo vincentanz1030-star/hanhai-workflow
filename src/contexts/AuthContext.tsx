@@ -38,12 +38,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 从localStorage获取token
       const token = localStorage.getItem('auth_token');
 
+      // 如果没有token，直接返回，不进行请求
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      // 添加超时处理
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+
       const response = await fetch('/api/auth/me', {
         credentials: 'include',
         headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          'Authorization': `Bearer ${token}`,
         },
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
@@ -56,6 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('获取用户信息失败:', error);
       setUser(null);
+      // 即使失败，也要清除loading状态，防止页面卡住
+      localStorage.removeItem('auth_token');
     } finally {
       setLoading(false);
     }

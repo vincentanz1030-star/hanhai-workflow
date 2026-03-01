@@ -14,6 +14,25 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // 禁用缓存，确保开发环境下总是获取最新代码
+  webpack: (config) => {
+    config.cache = false;
+    return config;
+  },
+  // 添加缓存控制头
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

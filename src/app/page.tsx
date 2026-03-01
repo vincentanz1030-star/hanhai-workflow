@@ -1193,6 +1193,7 @@ export default function HomePage() {
     console.log(`\n[${timestamp}] === loadProjects 被调用 ===`);
     console.log(`调用前列表长度: ${projects.length}`);
     console.log(`当前品牌过滤器: ${brandFilter}`);
+    console.log(`当前用户: ${user?.email}`);
 
     // 强制重置品牌过滤器为 'all'，确保总是显示所有品牌的项目
     if (brandFilter !== 'all') {
@@ -1218,8 +1219,12 @@ export default function HomePage() {
         console.log('各品牌项目分布:', brandCount);
       }
       setProjectsWithLog(data.projects || []);
+      console.log('✅ loadProjects 完成，已设置项目列表');
     } catch (error) {
       console.error('加载项目失败:', error);
+      console.error('错误详情:', error);
+      // 发生错误时，清空项目列表，避免显示过期数据
+      setProjectsWithLog([]);
     } finally {
       setLoading(false);
     }
@@ -1964,6 +1969,18 @@ export default function HomePage() {
     delayed: filteredProjects.filter(p => p.status === 'delayed').length,
   };
 
+  // 添加调试信息
+  if (process.env.NODE_ENV === 'development' || user?.email === 'admin@hanhai.com') {
+    console.log('=== 项目列表状态 ===');
+    console.log('总项目数:', projects.length);
+    console.log('过滤后项目数:', filteredProjects.length);
+    console.log('当前用户:', user?.email);
+    console.log('当前品牌过滤器:', brandFilter);
+    if (projects.length > 0) {
+      console.log('最新项目:', projects[0].name, '- 创建时间:', projects[0].createdAt);
+    }
+  }
+
   // 按岗位计算平均进度
   const getRoleProgress = (tasks: Task[] = []) => {
     const roleProgress: Record<string, number> = {};
@@ -1998,16 +2015,21 @@ export default function HomePage() {
       initializationRef.current = true;
     }
 
-    // 当用户退出登录时（user 变为 null），重置品牌过滤器
+    // 当用户退出登录时（user 变为 null），重置品牌过滤器和初始化标志
     if (!user) {
       if (brandFilter !== 'all') {
         console.log('🔧 用户退出登录，重置品牌过滤器为 all');
         setBrandFilterWithLog('all');
       }
+      // 重置初始化标志，确保下次登录时重新执行初始化逻辑
+      initializationRef.current = false;
+      // 清空项目列表
+      setProjectsWithLog([]);
       return; // 不加载项目
     }
 
-    // 加载项目
+    // 用户登录时，总是重新加载项目
+    console.log('🔧 用户已登录，强制重新加载项目');
     loadProjects();
     loadFeedback();
     loadSalesTargets();
@@ -2034,6 +2056,13 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      {/* 调试信息 - 仅在开发环境或管理员账号显示 */}
+      {(process.env.NODE_ENV === 'development' || user?.email === 'admin@hanhai.com') && (
+        <div className="fixed top-0 left-0 right-0 bg-yellow-100 dark:bg-yellow-900 text-xs p-2 z-50">
+          <strong>调试信息:</strong> 页面加载时间: {new Date().toLocaleString()} | 项目数: {projects.length} | 用户: {user?.email || '未登录'} | 品牌过滤器: {brandFilter}
+        </div>
+      )}
+
       {/* 登录检查 */}
       {authLoading ? (
         <div className="flex h-screen items-center justify-center">

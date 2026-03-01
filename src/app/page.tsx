@@ -1980,6 +1980,14 @@ export default function HomePage() {
     loadCollaborationTasks();
   }, []);
 
+  // 当用户变化时（重新登录），重置品牌过滤器为'all'
+  useEffect(() => {
+    if (user) {
+      console.log(`用户登录: ${user.email}, 重置品牌过滤器为 'all'`);
+      setBrandFilterWithLog('all');
+    }
+  }, [user?.email]);
+
   useEffect(() => {
     loadProductCategories(brandFilter);
     loadWeeklyWorkPlans();

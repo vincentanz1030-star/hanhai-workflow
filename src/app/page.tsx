@@ -1602,19 +1602,8 @@ export default function HomePage() {
           description: ''
         });
 
-        // 重要：将品牌过滤器设置为创建项目的品牌，确保用户能看到新创建的项目
-        const createdBrand = data.project?.brand;
-        if (createdBrand && createdBrand !== 'all') {
-          console.log(`设置品牌过滤器: 从 ${brandFilter} 改为 ${createdBrand}`);
-          setTimeout(() => {
-            setBrandFilterWithLog(createdBrand);
-          }, 0);
-        } else {
-          console.log(`⚠️ 创建项目的品牌为空或为 'all'，设置为 all`);
-          setTimeout(() => {
-            setBrandFilterWithLog('all');
-          }, 0);
-        }
+        // 不再自动修改品牌过滤器，让用户自行选择
+        // 页面加载时会自动重置为 'all'，确保用户能看到所有项目
 
         // 方法3：立即进行完整诊断
         console.log('\n=== 开始完整诊断 ===');
@@ -1972,21 +1961,36 @@ export default function HomePage() {
     return roleProgress;
   };
 
-  useEffect(() => {
-    loadProjects();
-    loadFeedback();
-    loadSalesTargets();
-    loadWeeklyWorkPlans();
-    loadCollaborationTasks();
-  }, []);
+  // 添加强制重置标志
+  const [hasInitialized, setHasInitialized] = useState(false);
 
-  // 当用户变化时（重新登录），重置品牌过滤器为'all'
   useEffect(() => {
-    if (user) {
-      console.log(`用户登录: ${user.email}, 重置品牌过滤器为 'all'`);
+    console.log('=== 页面初始化 ===');
+    console.log('当前用户:', user?.email);
+    console.log('当前品牌过滤器:', brandFilter);
+    console.log('是否已初始化:', hasInitialized);
+    
+    // 只在第一次加载时重置品牌过滤器
+    if (!hasInitialized && user) {
+      console.log('🔧 首次加载，强制重置品牌过滤器为 all');
       setBrandFilterWithLog('all');
+      setHasInitialized(true);
+      
+      // 加载项目
+      loadProjects();
+      loadFeedback();
+      loadSalesTargets();
+      loadWeeklyWorkPlans();
+      loadCollaborationTasks();
+    } else if (user) {
+      console.log('🔄 用户已登录，但已初始化过，重新加载数据');
+      loadProjects();
+      loadFeedback();
+      loadSalesTargets();
+      loadWeeklyWorkPlans();
+      loadCollaborationTasks();
     }
-  }, [user?.email]);
+  }, [user?.id]); // 监听用户ID变化
 
   useEffect(() => {
     loadProductCategories(brandFilter);
@@ -2231,6 +2235,36 @@ export default function HomePage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* 品牌过滤器提示（当不是全部品牌时显示） */}
+          {brandFilter !== 'all' && (
+            <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 text-xs text-blue-900 dark:text-blue-100">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <p>
+                    当前只显示 <strong>{BRAND_NAMES[brandFilter]}</strong> 品牌的项目，
+                    如需查看所有品牌的项目，请点击上方的"全部"按钮。
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 调试信息卡片（仅在开发环境显示） */}
+          {process.env.NODE_ENV === 'development' && (
+            <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+              <CardContent className="pt-4">
+                <div className="space-y-2 text-xs">
+                  <div className="font-semibold text-yellow-900 dark:text-yellow-100">调试信息：</div>
+                  <div>当前品牌过滤器：<span className="font-mono bg-yellow-100 dark:bg-yellow-800 px-2 py-1 rounded">{brandFilter}</span></div>
+                  <div>数据库总项目数：<span className="font-mono bg-yellow-100 dark:bg-yellow-800 px-2 py-1 rounded">{projects.length}</span></div>
+                  <div>过滤后项目数：<span className="font-mono bg-yellow-100 dark:bg-yellow-800 px-2 py-1 rounded">{filteredProjects.length}</span></div>
+                  <div>当前用户：<span className="font-mono bg-yellow-100 dark:bg-yellow-800 px-2 py-1 rounded">{user?.email}</span></div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* 数据看板 */}
           <TabsContent value="dashboard" className="space-y-6">

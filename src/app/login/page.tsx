@@ -46,7 +46,8 @@ function LoginForm() {
       localStorage.setItem('auth_token', data.token);
 
       // 使用硬跳转而不是软跳转，确保页面重新加载
-      window.location.href = redirect || '/';
+      // 强制跳转到首页，避免重定向到其他品牌过滤的页面
+      window.location.href = '/';
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败，请重试');
     } finally {

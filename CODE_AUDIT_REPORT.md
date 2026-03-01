@@ -52,7 +52,7 @@
 - 🟢 低优先级：1 个
 
 **修复进度**：
-- ✅ 已修复：2 个（JWT_SECRET 默认值、环境变量不一致）
+- ✅ 已修复：3 个（JWT_SECRET 默认值、环境变量不一致、部署时环境变量加载）
 - ⚠️ 待修复：6 个
 
 ---
@@ -437,6 +437,88 @@ export async function GET(request: NextRequest) {
 
 ---
 
+### 🚀 部署问题
+
+#### 9. 部署时环境变量未加载 ✅ 已修复
+
+**问题描述**：
+在部署环境中，`scripts/build.sh` 和 `scripts/start.sh` 脚本没有显式加载 `.env.local` 文件，导致构建时缺少必要的环境变量。
+
+**错误信息**：
+```
+Error: JWT_SECRET 环境变量未设置，请在环境变量中配置强密钥
+Supabase 环境变量未设置
+```
+
+**影响**：
+- 部署构建失败
+- 应用无法在生产环境运行
+
+**修复状态**：✅ 已修复（2026-03-01）
+
+**修复内容**：
+1. 修改 `scripts/build.sh`，在构建前显式加载 `.env.local` 文件
+2. 添加环境变量验证，确保必需的环境变量已设置
+3. 修改 `scripts/start.sh`，在启动时加载 `.env.local` 文件
+4. 创建 `DEPLOYMENT_GUIDE.md` 部署指南文档
+
+**修复后的代码**：
+
+`scripts/build.sh`:
+```bash
+#!/bin/bash
+set -Eeuo pipefail
+
+COZE_WORKSPACE_PATH="${COZE_WORKSPACE_PATH:-$(pwd)}"
+cd "${COZE_WORKSPACE_PATH}"
+
+# 加载 .env.local 文件中的环境变量
+if [ -f .env.local ]; then
+  echo "Loading environment variables from .env.local..."
+  export $(cat .env.local | grep -v '^#' | xargs)
+fi
+
+# 验证必需的环境变量
+echo "Verifying required environment variables..."
+if [ -z "$COZE_SUPABASE_URL" ]; then
+  echo "Error: COZE_SUPABASE_URL is not set"
+  exit 1
+fi
+
+if [ -z "$COZE_SUPABASE_ANON_KEY" ]; then
+  echo "Error: COZE_SUPABASE_ANON_KEY is not set"
+  exit 1
+fi
+
+if [ -z "$JWT_SECRET" ]; then
+  echo "Error: JWT_SECRET is not set"
+  exit 1
+fi
+
+echo "Installing dependencies..."
+pnpm install --prefer-frozen-lockfile --prefer-offline --loglevel debug --reporter=append-only
+
+echo "Building the project..."
+npx next build
+
+echo "Build completed successfully!"
+```
+
+**验证结果**：
+- ✅ 构建成功
+- ✅ 所有路由正确生成
+- ✅ TypeScript 类型检查通过
+- ✅ 无构建错误
+
+**相关文档**：
+- `DEPLOYMENT_GUIDE.md` - 详细的部署指南和常见问题解决方案
+
+**优先级**：🔴 高
+**预计修复时间**：1 小时
+**实际修复时间**：1 小时
+
+---
+
 ## 📝 改进建议
 
 ### 1. 性能优化
@@ -608,7 +690,8 @@ await supabase.from('audit_logs').insert({
 1. ✅ ~~为所有 API Routes 添加认证检查~~ - **部分完成**：业务 API 已添加认证
 2. ✅ ~~修复环境变量不一致问题~~ - **已完成**：create-simple/route.ts 已修复
 3. ✅ ~~修复 JWT_SECRET 默认值问题~~ - **已完成**：已添加错误检查
-4. ⚠️ 为诊断 API 添加访问控制 - **待完成**
+4. ✅ ~~修复部署时环境变量加载问题~~ - **已完成**：已更新构建和启动脚本
+5. ⚠️ 为诊断 API 添加访问控制 - **待完成**
 
 ### 短期修复（1-2 周）
 1. ⚠️ 清理或优化 console.log
@@ -667,12 +750,18 @@ await supabase.from('audit_logs').insert({
 ---
 
 **报告生成者**：AI 代码审查助手
-**报告版本**：1.1
+**报告版本**：1.2
 **最后更新**：2026-03-01
 
 ---
 
 ## 📝 更新日志
+
+### v1.2 (2026-03-01)
+- ✅ 修复部署时环境变量未加载问题
+- ✅ 更新构建和启动脚本，显式加载 .env.local 文件
+- ✅ 添加部署指南文档（DEPLOYMENT_GUIDE.md）
+- ✅ 验证构建成功
 
 ### v1.1 (2026-03-01)
 - ✅ 添加诊断 API 访问控制问题分析

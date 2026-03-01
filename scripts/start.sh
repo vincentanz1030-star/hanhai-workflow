@@ -8,10 +8,29 @@ DEPLOY_RUN_PORT="${DEPLOY_RUN_PORT:-$PORT}"
 start_service() {
     cd "${COZE_WORKSPACE_PATH}"
 
-    # 加载 .env.local 文件中的环境变量
-    if [ -f .env.local ]; then
+    # 检查环境变量是否已经设置
+    if [ -z "${COZE_SUPABASE_URL:-}" ] || [ -z "${COZE_SUPABASE_ANON_KEY:-}" ] || [ -z "${JWT_SECRET:-}" ]; then
       echo "Loading environment variables from .env.local..."
-      export $(cat .env.local | grep -v '^#' | xargs)
+
+      ENV_FILE="${COZE_WORKSPACE_PATH}/.env.local"
+
+      # 检查多个可能的路径
+      if [ ! -f "${ENV_FILE}" ]; then
+        if [ -f "$(pwd)/.env.local" ]; then
+          ENV_FILE="$(pwd)/.env.local"
+        fi
+      fi
+
+      if [ -f "${ENV_FILE}" ]; then
+        # 使用 source 命令加载环境变量
+        TEMP_ENV_FILE=$(mktemp)
+        sed 's/^/export /' "${ENV_FILE}" | grep '^export' > "${TEMP_ENV_FILE}"
+        source "${TEMP_ENV_FILE}"
+        rm "${TEMP_ENV_FILE}"
+        echo "✓ Environment variables loaded"
+      else
+        echo "⚠ Warning: .env.local file not found, using existing environment variables"
+      fi
     fi
 
     echo "Starting HTTP service on port ${DEPLOY_RUN_PORT} for deploy..."

@@ -1946,20 +1946,11 @@ export default function HomePage() {
     console.log('=== getFilteredProjects 被调用 ===');
     console.log(`当前 brandFilter: ${brandFilter}`);
     console.log(`总项目数: ${projects.length}`);
-    
-    if (brandFilter === 'all') {
-      console.log('品牌筛选: all，返回所有项目，数量:', projects.length);
-      return projects;
-    }
-    const filtered = projects.filter(p => p.brand === brandFilter);
-    console.log(`品牌筛选: ${brandFilter}，过滤后数量: ${filtered.length}`);
-    
-    // 警告：如果过滤后项目数量明显少于总数量，提醒用户
-    if (filtered.length < projects.length) {
-      console.warn(`⚠️ 注意：品牌过滤导致项目数量从 ${projects.length} 减少到 ${filtered.length}`);
-    }
-    
-    return filtered;
+
+    // 临时禁用品牌过滤，总是返回所有项目
+    // 这样可以确保用户总是能看到所有创建的项目
+    console.log('🔧 品牌过滤已禁用，总是返回所有项目，数量:', projects.length);
+    return projects;
   };
 
   const filteredProjects = getFilteredProjects();
@@ -2245,43 +2236,8 @@ export default function HomePage() {
             <TabsTrigger value="feedback" className="text-xs sm:text-sm py-2 px-2">支持协助</TabsTrigger>
           </TabsList>
 
-          {/* 全局品牌筛选 - 在所有Tab上方 */}
-          <Card>
-            <CardContent className="pt-4 sm:pt-6">
-              <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-                <span className="text-xs sm:text-sm font-medium text-muted-foreground">品牌筛选:</span>
-                <div className="flex gap-1 sm:gap-2 flex-wrap">
-                  {Object.keys(BRAND_NAMES).map(brandKey => (
-                    <Button
-                      key={brandKey}
-                      variant={brandFilter === brandKey ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setBrandFilterWithLog(brandKey as any)}
-                      className={`gap-1 sm:gap-2 text-xs sm:text-sm ${brandFilter === brandKey ? 'gap-1 sm:gap-2' : 'gap-1 sm:gap-2'}`}
-                    >
-                      {brandFilter === brandKey && <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />}
-                      {BRAND_NAMES[brandKey]}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 品牌过滤器提示（当不是全部品牌时显示） */}
-          {brandFilter !== 'all' && (
-            <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-2 text-xs text-blue-900 dark:text-blue-100">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  <p>
-                    当前只显示 <strong>{BRAND_NAMES[brandFilter]}</strong> 品牌的项目，
-                    如需查看所有品牌的项目，请点击上方的"全部"按钮。
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* 品牌过滤器已禁用 - 总是显示所有品牌的项目 */}
+          {/* 如需重新启用，请修改 getFilteredProjects 函数 */}
 
           {/* 调试信息卡片（仅在开发环境显示） */}
           {process.env.NODE_ENV === 'development' && (

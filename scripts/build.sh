@@ -1,5 +1,5 @@
 #!/bin/bash
-set -Eeuo pipefail
+set -Ee pipefail
 
 COZE_WORKSPACE_PATH="${COZE_WORKSPACE_PATH:-$(pwd)}"
 
@@ -12,17 +12,17 @@ if [ -f .env.local ]; then
 fi
 
 echo "Verifying required environment variables..."
-if [ -z "$COZE_SUPABASE_URL" ]; then
+if [ -z "${COZE_SUPABASE_URL:-}" ]; then
   echo "Error: COZE_SUPABASE_URL is not set"
   exit 1
 fi
 
-if [ -z "$COZE_SUPABASE_ANON_KEY" ]; then
+if [ -z "${COZE_SUPABASE_ANON_KEY:-}" ]; then
   echo "Error: COZE_SUPABASE_ANON_KEY is not set"
   exit 1
 fi
 
-if [ -z "$JWT_SECRET" ]; then
+if [ -z "${JWT_SECRET:-}" ]; then
   echo "Error: JWT_SECRET is not set"
   exit 1
 fi

@@ -1,5 +1,5 @@
 #!/bin/bash
-set -Eeuo pipefail
+set -Ee pipefail
 
 COZE_WORKSPACE_PATH="${COZE_WORKSPACE_PATH:-$(pwd)}"
 PORT=5000

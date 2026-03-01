@@ -122,7 +122,59 @@ COZE_SUPABASE_ANON_KEY=your-anon-key-here
 
 ---
 
-### 3. Middleware 警告
+### 3. 构建失败：unbound variable 错误
+
+**错误信息**：
+```
+./scripts/build.sh: line 15: COZE_SUPABASE_URL: unbound variable
+```
+
+**说明**：
+这是一个 Bash 脚本错误，通常表示环境变量未正确加载。
+
+**原因**：
+- `.env.local` 文件不存在或格式错误
+- 环境变量值包含特殊字符（如引号、空格等）
+
+**解决方案**：
+
+1. 确保 `.env.local` 文件存在：
+```bash
+ls -la .env.local
+```
+
+2. 检查 `.env.local` 文件格式，确保没有语法错误：
+```bash
+# 正确格式
+COZE_SUPABASE_URL=https://your-project.supabase.co
+COZE_SUPABASE_ANON_KEY=your-anon-key
+JWT_SECRET=your-secret-key
+
+# 错误格式（值中的引号会导致问题）
+COZE_SUPABASE_URL="https://your-project.supabase.co"
+```
+
+3. 验证环境变量是否正确加载：
+```bash
+bash -c "export \$(cat .env.local | grep -v '^#' | xargs) && echo 'COZE_SUPABASE_URL:' \$COZE_SUPABASE_URL"
+```
+
+4. 如果环境变量值包含特殊字符，使用 `source` 命令加载：
+```bash
+# 修改 .env.local 为正确的 shell 格式
+export COZE_SUPABASE_URL="https://your-project.supabase.co"
+export COZE_SUPABASE_ANON_KEY="your-anon-key"
+export JWT_SECRET="your-secret-key"
+
+# 然后在脚本中 source
+if [ -f .env.local ]; then
+  source .env.local
+fi
+```
+
+---
+
+### 4. Middleware 警告
 
 **警告信息**：
 ```
@@ -137,7 +189,7 @@ COZE_SUPABASE_ANON_KEY=your-anon-key-here
 
 ---
 
-### 4. 多个 lockfile 警告
+### 5. 多个 lockfile 警告
 
 **警告信息**：
 ```

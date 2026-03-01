@@ -23,15 +23,20 @@ export async function GET(request: NextRequest) {
 
     // 1. 测试环境变量
     addLog('步骤 1: 检查环境变量');
-    const supabaseUrl = process.env.COZE_SUPABASE_URL;
-    const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY;
-    addLog(`Supabase URL: ${supabaseUrl ? supabaseUrl.substring(0, 20) + '...' : '未设置'}`);
-    addLog(`Supabase Key: ${supabaseKey ? supabaseKey.substring(0, 20) + '...' : '未设置'}`);
+    const envSupabaseUrl = process.env.COZE_SUPABASE_URL;
+    const envSupabaseKey = process.env.COZE_SUPABASE_ANON_KEY;
+    addLog(`Supabase URL: ${envSupabaseUrl ? envSupabaseUrl.substring(0, 20) + '...' : '未设置'}`);
+    addLog(`Supabase Key: ${envSupabaseKey ? envSupabaseKey.substring(0, 20) + '...' : '未设置'}`);
+
+    if (!envSupabaseUrl || !envSupabaseKey) {
+      addLog('❌ 环境变量未设置');
+      return NextResponse.json({ logs, error: '环境变量未设置' }, { status: 500 });
+    }
 
     // 2. 测试数据库连接
     addLog('步骤 2: 测试数据库连接');
     try {
-      const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+      const client = createClient(envSupabaseUrl, envSupabaseKey, { db: { schema: "public" as const } });
       const { data, error } = await client.from('users').select('count').limit(1);
       if (error) {
         addLog(`❌ 数据库连接失败: ${error.message}`);

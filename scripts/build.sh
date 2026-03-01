@@ -24,52 +24,58 @@ if [ -n "${COZE_SUPABASE_URL:-}" ] && [ -n "${COZE_SUPABASE_ANON_KEY:-}" ] && [ 
   echo "JWT_SECRET: ${JWT_SECRET:0:30}..."
   echo ""
 else
-  echo "Environment variables not set, trying to load from .env.local..."
+  echo "Environment variables not set, trying to load from env files..."
   echo ""
 
-  # 尝试从 .env.local 文件加载环境变量
-  ENV_FILE="${COZE_WORKSPACE_PATH}/.env.local"
+  # 尝试从环境变量文件加载（优先级：.env.production > .env.local）
+  ENV_FILE=""
+  ENV_FILE_NAME=""
 
-  # 检查多个可能的路径
-  if [ ! -f "${ENV_FILE}" ]; then
-    # 尝试当前目录
-    if [ -f "$(pwd)/.env.local" ]; then
-      ENV_FILE="$(pwd)/.env.local"
-    fi
+  # 1. 优先查找 .env.production（部署环境）
+  if [ -f "${COZE_WORKSPACE_PATH}/.env.production" ]; then
+    ENV_FILE="${COZE_WORKSPACE_PATH}/.env.production"
+    ENV_FILE_NAME=".env.production"
+  elif [ -f "$(pwd)/.env.production" ]; then
+    ENV_FILE="$(pwd)/.env.production"
+    ENV_FILE_NAME=".env.production"
   fi
 
-  if [ ! -f "${ENV_FILE}" ]; then
-    # 尝试上级目录
-    if [ -f "$(dirname "${COZE_WORKSPACE_PATH}")/.env.local" ]; then
-      ENV_FILE="$(dirname "${COZE_WORKSPACE_PATH}")/.env.local"
+  # 2. 如果没有 .env.production，查找 .env.local（开发环境）
+  if [ -z "${ENV_FILE}" ]; then
+    if [ -f "${COZE_WORKSPACE_PATH}/.env.local" ]; then
+      ENV_FILE="${COZE_WORKSPACE_PATH}/.env.local"
+      ENV_FILE_NAME=".env.local"
+    elif [ -f "$(pwd)/.env.local" ]; then
+      ENV_FILE="$(pwd)/.env.local"
+      ENV_FILE_NAME=".env.local"
     fi
   fi
 
   if [ -f "${ENV_FILE}" ]; then
-    echo "✓ .env.local file found at: ${ENV_FILE}"
+    echo "✓ ${ENV_FILE_NAME} file found at: ${ENV_FILE}"
     echo "File size: $(wc -c < "${ENV_FILE}") bytes"
 
     # 使用 source 命令加载环境变量（更可靠的方式）
-    echo "Loading environment variables from .env.local..."
+    echo "Loading environment variables from ${ENV_FILE_NAME}..."
 
-    # 创建临时文件来处理 .env.local
+    # 创建临时文件来处理环境变量文件
     TEMP_ENV_FILE=$(mktemp)
-    # 处理 .env.local 文件，添加 export 前缀
+    # 处理环境变量文件，添加 export 前缀
     sed 's/^/export /' "${ENV_FILE}" | grep '^export' > "${TEMP_ENV_FILE}"
 
     # 加载环境变量
     source "${TEMP_ENV_FILE}"
     rm "${TEMP_ENV_FILE}"
 
-    echo "✓ Environment variables loaded from .env.local"
+    echo "✓ Environment variables loaded from ${ENV_FILE_NAME}"
 
     # 验证是否成功加载
     if [ -n "${COZE_SUPABASE_URL:-}" ] && [ -n "${COZE_SUPABASE_ANON_KEY:-}" ] && [ -n "${JWT_SECRET:-}" ]; then
       echo "✓ All required environment variables loaded successfully"
       echo ""
     else
-      echo "✗ Error: Failed to load all required environment variables from .env.local"
-      echo "Checking .env.local content:"
+      echo "✗ Error: Failed to load all required environment variables from ${ENV_FILE_NAME}"
+      echo "Checking ${ENV_FILE_NAME} content:"
       echo ""
       echo "Supabase URL line:"
       grep 'COZE_SUPABASE_URL' "${ENV_FILE}" || echo "Not found"
@@ -86,12 +92,13 @@ else
     fi
   else
     echo "✗ Error: Required environment variables are not set"
-    echo "✗ Error: .env.local file not found at: ${ENV_FILE}"
+    echo "✗ Error: Environment file not found (tried .env.production and .env.local)"
     echo ""
     echo "Searched paths:"
+    echo "  - ${COZE_WORKSPACE_PATH}/.env.production"
+    echo "  - $(pwd)/.env.production"
     echo "  - ${COZE_WORKSPACE_PATH}/.env.local"
     echo "  - $(pwd)/.env.local"
-    echo "  - $(dirname "${COZE_WORKSPACE_PATH}")/.env.local"
     echo ""
     echo "Please set the following environment variables:"
     echo "  - COZE_SUPABASE_URL"
@@ -99,7 +106,7 @@ else
     echo "  - JWT_SECRET"
     echo ""
     echo "You can:"
-    echo "  1. Create a .env.local file (see .env.example for template)"
+    echo "  1. Create a .env.production file for deployment (see .env.example for template)"
     echo "  2. Set environment variables in your deployment platform"
     echo "  3. Pass them as environment variables to the build command"
     exit 1

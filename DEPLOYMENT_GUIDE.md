@@ -54,6 +54,8 @@ bash scripts/start.sh
 
 ### 配置方法
 
+#### 开发环境
+
 在项目根目录创建或编辑 `.env.local` 文件：
 
 ```bash
@@ -64,6 +66,30 @@ COZE_SUPABASE_ANON_KEY=your-anon-key-here
 # JWT 密钥（必须设置）
 JWT_SECRET=your-super-secret-jwt-key-min-32-chars
 ```
+
+**注意**：`.env.local` 文件在 `.gitignore` 中被忽略，不会提交到版本控制。
+
+#### 生产环境
+
+创建 `.env.production` 文件，包含生产环境的环境变量：
+
+```bash
+# .env.production
+COZE_SUPABASE_URL=https://your-project.supabase.co
+COZE_SUPABASE_ANON_KEY=your-anon-key-here
+
+# JWT 密钥（必须设置）
+JWT_SECRET=your-super-secret-jwt-key-min-32-chars
+```
+
+**注意**：`.env.production` 文件**必须**包含在版本控制中，确保部署环境中可以访问。
+
+### 环境变量文件加载优先级
+
+构建脚本按以下优先级加载环境变量：
+1. **已设置的环境变量**（从部署平台或命令行传入）- 最高优先级
+2. **`.env.production` 文件**（生产环境）
+3. **`.env.local` 文件**（开发环境）- 最低优先级
 
 ### 生成安全的 JWT_SECRET
 
@@ -76,6 +102,13 @@ openssl rand -base64 32
 # 或使用 Node.js
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
+
+### 环境变量安全建议
+
+1. **开发环境**：使用 `.env.local` 文件（不提交到版本控制）
+2. **生产环境**：使用 `.env.production` 文件（提交到版本控制）或部署平台的 secrets 功能
+3. **不要将 `.env.local` 提交到版本控制**（已在 `.gitignore` 中配置）
+4. **确保 `.env.production` 文件不被意外暴露**（如果包含敏感信息，应考虑使用部署平台的 secrets 功能）
 
 ---
 
@@ -231,6 +264,7 @@ fi
 **错误信息**：
 ```
 Error: COZE_SUPABASE_URL is not set
+✗ Error: .env.local file not found
 ```
 
 **说明**：
@@ -242,18 +276,28 @@ Error: COZE_SUPABASE_URL is not set
 
 **解决方案**：
 
-**方案 A：在部署平台中配置环境变量（推荐）**
+**方案 A：使用 .env.production 文件（推荐）**
+
+创建 `.env.production` 文件，包含生产环境的环境变量：
+
+```bash
+# .env.production
+COZE_SUPABASE_URL=https://your-project.supabase.co
+COZE_SUPABASE_ANON_KEY=your-anon-key
+JWT_SECRET=your-production-secret-key
+```
+
+**重要**：
+- `.env.production` 文件**必须**包含在版本控制中
+- 确保 `.gitignore` 不忽略 `.env.production` 文件
+- 构建脚本会优先查找 `.env.production` 文件
+
+**方案 B：在部署平台中配置环境变量**
 
 在部署平台（如 Coze、Vercel、AWS 等）的环境中配置以下环境变量：
 - `COZE_SUPABASE_URL`
 - `COZE_SUPABASE_ANON_KEY`
 - `JWT_SECRET`
-
-**方案 B：在部署包中包含 .env 文件**
-
-1. 创建 `.env.production` 文件（包含生产环境的环境变量）
-2. 确保 `.env.production` 不在 `.gitignore` 中
-3. 脚本将自动加载 `.env.production` 文件
 
 **方案 C：使用 secrets 管理工具**
 
@@ -264,6 +308,13 @@ COZE_SUPABASE_URL=<your_url>
 COZE_SUPABASE_ANON_KEY=<your_key>
 JWT_SECRET=<your_secret>
 ```
+
+**环境变量文件加载优先级**：
+
+构建脚本按以下优先级加载环境变量：
+1. 已设置的环境变量（从部署平台或命令行传入）
+2. `.env.production` 文件（生产环境）
+3. `.env.local` 文件（开发环境）
 
 ---
 

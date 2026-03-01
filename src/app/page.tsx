@@ -1015,21 +1015,7 @@ function OrgTreeNode({
 export default function HomePage() {
   const { user, loading: authLoading, logout } = useAuth();
 
-  const [projects, setProjects] = useState<Project[]>(() => {
-    // 从 localStorage 恢复项目列表
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('projects_list');
-        if (saved) {
-          console.log('从 localStorage 恢复项目列表:', JSON.parse(saved).length, '个项目');
-          return JSON.parse(saved);
-        }
-      } catch (error) {
-        console.error('从 localStorage 恢复项目列表失败:', error);
-      }
-    }
-    return [];
-  });
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
@@ -1089,23 +1075,8 @@ export default function HomePage() {
     console.log(`\n[${timestamp}] === setProjects 被调用 ===`);
     console.log(`调用类型: ${typeof newProjects === 'function' ? '函数式更新' : '直接赋值'}`);
     console.log(`调用前长度: ${projects.length}`);
-
-    setProjects((prev) => {
-      const updatedProjects = typeof newProjects === 'function' ? newProjects(prev) : newProjects;
-      console.log(`调用后长度: ${updatedProjects.length}`);
-
-      // 同时保存到 localStorage
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('projects_list', JSON.stringify(updatedProjects));
-          console.log('已保存项目列表到 localStorage');
-        } catch (error) {
-          console.error('保存项目列表到 localStorage 失败:', error);
-        }
-      }
-
-      return updatedProjects;
-    });
+    setProjects(newProjects);
+    console.log(`调用后长度: ${typeof newProjects === 'function' ? 'N/A' : newProjects.length}`);
   };
   
   // 销售目标相关状态
@@ -1211,64 +1182,19 @@ export default function HomePage() {
     priority: 'medium' as 'low' | 'medium' | 'high',
   });
   
-  // 加载项目列表
+  // 加载项目列表 - 最简单的实现
   const loadProjects = async () => {
     const timestamp = new Date().toISOString();
     console.log(`\n[${timestamp}] === loadProjects 被调用 ===`);
-    console.log(`调用前列表长度: ${projects.length}`);
-    console.log(`当前品牌过滤器: ${brandFilter}`);
-    console.log(`当前用户: ${user?.email}`);
-
-    // 强制重置品牌过滤器为 'all'，确保总是显示所有品牌的项目
-    if (brandFilter !== 'all') {
-      console.log('🔧 loadProjects 强制重置品牌过滤器为 all');
-      setBrandFilterWithLog('all');
-    }
 
     try {
-      // 明确请求所有项目，不应用品牌过滤
       const response = await fetchWithAuth('/api/projects?brand=all&category=all');
       const data = await response.json();
-      console.log('加载项目响应状态:', response.status);
-      console.log('加载项目数量:', data.projects?.length || 0);
-      console.log('当前品牌过滤器:', brandFilter);
-      if (data.projects && data.projects.length > 0) {
-        console.log('第一个项目:', data.projects[0]);
-        console.log('第一个项目品牌:', data.projects[0].brand);
-        // 统计各品牌项目数量
-        const brandCount: Record<string, number> = {};
-        data.projects.forEach((p: Project) => {
-          brandCount[p.brand] = (brandCount[p.brand] || 0) + 1;
-        });
-        console.log('各品牌项目分布:', brandCount);
-      }
-
-      // 更新项目列表并保存到 localStorage
-      setProjectsWithLog(data.projects || []);
-      console.log('✅ loadProjects 完成，已设置项目列表');
+      console.log(`加载项目数量: ${data.projects?.length || 0}`);
+      setProjects(data.projects || []);
     } catch (error) {
       console.error('加载项目失败:', error);
-      console.error('错误详情:', error);
-
-      // 如果加载失败，尝试从 localStorage 恢复
-      if (typeof window !== 'undefined') {
-        try {
-          const saved = localStorage.getItem('projects_list');
-          if (saved) {
-            console.log('从 localStorage 恢复项目列表（加载失败）');
-            setProjectsWithLog(JSON.parse(saved));
-          } else {
-            // 发生错误且 localStorage 中没有数据，清空项目列表
-            console.log('清空项目列表（加载失败且无缓存）');
-            setProjectsWithLog([]);
-          }
-        } catch (e) {
-          console.error('从 localStorage 恢复失败:', e);
-          setProjectsWithLog([]);
-        }
-      } else {
-        setProjectsWithLog([]);
-      }
+      setProjects([]);
     } finally {
       setLoading(false);
     }
@@ -2046,51 +1972,25 @@ export default function HomePage() {
   // 添加强制重置标志（使用 useRef 避免 React 严格模式影响）
   const initializationRef = useRef(false);
 
+  // 最简单的初始化逻辑
   useEffect(() => {
-    console.log('=== 页面初始化 ===');
-    console.log('当前用户:', user?.email);
-    console.log('当前品牌过滤器:', brandFilter);
-    console.log('是否已初始化:', initializationRef.current);
+    console.log('=== useEffect 执行 ===');
+    console.log('用户:', user?.email);
 
-    // 页面首次加载时，强制重置品牌过滤器为 'all'
-    if (!initializationRef.current) {
-      console.log('🔧 页面首次加载，强制重置品牌过滤器为 all');
-      setBrandFilterWithLog('all');
-      initializationRef.current = true;
-    }
-
-    // 当用户退出登录时（user 变为 null），重置品牌过滤器和初始化标志
-    // 只有当项目列表不为空时，才认为是真正的退出登录
-    if (!user && projects.length > 0) {
-      if (brandFilter !== 'all') {
-        console.log('🔧 用户退出登录，重置品牌过滤器为 all');
-        setBrandFilterWithLog('all');
-      }
-      // 重置初始化标志，确保下次登录时重新执行初始化逻辑
-      initializationRef.current = false;
-      // 清空项目列表和 localStorage
-      console.log('🔧 清空项目列表和 localStorage');
-      setProjectsWithLog([]);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('projects_list');
-      }
-      return; // 不加载项目
-    }
-
-    // 如果没有用户，且项目列表为空，不需要做任何事情
+    // 如果没有用户，什么都不做
     if (!user) {
-      console.log('🔧 用户未登录，项目列表已为空');
+      console.log('用户未登录，跳过加载');
       return;
     }
 
-    // 用户登录时，总是重新加载项目
-    console.log('🔧 用户已登录，强制重新加载项目');
+    // 用户已登录，加载数据
+    console.log('用户已登录，开始加载数据');
     loadProjects();
     loadFeedback();
     loadSalesTargets();
     loadWeeklyWorkPlans();
     loadCollaborationTasks();
-  }, [user?.id, user]); // 监听用户ID和用户对象变化
+  }, [user?.id]); // 只监听用户ID变化
 
   useEffect(() => {
     loadProductCategories(brandFilter);

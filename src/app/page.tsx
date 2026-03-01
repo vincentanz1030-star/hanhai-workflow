@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
@@ -1042,6 +1042,25 @@ export default function HomePage() {
   const [brandFilter, setBrandFilter] = useState<'all' | 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan'>('all');
   const [deleteConfirmProject, setDeleteConfirmProject] = useState<Project | null>(null);
 
+  // 辅助函数：发送带认证的 API 请求
+  const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+    const token = localStorage.getItem('auth_token');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string> || {}),
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return fetch(url, {
+      ...options,
+      credentials: 'include',
+      headers,
+    });
+  };
+
   // 包装 setBrandFilter 以追踪所有调用
   const setBrandFilterWithLog = (newBrand: 'all' | 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan') => {
     const timestamp = new Date().toISOString();
@@ -1177,9 +1196,7 @@ export default function HomePage() {
 
     try {
       // 明确请求所有项目，不应用品牌过滤
-      const response = await fetch('/api/projects?brand=all&category=all', {
-        credentials: 'include'
-      });
+      const response = await fetchWithAuth('/api/projects?brand=all&category=all');
       const data = await response.json();
       console.log('加载项目响应状态:', response.status);
       console.log('加载项目数量:', data.projects?.length || 0);
@@ -1338,9 +1355,8 @@ export default function HomePage() {
       }
 
       // 创建新品类
-      const response = await fetch('/api/product-categories', {
+      const response = await fetchWithAuth('/api/product-categories', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           brand: parentCategory.brand,
           level: parentCategory.level + 1,
@@ -1530,10 +1546,8 @@ export default function HomePage() {
       console.log('创建项目数据:', newProject);
       console.log('当前品牌过滤器:', brandFilter);
 
-      const response = await fetch('/api/projects', {
+      const response = await fetchWithAuth('/api/projects', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(newProject),
       });
 
@@ -1723,7 +1737,7 @@ export default function HomePage() {
   // 加载销售目标
   const loadSalesTargets = async () => {
     try {
-      const response = await fetch('/api/sales-targets/annual');
+      const response = await fetchWithAuth('/api/sales-targets/annual');
       const data = await response.json();
       setSalesTargets(data.targets || []);
     } catch (error) {
@@ -1923,12 +1937,22 @@ export default function HomePage() {
 
   // 按品牌筛选项目
   const getFilteredProjects = () => {
+    console.log('=== getFilteredProjects 被调用 ===');
+    console.log(`当前 brandFilter: ${brandFilter}`);
+    console.log(`总项目数: ${projects.length}`);
+    
     if (brandFilter === 'all') {
       console.log('品牌筛选: all，返回所有项目，数量:', projects.length);
       return projects;
     }
     const filtered = projects.filter(p => p.brand === brandFilter);
     console.log(`品牌筛选: ${brandFilter}，过滤后数量: ${filtered.length}`);
+    
+    // 警告：如果过滤后项目数量明显少于总数量，提醒用户
+    if (filtered.length < projects.length) {
+      console.warn(`⚠️ 注意：品牌过滤导致项目数量从 ${projects.length} 减少到 ${filtered.length}`);
+    }
+    
     return filtered;
   };
 
@@ -1961,29 +1985,24 @@ export default function HomePage() {
     return roleProgress;
   };
 
-  // 添加强制重置标志
-  const [hasInitialized, setHasInitialized] = useState(false);
+  // 添加强制重置标志（使用 useRef 避免 React 严格模式影响）
+  const initializationRef = useRef(false);
 
   useEffect(() => {
     console.log('=== 页面初始化 ===');
     console.log('当前用户:', user?.email);
     console.log('当前品牌过滤器:', brandFilter);
-    console.log('是否已初始化:', hasInitialized);
+    console.log('是否已初始化:', initializationRef.current);
     
-    // 只在第一次加载时重置品牌过滤器
-    if (!hasInitialized && user) {
-      console.log('🔧 首次加载，强制重置品牌过滤器为 all');
+    // 用户登录时，总是重置品牌过滤器为 'all'
+    if (user && !initializationRef.current) {
+      console.log('🔧 用户登录，强制重置品牌过滤器为 all');
       setBrandFilterWithLog('all');
-      setHasInitialized(true);
-      
-      // 加载项目
-      loadProjects();
-      loadFeedback();
-      loadSalesTargets();
-      loadWeeklyWorkPlans();
-      loadCollaborationTasks();
-    } else if (user) {
-      console.log('🔄 用户已登录，但已初始化过，重新加载数据');
+      initializationRef.current = true;
+    }
+    
+    // 加载项目
+    if (user) {
       loadProjects();
       loadFeedback();
       loadSalesTargets();
@@ -2232,6 +2251,22 @@ export default function HomePage() {
                     </Button>
                   ))}
                 </div>
+                {/* 强制刷新按钮 */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    console.log('=== 强制刷新 ===');
+                    console.log('重置品牌过滤器为 all');
+                    setBrandFilterWithLog('all');
+                    console.log('重新加载项目');
+                    loadProjects();
+                  }}
+                  className="ml-2 text-xs"
+                  title="强制刷新项目列表"
+                >
+                  🔄 刷新
+                </Button>
               </div>
             </CardContent>
           </Card>

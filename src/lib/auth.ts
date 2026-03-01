@@ -3,7 +3,16 @@ import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 import { getTokenFromRequest as getTokenFromRequestHelper } from '@/lib/token-helper';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+// JWT_SECRET 必须设置，使用默认值会降低安全性
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET 环境变量未设置，请在环境变量中配置强密钥');
+}
+
+// TypeScript 类型断言：确保运行时已经检查过 JWT_SECRET 存在
+const SECRET = JWT_SECRET as string;
+
 const JWT_EXPIRES_IN = '7d'; // Token过期时间
 
 /**
@@ -29,7 +38,7 @@ export function generateToken(payload: {
   email: string;
   brand: string;
 }): string {
-  return jwt.sign(payload, JWT_SECRET, {
+  return jwt.sign(payload, SECRET, {
     expiresIn: JWT_EXPIRES_IN,
   });
 }
@@ -43,11 +52,22 @@ export function verifyToken(token: string): {
   brand: string;
 } | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as {
-      userId: string;
-      email: string;
-      brand: string;
-    };
+    const decoded = jwt.verify(token, SECRET);
+    // 验证返回的数据结构是否符合预期
+    if (
+      typeof decoded === 'object' &&
+      decoded !== null &&
+      'userId' in decoded &&
+      'email' in decoded &&
+      'brand' in decoded
+    ) {
+      return decoded as {
+        userId: string;
+        email: string;
+        brand: string;
+      };
+    }
+    return null;
   } catch (error) {
     return null;
   }

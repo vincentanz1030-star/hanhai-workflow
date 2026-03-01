@@ -2,8 +2,8 @@ import { NextResponse, NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 // 环境变量
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
 
 // 简化的项目创建 API
 export async function POST(request: NextRequest) {

@@ -14,8 +14,8 @@ export async function requireAuth(
   resource?: string,
   action?: string
 ): Promise<{ userId: string; email: string; brand: string } | NextResponse> {
-  // 获取当前用户
-  const currentUser = await getCurrentUser();
+  // 获取当前用户（传入 request 对象以支持 Authorization header）
+  const currentUser = await getCurrentUser(request);
 
   if (!currentUser) {
     return NextResponse.json(

@@ -1523,7 +1523,7 @@ export default function HomePage() {
     try {
       setIsCreatingProject(true);
       setCreateProjectError('');
-      
+
       console.log('创建项目数据:', newProject);
       console.log('当前品牌过滤器:', brandFilter);
 
@@ -2097,13 +2097,14 @@ export default function HomePage() {
                   setCreateProjectError('');
                 }
               }}>
-                <Button
-                  className="gap-2 h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full sm:w-auto"
-                  onClick={() => setIsCreateDialogOpen(true)}
-                >
-                  <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-                  创建项目
-                </Button>
+              <DialogTrigger asChild>
+              <Button
+                className="gap-2 h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full sm:w-auto"
+              >
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                创建项目
+              </Button>
+              </DialogTrigger>
                 <DialogContent className="w-[95vw] sm:w-auto">
                 <DialogHeader>
                   <DialogTitle className="text-base sm:text-lg">创建新项目</DialogTitle>
@@ -2180,15 +2181,15 @@ export default function HomePage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button 
-                    onClick={handleCreateProject} 
+                  <Button
+                    onClick={handleCreateProject}
                     disabled={
-                      !newProject.name || 
-                      !newProject.salesDate || 
-                      !newProject.brand || 
-                      !newProject.category || 
+                      !newProject.name ||
+                      !newProject.salesDate ||
+                      !newProject.brand ||
+                      !newProject.category ||
                       isCreatingProject
-                    } 
+                    }
                     className="h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full"
                   >
                     {isCreatingProject ? (

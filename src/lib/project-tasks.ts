@@ -1,10 +1,11 @@
-// 为项目创建任务（根据项目类型）
+// 为项目创建任务（根据项目类型和选择的岗位）
 export async function createTasksForProject(
   client: any,
   projectId: string,
   salesDate: string,
   projectConfirmDate: Date,
-  category: string
+  category: string,
+  selectedRoles?: string[] // 新增：用户选择的岗位列表
 ) {
   // 计算关键时间点
   const salesDateObj = new Date(salesDate);
@@ -76,16 +77,33 @@ export async function createTasksForProject(
   // 运营活动项目包含的岗位
   const operationsActivityRoles = ['copywriting', 'detail_design', 'operations', 'customer_service'] as const;
 
-  // 根据项目分类确定要创建的岗位
+  // 根据项目分类和用户选择确定要创建的岗位
   let roleKeys: readonly string[];
-  if (category === 'product_development') {
-    roleKeys = productDevelopmentRoles;
-  } else if (category === 'operations_activity') {
-    roleKeys = operationsActivityRoles;
+
+  // 优先使用用户选择的岗位
+  if (selectedRoles && selectedRoles.length > 0) {
+    console.log(`✅ 使用用户选择的岗位: ${selectedRoles.join(', ')}`);
+    // 验证选择的岗位是否在项目分类对应岗位中
+    if (category === 'product_development') {
+      roleKeys = selectedRoles.filter(role => productDevelopmentRoles.includes(role as any));
+    } else if (category === 'operations_activity') {
+      roleKeys = selectedRoles.filter(role => operationsActivityRoles.includes(role as any));
+    } else {
+      roleKeys = selectedRoles; // 如果没有匹配的分类，使用用户选择的所有岗位
+    }
   } else {
-    // 默认创建所有岗位（向后兼容）
-    roleKeys = allRoles;
+    // 如果用户没有选择岗位，根据项目分类创建所有岗位（向后兼容）
+    if (category === 'product_development') {
+      roleKeys = productDevelopmentRoles;
+    } else if (category === 'operations_activity') {
+      roleKeys = operationsActivityRoles;
+    } else {
+      // 默认创建所有岗位（向后兼容）
+      roleKeys = allRoles;
+    }
   }
+
+  console.log(`实际要创建的岗位: ${roleKeys.join(', ')}`);
 
   for (const role of roleKeys) {
     const task = roleTasks[role];

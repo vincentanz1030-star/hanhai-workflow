@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       return authResult;
     }
 
-    console.log(`GET /api/projects - 用户: ${authResult.email}, 用户品牌: ${authResult.brand}`);
+    console.log(`GET /api/projects - 用户: ${authResult.email}, 用户品牌: ${authResult.brand}, 用户角色: ${JSON.stringify(authResult.roles)}`);
 
     const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
     const searchParams = request.nextUrl.searchParams;
@@ -51,19 +51,39 @@ export async function GET(request: NextRequest) {
 
     console.log(`请求参数 - brand: ${brand}, category: ${category}`);
 
-    // 构建查询 - 不应用品牌过滤，所有用户都可以查看所有项目
+    // 品牌隔离逻辑：
+    // 1. 检查用户是否是管理员
+    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    console.log(`用户是管理员: ${isAdmin}`);
+
+    // 2. 构建基础查询
     let query = client
       .from('projects')
       .select('*')
       .order('created_at', { ascending: false });
 
-    // 如果指定了品牌，进一步过滤
-    if (brand && brand !== 'all') {
-      query = query.eq('brand', brand);
-      console.log(`过滤品牌: ${brand}`);
+    // 3. 应用品牌过滤
+    if (isAdmin) {
+      // 管理员可以看到所有品牌的项目
+      // 如果请求指定了品牌参数，则进一步过滤
+      if (brand && brand !== 'all') {
+        query = query.eq('brand', brand);
+        console.log(`管理员模式 - 过滤品牌: ${brand}`);
+      } else {
+        console.log(`管理员模式 - 显示所有品牌的项目`);
+      }
+    } else {
+      // 品牌用户，只能查看对应品牌的项目
+      const userBrand = authResult.brand;
+      if (!userBrand || userBrand === 'all') {
+        console.warn(`⚠️ 用户未设置品牌，返回空列表`);
+        return NextResponse.json({ projects: [] });
+      }
+      query = query.eq('brand', userBrand);
+      console.log(`品牌隔离 - 只显示 ${userBrand} 品牌的项目`);
     }
 
-    // 项目分类过滤
+    // 4. 项目分类过滤
     if (category && category !== 'all') {
       query = query.eq('category', category);
       console.log(`过滤分类: ${category}`);
@@ -137,7 +157,7 @@ export async function POST(request: NextRequest) {
 
     const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
     const body = await request.json();
-    const { name, brand, category, salesDate, description } = body;
+    const { name, brand, category, salesDate, description, selectedRoles } = body;
 
     // 验证必填项
     if (!name || !salesDate || !brand || !category) {
@@ -207,13 +227,14 @@ export async function POST(request: NextRequest) {
       console.log(`验证返回数据:`, verifyProject);
     }
 
-    // 创建各岗位任务（根据项目类型）
+    // 创建各岗位任务（根据项目类型和选择的岗位）
     const tasks = await createTasksForProject(
-      client, 
-      project.id, 
-      salesDate, 
-      projectConfirmDateObj, 
-      category
+      client,
+      project.id,
+      salesDate,
+      projectConfirmDateObj,
+      category,
+      selectedRoles // 传递用户选择的岗位列表
     );
 
     // 计算项目整体预计完成时间（取所有任务中最晚的预计完成时间）

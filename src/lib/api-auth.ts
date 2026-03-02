@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { checkPermission } from '@/lib/permissions';
+import { createClient } from '@supabase/supabase-js';
+
+// 直接从环境变量获取 Supabase 配置
+const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
 
 /**
  * API认证和权限检查
@@ -13,7 +18,7 @@ export async function requireAuth(
   request: NextRequest,
   resource?: string,
   action?: string
-): Promise<{ userId: string; email: string; brand: string } | NextResponse> {
+): Promise<{ userId: string; email: string; brand: string; roles: any[] } | NextResponse> {
   // 获取当前用户（传入 request 对象以支持 Authorization header）
   const currentUser = await getCurrentUser(request);
 
@@ -22,6 +27,23 @@ export async function requireAuth(
       { error: '未登录，请先登录' },
       { status: 401 }
     );
+  }
+
+  // 从数据库查询用户的roles信息
+  let roles: any[] = [];
+  try {
+    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const { data: userRoles, error } = await client
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', currentUser.userId);
+
+    if (!error && userRoles) {
+      roles = userRoles;
+    }
+  } catch (error) {
+    console.error('查询用户角色失败:', error);
+    // 即使查询角色失败，也继续执行（向后兼容）
   }
 
   // 如果需要权限检查
@@ -35,7 +57,10 @@ export async function requireAuth(
     }
   }
 
-  return currentUser;
+  return {
+    ...currentUser,
+    roles,
+  };
 }
 
 /**

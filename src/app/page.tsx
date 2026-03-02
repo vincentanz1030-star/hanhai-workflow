@@ -1027,6 +1027,7 @@ export default function HomePage() {
     category: '' as 'product_development' | 'operations_activity',
     salesDate: '',
     description: '',
+    selectedRoles: [] as string[], // 新增：选择的岗位列表
   });
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projectZoom, setProjectZoom] = useState(() => {
@@ -1595,7 +1596,8 @@ export default function HomePage() {
           brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan' | 'all',
           category: '' as 'product_development' | 'operations_activity',
           salesDate: '',
-          description: ''
+          description: '',
+          selectedRoles: [], // 重置岗位选择
         });
 
         // 不再自动修改品牌过滤器，让用户自行选择
@@ -1922,11 +1924,33 @@ export default function HomePage() {
     console.log('=== getFilteredProjects 被调用 ===');
     console.log(`当前 brandFilter: ${brandFilter}`);
     console.log(`总项目数: ${projects.length}`);
+    console.log(`当前用户:`, user?.email);
+    console.log(`用户品牌:`, user?.brand);
+    console.log(`用户角色:`, user?.roles);
 
-    // 临时禁用品牌过滤，总是返回所有项目
-    // 这样可以确保用户总是能看到所有创建的项目
-    console.log('🔧 品牌过滤已禁用，总是返回所有项目，数量:', projects.length);
-    return projects;
+    // 品牌隔离逻辑：
+    // 1. 管理员（admin角色）可以查看所有品牌的项目
+    // 2. 品牌用户只能查看对应品牌的项目
+
+    // 检查用户是否是管理员
+    const isAdmin = user?.roles.some(r => r.role === 'admin');
+
+    if (isAdmin) {
+      console.log('✅ 用户是管理员，可以查看所有品牌的项目');
+      return projects;
+    } else {
+      // 品牌用户，只能查看对应品牌的项目
+      const userBrand = user?.brand;
+      if (!userBrand || userBrand === 'all') {
+        console.log('⚠️ 用户未设置品牌，返回空列表');
+        return [];
+      }
+
+      console.log(`🔒 品牌隔离：只显示 ${userBrand} 品牌的项目`);
+      const filtered = projects.filter(p => p.brand === userBrand);
+      console.log(`过滤后项目数: ${filtered.length}`);
+      return filtered;
+    }
   };
 
   const filteredProjects = getFilteredProjects();
@@ -2209,6 +2233,41 @@ export default function HomePage() {
                       className="text-xs sm:text-sm"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm">选择参与岗位 *</Label>
+                    <p className="text-[10px] sm:text-sm text-muted-foreground">根据项目分类自动加载对应岗位，可多选</p>
+                    {newProject.category ? (
+                      <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                        {CATEGORY_ROLES[newProject.category]?.map(role => (
+                          <label key={role} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 rounded">
+                            <input
+                              type="checkbox"
+                              checked={newProject.selectedRoles.includes(role)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setNewProject({
+                                    ...newProject,
+                                    selectedRoles: [...newProject.selectedRoles, role],
+                                  });
+                                } else {
+                                  setNewProject({
+                                    ...newProject,
+                                    selectedRoles: newProject.selectedRoles.filter(r => r !== role),
+                                  });
+                                }
+                              }}
+                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <span className="text-xs sm:text-sm">{ROLE_NAMES[role] || role}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-xs sm:text-sm text-muted-foreground border rounded-md p-3">
+                        请先选择项目分类
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button
@@ -2218,6 +2277,7 @@ export default function HomePage() {
                       !newProject.salesDate ||
                       !newProject.brand ||
                       !newProject.category ||
+                      newProject.selectedRoles.length === 0 ||
                       isCreatingProject
                     }
                     className="h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full"

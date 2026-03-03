@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { verifyAuth } from '@/lib/api-auth';
+import { requireAuth } from '@/lib/api-auth';
 
 // 批量标记所有通知为已读
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await verifyAuth(request);
-    if (!authResult.success) {
-      return NextResponse.json(
-        { error: authResult.error },
-        { status: authResult.status || 401 }
-      );
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
 
     // 创建 Supabase 客户端
@@ -25,7 +22,7 @@ export async function POST(request: NextRequest) {
         is_read: true,
         read_at: new Date().toISOString()
       })
-      .eq('recipient_id', authResult.user.id)
+      .eq('recipient_id', authResult.userId)
       .eq('is_read', false);
 
     if (updateError) {

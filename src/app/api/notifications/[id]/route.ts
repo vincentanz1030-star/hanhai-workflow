@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { verifyAuth } from '@/lib/api-auth';
+import { requireAuth } from '@/lib/api-auth';
 
 // 标记通知为已读
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authResult = await verifyAuth(request);
-    if (!authResult.success) {
-      return NextResponse.json(
-        { error: authResult.error },
-        { status: authResult.status || 401 }
-      );
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
 
-    const notificationId = params.id;
+    const { id: notificationId } = await params;
 
     // 创建 Supabase 客户端
     const supabaseUrl = process.env.COZE_SUPABASE_URL!;
@@ -38,7 +35,7 @@ export async function POST(
     }
 
     // 检查权限（只能标记自己的通知）
-    if (notification.recipient_id !== authResult.user.id) {
+    if (notification.recipient_id !== authResult.userId) {
       return NextResponse.json(
         { error: '您只能标记自己的通知' },
         { status: 403 }
@@ -82,18 +79,15 @@ export async function POST(
 // 删除通知
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authResult = await verifyAuth(request);
-    if (!authResult.success) {
-      return NextResponse.json(
-        { error: authResult.error },
-        { status: authResult.status || 401 }
-      );
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
 
-    const notificationId = params.id;
+    const { id: notificationId } = await params;
 
     // 创建 Supabase 客户端
     const supabaseUrl = process.env.COZE_SUPABASE_URL!;
@@ -115,8 +109,8 @@ export async function DELETE(
     }
 
     // 检查权限（只能删除自己的通知）
-    const isAdmin = authResult.roles.some(r => r.role === 'admin');
-    if (notification.recipient_id !== authResult.user.id && !isAdmin) {
+    const isAdmin = authResult.roles.some((r: any) => r.role === 'admin');
+    if (notification.recipient_id !== authResult.userId && !isAdmin) {
       return NextResponse.json(
         { error: '您只能删除自己的通知' },
         { status: 403 }

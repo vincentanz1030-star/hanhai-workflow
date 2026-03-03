@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { verifyAuth } from '@/lib/api-auth';
+import { requireAuth } from '@/lib/api-auth';
 
 // 创建通知
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await verifyAuth(request);
-    if (!authResult.success) {
-      return NextResponse.json(
-        { error: authResult.error },
-        { status: authResult.status || 401 }
-      );
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
 
     const body = await request.json();
@@ -32,8 +29,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查权限（只有管理员或自己可以创建通知）
-    const isAdmin = authResult.roles.some(r => r.role === 'admin');
-    const isSelf = recipientId === authResult.user.id;
+    const isAdmin = authResult.roles.some((r: any) => r.role === 'admin');
+    const isSelf = recipientId === authResult.userId;
 
     if (!isAdmin && !isSelf) {
       return NextResponse.json(
@@ -52,7 +49,7 @@ export async function POST(request: NextRequest) {
       .from('notifications')
       .insert({
         recipient_id: recipientId,
-        sender_id: authResult.user.id,
+        sender_id: authResult.userId,
         type,
         title,
         content: content || null,
@@ -89,12 +86,9 @@ export async function POST(request: NextRequest) {
 // 获取通知列表
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await verifyAuth(request);
-    if (!authResult.success) {
-      return NextResponse.json(
-        { error: authResult.error },
-        { status: authResult.status || 401 }
-      );
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -112,7 +106,7 @@ export async function GET(request: NextRequest) {
     let query = client
       .from('notifications')
       .select('*')
-      .eq('recipient_id', authResult.user.id)
+      .eq('recipient_id', authResult.userId)
       .order('created_at', { ascending: false });
 
     // 过滤条件
@@ -141,7 +135,7 @@ export async function GET(request: NextRequest) {
     const { count: unreadCount } = await client
       .from('notifications')
       .select('*', { count: 'exact', head: true })
-      .eq('recipient_id', authResult.user.id)
+      .eq('recipient_id', authResult.userId)
       .eq('is_read', false);
 
     return NextResponse.json({

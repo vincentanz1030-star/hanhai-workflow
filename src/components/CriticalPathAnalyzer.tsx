@@ -304,3 +304,5 @@ export default function CriticalPathAnalyzer() {
     </div>
   );
 }
+
+export { CriticalPathAnalyzer };

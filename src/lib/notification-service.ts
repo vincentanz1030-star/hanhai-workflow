@@ -225,9 +225,9 @@ export async function notifyCollaborationRejected(
   recipientId: string,
   collaborationId: number,
   rejectorName: string,
-  reason?: string,
   brand: string,
-  senderId: string
+  senderId: string,
+  reason?: string
 ) {
   return createNotification({
     recipientId,

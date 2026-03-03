@@ -18,6 +18,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { NotificationBell } from '@/components/NotificationBell';
+import { WorkloadMonitor } from '@/components/WorkloadMonitor';
+import { CriticalPathAnalyzer } from '@/components/CriticalPathAnalyzer';
 
 // 类型定义
 interface Project {
@@ -2302,12 +2304,14 @@ export default function HomePage() {
       {/* 主内容 */}
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <Tabs defaultValue="dashboard" className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 gap-1 h-auto">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-8 gap-1 h-auto">
             <TabsTrigger value="dashboard" className="text-xs sm:text-sm py-2 px-2">数据看板</TabsTrigger>
             <TabsTrigger value="projects" className="text-xs sm:text-sm py-2 px-2">项目列表</TabsTrigger>
             <TabsTrigger value="timeline" className="text-xs sm:text-sm py-2 px-2">时间线</TabsTrigger>
             <TabsTrigger value="roles" className="text-xs sm:text-sm py-2 px-2">岗位进度</TabsTrigger>
             <TabsTrigger value="product-framework" className="text-xs sm:text-sm py-2 px-2">产品框架</TabsTrigger>
+            <TabsTrigger value="workload" className="text-xs sm:text-sm py-2 px-2">工作负载</TabsTrigger>
+            <TabsTrigger value="critical-path" className="text-xs sm:text-sm py-2 px-2">关键路径</TabsTrigger>
             <TabsTrigger value="feedback" className="text-xs sm:text-sm py-2 px-2">支持协助</TabsTrigger>
           </TabsList>
 
@@ -3523,6 +3527,16 @@ export default function HomePage() {
                 </Card>
               );
             })}
+          </TabsContent>
+
+          {/* 工作负载监控 */}
+          <TabsContent value="workload" className="space-y-6">
+            <WorkloadMonitor />
+          </TabsContent>
+
+          {/* 关键路径分析 */}
+          <TabsContent value="critical-path" className="space-y-6">
+            <CriticalPathAnalyzer />
           </TabsContent>
 
           {/* 员工反馈 */}

@@ -262,3 +262,5 @@ export default function WorkloadMonitor() {
     </div>
   );
 }
+
+export { WorkloadMonitor };

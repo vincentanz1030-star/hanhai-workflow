@@ -205,55 +205,57 @@ export default function CriticalPathAnalyzer() {
         </Card>
       )}
 
-      {/* 项目关键路径 - 紧凑版 */}
+      {/* 项目关键路径 - 网格布局 */}
       <Card className="p-3">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium">项目关键路径</h3>
           <span className="text-[10px] text-muted-foreground">{projectCriticalPath.length}个项目</span>
         </div>
-        <div className="space-y-3">
-          {projectCriticalPath.length === 0 ? (
-            <div className="text-center py-4 text-xs text-muted-foreground">
-              暂无进行中的项目
-            </div>
-          ) : (
-            projectCriticalPath.map(project => (
-              <div key={project.projectId} className="border rounded-lg p-3 space-y-2.5">
+        {projectCriticalPath.length === 0 ? (
+          <div className="text-center py-4 text-xs text-muted-foreground">
+            暂无进行中的项目
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {projectCriticalPath.map(project => (
+              <div key={project.projectId} className="border rounded-lg p-3 space-y-2">
                 {/* 项目头部 - 紧凑版 */}
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <h3 className="text-sm font-semibold truncate">{project.projectName}</h3>
-                      {getStatusBadge(project.status)}
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <h3 className="text-xs font-semibold truncate">{project.projectName}</h3>
+                      <span className="ml-auto flex-shrink-0">
+                        {getStatusBadge(project.status)}
+                      </span>
                     </div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                    <div className="text-[9px] text-muted-foreground mt-0.5">
                       {project.projectType} · {project.brand}
                       {project.salesDate && (
                         <span className="ml-1">
-                          · {new Date(project.salesDate).toLocaleDateString()}
+                          · {new Date(project.salesDate).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="text-[10px] text-muted-foreground">进度</div>
-                    <div className="text-lg font-bold">{project.totalProgress}%</div>
+                    <div className="text-[9px] text-muted-foreground">进度</div>
+                    <div className="text-base font-bold">{project.totalProgress}%</div>
                   </div>
                 </div>
 
                 {/* 关键任务 - 紧凑版 */}
                 {project.criticalPath && project.criticalPath.length > 0 && (
                   <div className="space-y-1">
-                    <div className="text-[10px] font-medium text-muted-foreground">关键路径任务</div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
-                      {project.criticalPath.slice(0, 6).map(task => (
+                    <div className="text-[9px] font-medium text-muted-foreground">关键路径</div>
+                    <div className="space-y-0.5">
+                      {project.criticalPath.slice(0, 4).map(task => (
                         <div
                           key={task.id}
-                          className="p-1.5 bg-muted rounded text-[10px]"
+                          className="p-1 bg-muted rounded text-[9px] flex items-center justify-between"
                         >
-                          <div className="font-medium truncate">{task.title}</div>
-                          <div className="text-[9px] text-muted-foreground">
-                            {getPositionName(task.position)} · {task.status === 'completed' ? '✓' : '○'}
+                          <div className="font-medium truncate flex-1 min-w-0 mr-1">{task.title}</div>
+                          <div className="flex-shrink-0 text-[8px] text-muted-foreground">
+                            {task.status === 'completed' ? '✓' : '○'}
                           </div>
                         </div>
                       ))}
@@ -264,20 +266,22 @@ export default function CriticalPathAnalyzer() {
                 {/* 瓶颈任务 - 紧凑版 */}
                 {project.bottleneckTasks && project.bottleneckTasks.length > 0 && (
                   <div className="space-y-1">
-                    <div className="text-[10px] font-medium text-destructive flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" />
-                      瓶颈任务
+                    <div className="text-[9px] font-medium text-destructive flex items-center gap-0.5">
+                      <AlertTriangle className="h-2.5 w-2.5" />
+                      瓶颈
                     </div>
-                    <div className="space-y-1">
-                      {project.bottleneckTasks.map(task => (
-                        <div key={task.taskId} className="flex items-center justify-between p-1.5 bg-destructive/10 rounded">
+                    <div className="space-y-0.5">
+                      {project.bottleneckTasks.slice(0, 2).map(task => (
+                        <div key={task.taskId} className="flex items-center justify-between p-1 bg-destructive/10 rounded">
                           <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-medium truncate">{task.taskTitle}</div>
-                            <div className="text-[9px] text-muted-foreground">
-                              {getPositionName(task.position)} · 松弛:{task.slack !== null ? `${task.slack}天` : '未知'}
+                            <div className="text-[9px] font-medium truncate">{task.taskTitle}</div>
+                            <div className="text-[8px] text-muted-foreground">
+                              松弛:{task.slack !== null ? `${task.slack}天` : '?'}
                             </div>
                           </div>
-                          {getRiskBadge(task.riskLevel)}
+                          <div className="flex-shrink-0 ml-1">
+                            {getRiskBadge(task.riskLevel)}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -286,17 +290,17 @@ export default function CriticalPathAnalyzer() {
 
                 {/* 预计完成时间 */}
                 {project.estimatedCompletion && (
-                  <div className="flex items-center justify-between text-[10px]">
+                  <div className="flex items-center justify-between text-[9px] border-t pt-1.5">
                     <span className="text-muted-foreground">预计完成</span>
                     <span className="font-medium">
-                      {new Date(project.estimatedCompletion).toLocaleDateString()}
+                      {new Date(project.estimatedCompletion).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
                     </span>
                   </div>
                 )}
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

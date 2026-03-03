@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from '@/lib/api-auth';
+import { getPositionName } from '@/lib/config';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,6 +12,8 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const brand = searchParams.get('brand');
+    const position = searchParams.get('position');
+    const includeTasks = searchParams.get('includeTasks') === 'true';
 
     const supabaseUrl = process.env.COZE_SUPABASE_URL!;
     const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
@@ -86,8 +89,8 @@ export async function GET(request: NextRequest) {
       positionTasksMap[position].push(task);
     });
 
-    Object.keys(positionTasksMap).forEach(position => {
-      const positionTaskList = positionTasksMap[position];
+    Object.keys(positionTasksMap).forEach(pos => {
+      const positionTaskList = positionTasksMap[pos];
       const inProgress = positionTaskList.filter((t: any) => t.status === 'in-progress');
       const pending = positionTaskList.filter((t: any) => t.status === 'pending');
       const completed = positionTaskList.filter((t: any) => t.status === 'completed');
@@ -97,17 +100,37 @@ export async function GET(request: NextRequest) {
         return t.estimated_completion_date && new Date(t.estimated_completion_date) < now && t.status !== 'completed';
       });
 
-      byPosition.push({
-        position,
+      // 定义positionData的类型，包含可选的tasks字段
+      let positionData: any = {
+        position: getPositionName(pos),
+        originalPosition: pos,
         totalTasks: positionTaskList.length,
         inProgressTasks: inProgress.length,
         pendingTasks: pending.length,
         completedTasks: completed.length,
         overdueTasks: overdue.length,
-        averageWorkload: positionTaskList.length > 0 
+        averageWorkload: positionTaskList.length > 0
           ? (inProgress.length * 3 + pending.length * 2 + overdue.length * 5) / positionTaskList.length
           : 0
-      });
+      };
+
+      // 如果用户请求了任务详情，则添加任务列表
+      if (includeTasks && (!position || pos === position)) {
+        positionData.tasks = positionTaskList.map((t: any) => ({
+          id: t.id,
+          taskName: t.task_name,
+          description: t.description,
+          status: t.status,
+          progress: t.progress,
+          estimatedCompletionDate: t.estimated_completion_date,
+          actualCompletionDate: t.actual_completion_date,
+          projectName: t.projects?.name || '未知项目',
+          projectSalesDate: t.projects?.sales_date,
+          isOverdue: t.estimated_completion_date && new Date(t.estimated_completion_date) < now && t.status !== 'completed'
+        }));
+      }
+
+      byPosition.push(positionData);
     });
 
     const overloadedUsers = byPosition.filter((p: any) => p.averageWorkload >= 2);

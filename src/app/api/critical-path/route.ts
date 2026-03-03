@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from '@/lib/api-auth';
+import { getPositionName } from '@/lib/config';
 
-const POSITION_ORDER = ['插画', '产品', '详情', '文案', '采购', '包装', '财务', '客服', '仓储', '运营'];
+const POSITION_ORDER = ['illustration', 'product_design', 'detail_design', 'copywriting', 'procurement', 'packaging_design', 'finance', 'customer_service', 'warehouse', 'operations'];
 
 export async function GET(request: NextRequest) {
   try {
@@ -226,7 +227,11 @@ function calculateCriticalPath(tasks: any[], salesDate: string | null) {
 
   const criticalTasks = taskArray.filter((task: any) => {
     return task.slack !== null && task.slack <= 1;
-  });
+  }).map((task: any) => ({
+    ...task,
+    position: getPositionName(task.role),
+    taskTitle: task.task_name || task.role
+  }));
 
   const bottleneckTasks = criticalTasks
     .filter((task: any) => {
@@ -244,13 +249,13 @@ function calculateCriticalPath(tasks: any[], salesDate: string | null) {
 
       return {
         taskId: task.id,
-        taskTitle: task.title,
-        position: task.position,
+        taskTitle: task.task_name,
+        position: getPositionName(task.role),
         status: task.status,
-        deadline: task.deadline,
+        deadline: task.estimated_completion_date,
         slack: task.slack,
         riskLevel,
-        assignee: task.role
+        assignee: getPositionName(task.role)
       };
     });
 

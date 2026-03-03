@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, CheckCircle2, Clock, TrendingDown } from 'lucide-react';
+import { getPositionName } from '@/lib/config';
 
 interface BottleneckTask {
   taskId: number;
@@ -185,7 +186,7 @@ export default function CriticalPathAnalyzer() {
                   <div className="flex-1">
                     <div className="font-medium">{task.taskTitle}</div>
                     <div className="text-sm text-muted-foreground">
-                      {task.position} · 负责人: {task.assignee || '未分配'}
+                      {getPositionName(task.position)} · 负责人: {task.assignee || '未分配'}
                     </div>
                     {task.deadline && (
                       <div className="text-xs text-destructive mt-1">
@@ -249,13 +250,13 @@ export default function CriticalPathAnalyzer() {
                       <div className="text-sm font-medium text-muted-foreground">关键路径任务</div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                         {project.criticalPath.slice(0, 6).map(task => (
-                          <div 
-                            key={task.id} 
+                          <div
+                            key={task.id}
                             className="p-2 bg-muted rounded text-sm"
                           >
                             <div className="font-medium truncate">{task.title}</div>
                             <div className="text-xs text-muted-foreground">
-                              {task.position} · {task.status === 'completed' ? '✓' : '○'}
+                              {getPositionName(task.position)} · {task.status === 'completed' ? '✓' : '○'}
                             </div>
                           </div>
                         ))}
@@ -276,7 +277,7 @@ export default function CriticalPathAnalyzer() {
                             <div className="flex-1">
                               <div className="font-medium text-sm">{task.taskTitle}</div>
                               <div className="text-xs text-muted-foreground">
-                                {task.position} · 松弛时间: {task.slack !== null ? `${task.slack}天` : '未知'}
+                                {getPositionName(task.position)} · 松弛时间: {task.slack !== null ? `${task.slack}天` : '未知'}
                               </div>
                             </div>
                             {getRiskBadge(task.riskLevel)}

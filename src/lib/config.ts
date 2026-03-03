@@ -19,6 +19,32 @@ export const getAllBrands = () => {
   return Object.values(BRAND_CONFIG);
 };
 
+// 岗位配置（任务岗位）
+export const POSITION_CONFIG = {
+  illustration: { name: '插画', key: 'illustration', order: 1 },
+  product_design: { name: '产品设计', key: 'product_design', order: 2 },
+  detail_design: { name: '详情设计', key: 'detail_design', order: 3 },
+  copywriting: { name: '文案撰写', key: 'copywriting', order: 4 },
+  procurement: { name: '采购管理', key: 'procurement', order: 5 },
+  packaging_design: { name: '包装设计', key: 'packaging_design', order: 6 },
+  finance: { name: '财务管理', key: 'finance', order: 7 },
+  customer_service: { name: '客服培训', key: 'customer_service', order: 8 },
+  warehouse: { name: '仓储管理', key: 'warehouse', order: 9 },
+  operations: { name: '运营管理', key: 'operations', order: 10 },
+} as const;
+
+export type PositionKey = keyof typeof POSITION_CONFIG;
+
+// 获取岗位名称
+export const getPositionName = (key: string): string => {
+  return POSITION_CONFIG[key as PositionKey]?.name || key;
+};
+
+// 获取所有岗位列表
+export const getAllPositions = () => {
+  return Object.values(POSITION_CONFIG);
+};
+
 // 角色配置
 export const ROLE_CONFIG = {
   admin: { name: '管理员', key: 'admin' },

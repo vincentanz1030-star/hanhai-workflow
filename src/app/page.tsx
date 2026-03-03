@@ -3930,18 +3930,32 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="targetAmount" className="text-xs sm:text-sm">年度目标金额（万元） *</Label>
-                <Input
-                  id="targetAmount"
-                  type="number"
-                  value={newSalesTarget.targetAmount}
-                  onChange={(e) => {
-                    const newAmount = parseInt(e.target.value) || 0;
-                    setNewSalesTarget({ ...newSalesTarget, targetAmount: newAmount });
-                  }}
-                  placeholder="例如：1000"
-                  className="h-9 sm:h-10"
-                />
+                <Label htmlFor="targetAmount" className="text-xs sm:text-sm">年度目标金额（万元）*</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="targetAmount"
+                    type="number"
+                    value={newSalesTarget.targetAmount}
+                    onChange={(e) => {
+                      const newAmount = parseInt(e.target.value) || 0;
+                      setNewSalesTarget({ ...newSalesTarget, targetAmount: newAmount });
+                      // 如果用户修改了年度目标，自动更新月度目标为平均分配
+                      const averageAmount = Math.round(newAmount / 12);
+                      const updatedMonthlyTargets = newSalesTarget.monthlyTargets.map(mt => ({
+                        ...mt,
+                        targetAmount: averageAmount
+                      }));
+                      setNewSalesTarget(prev => ({
+                        ...prev,
+                        targetAmount: newAmount,
+                        monthlyTargets: updatedMonthlyTargets
+                      }));
+                    }}
+                    placeholder="例如：1000"
+                    className="h-9 sm:h-10"
+                  />
+                  <span className="text-xs text-muted-foreground">或编辑月度目标自动计算</span>
+                </div>
               </div>
 
               {/* 月度目标 */}
@@ -3970,9 +3984,16 @@ export default function HomePage() {
                           const newMonthlyTargets = [...newSalesTarget.monthlyTargets];
                           const targetIndex = newMonthlyTargets.findIndex(m => m.month === monthly.month);
                           if (targetIndex !== -1) {
-                            newMonthlyTargets[targetIndex].targetAmount = parseInt(e.target.value) || 0;
+                            const newValue = parseInt(e.target.value) || 0;
+                            newMonthlyTargets[targetIndex].targetAmount = newValue;
+                            // 自动计算年度目标总和
+                            const totalAnnual = newMonthlyTargets.reduce((sum, mt) => sum + (mt.targetAmount || 0), 0);
+                            setNewSalesTarget({ 
+                              ...newSalesTarget, 
+                              monthlyTargets: newMonthlyTargets,
+                              targetAmount: totalAnnual
+                            });
                           }
-                          setNewSalesTarget({ ...newSalesTarget, monthlyTargets: newMonthlyTargets });
                         }}
                         className="text-[10px] sm:text-xs h-8 sm:h-9 w-full text-center"
                         placeholder="0"

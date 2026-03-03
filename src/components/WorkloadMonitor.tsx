@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { AlertCircle, CheckCircle, Clock, TrendingUp, Users } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, TrendingUp, Users, ChevronRight, ChevronDown, FileText } from 'lucide-react';
 
 interface WorkloadSummary {
   totalTasks: number;
@@ -32,12 +32,27 @@ interface UserWorkload {
 
 interface PositionWorkload {
   position: string;
+  originalPosition?: string;
   totalTasks: number;
   inProgressTasks: number;
   pendingTasks: number;
   completedTasks: number;
   overdueTasks: number;
   averageWorkload: number;
+  tasks?: PositionTask[];
+}
+
+interface PositionTask {
+  id: string;
+  taskName: string;
+  description: string;
+  status: string;
+  progress: number;
+  estimatedCompletionDate: string;
+  actualCompletionDate: string | null;
+  projectName: string;
+  projectSalesDate: string;
+  isOverdue: boolean;
 }
 
 interface WorkloadData {
@@ -50,6 +65,9 @@ interface WorkloadData {
 export default function WorkloadMonitor() {
   const [workload, setWorkload] = useState<WorkloadData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedPosition, setExpandedPosition] = useState<string | null>(null);
+  const [positionTasks, setPositionTasks] = useState<Record<string, PositionTask[]>>({});
+  const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchWorkload();
@@ -66,6 +84,38 @@ export default function WorkloadMonitor() {
       console.error('获取工作负载失败:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPositionTasks = async (position: PositionWorkload) => {
+    if (!position.originalPosition) return;
+
+    setLoadingTasks(prev => ({ ...prev, [position.position]: true }));
+
+    try {
+      const response = await fetch(`/api/workload?position=${position.originalPosition}&includeTasks=true`);
+      const data = await response.json();
+      if (data.success && data.workload.byPosition) {
+        const positionData = data.workload.byPosition.find((p: PositionWorkload) => p.originalPosition === position.originalPosition);
+        if (positionData && positionData.tasks) {
+          setPositionTasks(prev => ({ ...prev, [position.position]: positionData.tasks }));
+        }
+      }
+    } catch (error) {
+      console.error('获取岗位任务详情失败:', error);
+    } finally {
+      setLoadingTasks(prev => ({ ...prev, [position.position]: false }));
+    }
+  };
+
+  const handlePositionToggle = async (position: PositionWorkload) => {
+    if (expandedPosition === position.position) {
+      setExpandedPosition(null);
+    } else {
+      setExpandedPosition(position.position);
+      if (!positionTasks[position.position]) {
+        await fetchPositionTasks(position);
+      }
     }
   };
 
@@ -223,21 +273,33 @@ export default function WorkloadMonitor() {
         <CardHeader>
           <CardTitle>岗位工作负载</CardTitle>
           <CardDescription>
-            按岗位查看任务分配情况
+            按岗位查看任务分配情况，点击岗位查看详情
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {byPosition.map(position => (
               <div key={position.position} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="font-medium">{position.position}</div>
-                    <div className="text-sm text-muted-foreground">
-                      总任务: {position.totalTasks} · 
-                      进行中: {position.inProgressTasks} · 
-                      待处理: {position.pendingTasks} · 
-                      已完成: {position.completedTasks}
+                <div 
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={() => handlePositionToggle(position)}
+                >
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="text-muted-foreground">
+                      {expandedPosition === position.position ? (
+                        <ChevronDown className="h-5 w-5" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium">{position.position}</div>
+                      <div className="text-sm text-muted-foreground">
+                        总任务: {position.totalTasks} · 
+                        进行中: {position.inProgressTasks} · 
+                        待处理: {position.pendingTasks} · 
+                        已完成: {position.completedTasks}
+                      </div>
                     </div>
                   </div>
                   {position.overdueTasks > 0 && (
@@ -247,13 +309,67 @@ export default function WorkloadMonitor() {
                     </Badge>
                   )}
                 </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>平均工作负载</span>
-                    <span>{position.averageWorkload.toFixed(1)}</span>
+
+                {/* 任务详情 */}
+                {expandedPosition === position.position && (
+                  <div className="pl-8 pr-2 py-2 space-y-2 bg-muted/30 rounded-lg">
+                    {loadingTasks[position.position] ? (
+                      <div className="text-center text-sm text-muted-foreground py-4">
+                        加载任务详情中...
+                      </div>
+                    ) : positionTasks[position.position] && positionTasks[position.position].length > 0 ? (
+                      <div className="space-y-2">
+                        {positionTasks[position.position].map(task => (
+                          <div key={task.id} className="p-3 bg-background rounded-lg border space-y-2">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-2 flex-1">
+                                <FileText className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                                <div className="flex-1">
+                                  <div className="font-medium text-sm">{task.taskName}</div>
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    项目: {task.projectName}
+                                  </div>
+                                  {task.description && (
+                                    <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                      {task.description}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {task.isOverdue ? (
+                                  <Badge variant="destructive" className="text-xs">
+                                    已逾期
+                                  </Badge>
+                                ) : (
+                                  <Badge variant={task.status === 'completed' ? 'default' : 'outline'} className="text-xs">
+                                    {task.status === 'completed' ? '已完成' : 
+                                     task.status === 'in-progress' ? '进行中' : '待处理'}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>进度: {task.progress}%</span>
+                              {task.estimatedCompletionDate && (
+                                <span>
+                                  预计完成: {new Date(task.estimatedCompletionDate).toLocaleDateString('zh-CN')}
+                                </span>
+                              )}
+                            </div>
+                            {task.progress > 0 && (
+                              <Progress value={task.progress} className="h-1" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center text-sm text-muted-foreground py-4">
+                        该岗位暂无任务详情
+                      </div>
+                    )}
                   </div>
-                  <Progress value={(position.averageWorkload / 15) * 100} />
-                </div>
+                )}
               </div>
             ))}
           </div>

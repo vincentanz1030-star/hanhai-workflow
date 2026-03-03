@@ -1,7 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AuditLogsViewer } from '@/components/AuditLogsViewer';
-import { LayoutDashboard, Shield, Settings, Activity } from 'lucide-react';
+import SystemConfigManager from '@/components/SystemConfigManager';
+import BackupManager from '@/components/BackupManager';
+import DataImportManager from '@/components/DataImportManager';
+import PermissionManager from '@/components/PermissionManager';
+import { LayoutDashboard, Shield, Settings, Activity, Database, Upload, UserCog } from 'lucide-react';
 
 export default function AdminPage() {
   return (
@@ -71,10 +75,13 @@ export default function AdminPage() {
 
       {/* Tab 内容 */}
       <Tabs defaultValue="logs" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="logs">操作日志</TabsTrigger>
           <TabsTrigger value="settings">系统设置</TabsTrigger>
           <TabsTrigger value="backups">数据备份</TabsTrigger>
+          <TabsTrigger value="import">数据导入</TabsTrigger>
+          <TabsTrigger value="permissions">权限管理</TabsTrigger>
+          <TabsTrigger value="reports">报表统计</TabsTrigger>
         </TabsList>
 
         <TabsContent value="logs" className="space-y-4">
@@ -92,34 +99,33 @@ export default function AdminPage() {
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>系统设置</CardTitle>
-              <CardDescription>
-                配置系统全局参数和功能开关
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>系统设置功能开发中...</p>
-              </div>
-            </CardContent>
-          </Card>
+          <SystemConfigManager />
         </TabsContent>
 
         <TabsContent value="backups" className="space-y-4">
+          <BackupManager />
+        </TabsContent>
+
+        <TabsContent value="import" className="space-y-4">
+          <DataImportManager />
+        </TabsContent>
+
+        <TabsContent value="permissions" className="space-y-4">
+          <PermissionManager />
+        </TabsContent>
+
+        <TabsContent value="reports" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>数据备份</CardTitle>
+              <CardTitle>报表统计</CardTitle>
               <CardDescription>
-                管理数据备份和恢复
+                查看系统统计报表和数据分析
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center py-8 text-muted-foreground">
                 <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>数据备份功能开发中...</p>
+                <p>报表统计功能开发中...</p>
               </div>
             </CardContent>
           </Card>

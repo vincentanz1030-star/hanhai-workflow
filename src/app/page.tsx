@@ -2394,7 +2394,7 @@ export default function HomePage() {
             loadCriticalPath();
           }
         }} className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 gap-1 h-auto">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-8 gap-1 h-auto">
             <TabsTrigger value="dashboard" className="text-xs sm:text-sm py-2 px-2">数据看板</TabsTrigger>
             <TabsTrigger value="projects" className="text-xs sm:text-sm py-2 px-2">项目列表</TabsTrigger>
             <TabsTrigger value="timeline" className="text-xs sm:text-sm py-2 px-2">时间线</TabsTrigger>
@@ -2402,6 +2402,9 @@ export default function HomePage() {
             <TabsTrigger value="product-framework" className="text-xs sm:text-sm py-2 px-2">产品框架</TabsTrigger>
             <TabsTrigger value="workload" className="text-xs sm:text-sm py-2 px-2">工作负载</TabsTrigger>
             <TabsTrigger value="feedback" className="text-xs sm:text-sm py-2 px-2">支持协助</TabsTrigger>
+            <TabsTrigger value="analytics" className="text-xs sm:text-sm py-2 px-2" asChild>
+              <a href="/analytics">数据分析</a>
+            </TabsTrigger>
           </TabsList>
 
           {/* 品牌过滤器已禁用 - 总是显示所有品牌的项目 */}

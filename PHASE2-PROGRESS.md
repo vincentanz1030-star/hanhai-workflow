@@ -2,6 +2,13 @@
 
 ## 已完成功能 ✅
 
+### 0. 核心UI组件（第一批 - 已完成）
+- ✅ TaskAssigneeSelect - 任务分配选择器
+- ✅ TaskComments - 任务评论组件
+- ✅ DataExport - 数据导出组件
+- ✅ AuditLogsViewer - 操作日志查看器
+- ✅ 创建管理后台页面 (`/admin`)
+
 ### 1. 数据库表结构设计
 - ✅ 创建 13 个新表：
   - task_comments（任务评论）
@@ -57,11 +64,11 @@
 - ⏳ 任务附件上传功能
 - ⏳ 任务依赖关系管理
 
-### 数据可视化增强
-- ⏳ 甘特图组件
-- ⏳ 燃尽图组件
-- ⏳ 实时数据更新机制
-- ⏳ PDF导出功能
+### 数据可视化增强（第二批 - 已完成）
+- ✅ ProjectGanttChart - 项目甘特图组件
+- ✅ BurndownChart - 燃尽图组件
+- ✅ RealtimeData - 实时数据更新组件
+- ✅ PDFExport - PDF/Excel导出组件
 
 ### 通知系统优化
 - ⏳ WebSocket实时推送

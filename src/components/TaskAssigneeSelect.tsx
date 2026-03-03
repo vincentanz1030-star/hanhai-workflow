@@ -59,7 +59,7 @@ export function TaskAssigneeSelect({
   const selectedAssignee = assignees.find(a => a.id === value);
 
   return (
-    <Select value={value} onValueChange={onChange} disabled={disabled || loading}>
+    <Select value={value || 'unassigned'} onValueChange={(v) => onChange?.(v === 'unassigned' ? '' : v)} disabled={disabled || loading}>
       <SelectTrigger className="w-full">
         {selectedAssignee ? (
           <div className="flex items-center gap-2">
@@ -79,7 +79,7 @@ export function TaskAssigneeSelect({
         )}
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="">未分配</SelectItem>
+        <SelectItem value="unassigned">未分配</SelectItem>
         {assignees.map((assignee) => (
           <SelectItem key={assignee.id} value={assignee.id}>
             <div className="flex items-center gap-2">

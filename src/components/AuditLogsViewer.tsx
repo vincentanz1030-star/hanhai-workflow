@@ -160,14 +160,14 @@ export function AuditLogsViewer() {
             <div className="space-y-2">
               <Label>操作类型</Label>
               <Select
-                value={filters.action}
-                onValueChange={(value) => setFilters({ ...filters, action: value })}
+                value={filters.action || 'all'}
+                onValueChange={(value) => setFilters({ ...filters, action: value === 'all' ? '' : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="全部" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">全部</SelectItem>
+                  <SelectItem value="all">全部</SelectItem>
                   {actionOptions.map(option => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
@@ -180,14 +180,14 @@ export function AuditLogsViewer() {
             <div className="space-y-2">
               <Label>资源类型</Label>
               <Select
-                value={filters.resourceType}
-                onValueChange={(value) => setFilters({ ...filters, resourceType: value })}
+                value={filters.resourceType || 'all'}
+                onValueChange={(value) => setFilters({ ...filters, resourceType: value === 'all' ? '' : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="全部" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">全部</SelectItem>
+                  <SelectItem value="all">全部</SelectItem>
                   {resourceTypeOptions.map(option => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}

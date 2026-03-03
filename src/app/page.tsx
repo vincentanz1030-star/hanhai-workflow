@@ -2979,49 +2979,8 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
-            {/* 图表区域 */}
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* 项目状态分布饼图 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base sm:text-lg">项目状态分布</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">各状态项目数量占比</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: '待开始', value: stats.pending, color: '#64748b' },
-                          { name: '进行中', value: stats.inProgress, color: '#3b82f6' },
-                          { name: '已完成', value: stats.completed, color: '#22c55e' },
-                          { name: '已延期', value: stats.delayed, color: '#ef4444' },
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {[
-                          { name: '待开始', value: stats.pending, color: '#64748b' },
-                          { name: '进行中', value: stats.inProgress, color: '#3b82f6' },
-                          { name: '已完成', value: stats.completed, color: '#22c55e' },
-                          { name: '已延期', value: stats.delayed, color: '#ef4444' },
-                        ].map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* 各岗位进度柱状图 */}
-              <Card>
+            {/* 各岗位进度柱状图 */}
+            <Card>
                 <CardHeader>
                   <CardTitle className="text-base sm:text-lg">各岗位平均进度</CardTitle>
                   <CardDescription className="text-xs sm:text-sm">所有项目中各岗位的平均完成进度</CardDescription>
@@ -3129,7 +3088,6 @@ export default function HomePage() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
           </TabsContent>
 
           {/* 项目列表 */}

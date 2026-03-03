@@ -5,6 +5,11 @@ const COZE_API_URL = process.env.COZE_API_URL || 'https://api.coze.com';
 const COZE_BOT_ID = process.env.COZE_BOT_ID || '';
 const COZE_BOT_TOKEN = process.env.COZE_BOT_TOKEN || '';
 
+// 自定义 API 配置
+const COZE_API_PATH = process.env.COZE_API_PATH || '/v3/chat';
+const COZE_API_KEY_HEADER = process.env.COZE_API_KEY_HEADER || 'Authorization';
+const COZE_USE_CUSTOM_API = process.env.COZE_USE_CUSTOM_API === 'true';
+
 /**
  * 本地规则引擎 - 当 Coze API 不可用时使用
  */
@@ -39,71 +44,124 @@ function getLocalResponse(message: string, context?: any): string {
 }
 
 /**
- * 调用 Coze Bot API
+ * 调用 Coze Bot API 或自定义 API
  */
 async function callCozeBot(messages: ChatMessage[], context?: any): Promise<string> {
-  if (!COZE_BOT_ID || !COZE_BOT_TOKEN) {
-    console.warn('⚠️ Coze Bot ID 或 Token 未配置，使用本地规则引擎');
+  if (!COZE_BOT_TOKEN) {
+    console.warn('⚠️ Bot Token 未配置，使用本地规则引擎');
     return getLocalResponse(messages[messages.length - 1]?.content || '', context);
   }
 
   try {
-    // 使用 Coze Bot 的正确 API 端点
-    const response = await fetch(`${COZE_API_URL}/v3/chat`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${COZE_BOT_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        bot_id: COZE_BOT_ID,
-        user: 'system-user',
-        query: messages[messages.length - 1]?.content || '',
-        stream: false,
-      }),
-      signal: AbortSignal.timeout(10000), // 10秒超时
-    });
+    let response: Response;
+    let apiUrl: string;
 
-    console.log(`Coze API 请求: ${COZE_API_URL}/v3/chat`);
-    console.log('Bot ID:', COZE_BOT_ID);
+    // 检查是否使用自定义 API
+    if (COZE_USE_CUSTOM_API) {
+      // 使用自定义 API (API Bridge)
+      apiUrl = `${COZE_API_URL}${COZE_API_PATH}`;
+      console.log(`使用自定义 API: ${apiUrl}`);
+
+      response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          [COZE_API_KEY_HEADER]: COZE_BOT_TOKEN,
+        },
+        body: JSON.stringify({
+          message: messages[messages.length - 1]?.content || '',
+          context: {
+            ...context,
+            platform: '瀚海集团工作流平台',
+            botId: COZE_BOT_ID,
+          },
+        }),
+        signal: AbortSignal.timeout(30000), // 30秒超时（自定义 API 可能需要更长时间）
+      });
+    } else {
+      // 使用标准 Coze API
+      apiUrl = `${COZE_API_URL}/v3/chat`;
+      console.log(`使用 Coze API: ${apiUrl}`);
+
+      response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${COZE_BOT_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bot_id: COZE_BOT_ID,
+          user: 'system-user',
+          query: messages[messages.length - 1]?.content || '',
+          stream: false,
+        }),
+        signal: AbortSignal.timeout(10000), // 10秒超时
+      });
+    }
+
+    console.log(`API 请求: ${apiUrl}`);
+    console.log('使用模式:', COZE_USE_CUSTOM_API ? '自定义 API' : 'Coze API');
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Coze API 调用失败:', response.status, errorText);
+      console.error('API 调用失败:', response.status, errorText);
 
       // 如果 API 不可用，使用本地规则引擎
-      console.warn('Coze API 不可用，使用本地规则引擎');
+      console.warn('API 不可用，使用本地规则引擎');
       return getLocalResponse(messages[messages.length - 1]?.content || '', context);
     }
 
     const data = await response.json();
 
     // 打印完整的返回数据，用于调试
-    console.log('Coze API 返回数据:', JSON.stringify(data, null, 2));
+    console.log('API 返回数据:', JSON.stringify(data, null, 2));
 
-    // 提取AI回复 - Coze Bot 可能返回的格式
-    if (data.data && data.data.answer) {
-      return data.data.answer;
-    }
-
-    if (data.data && data.data.content) {
-      return data.data.content;
-    }
-
-    if (data.messages && data.messages.length > 0) {
-      // 找到 assistant 角色的消息
-      const assistantMessage = data.messages.find((msg: any) => msg.role === 'assistant');
-      if (assistantMessage && assistantMessage.content) {
-        return assistantMessage.content;
+    // 提取AI回复 - 支持多种返回格式
+    if (COZE_USE_CUSTOM_API) {
+      // 自定义 API 返回格式
+      if (data.reply) {
+        return data.reply;
       }
-      // 或者返回最后一条消息
-      return data.messages[data.messages.length - 1].content;
-    }
 
-    console.warn('Coze API 返回数据格式异常，使用本地规则引擎');
-    return getLocalResponse(messages[messages.length - 1]?.content || '', context);
+      if (data.response) {
+        return data.response;
+      }
+
+      if (data.message) {
+        return data.message;
+      }
+
+      if (data.data && data.data.reply) {
+        return data.data.reply;
+      }
+
+      console.warn('自定义 API 返回数据格式异常，使用本地规则引擎');
+      return getLocalResponse(messages[messages.length - 1]?.content || '', context);
+    } else {
+      // Coze API 返回格式
+      if (data.data && data.data.answer) {
+        return data.data.answer;
+      }
+
+      if (data.data && data.data.content) {
+        return data.data.content;
+      }
+
+      if (data.messages && data.messages.length > 0) {
+        // 找到 assistant 角色的消息
+        const assistantMessage = data.messages.find((msg: any) => msg.role === 'assistant');
+        if (assistantMessage && assistantMessage.content) {
+          return assistantMessage.content;
+        }
+        // 或者返回最后一条消息
+        return data.messages[data.messages.length - 1].content;
+      }
+
+      console.warn('Coze API 返回数据格式异常，使用本地规则引擎');
+      return getLocalResponse(messages[messages.length - 1]?.content || '', context);
+    }
   } catch (error) {
-    console.error('调用 Coze Bot 失败:', error);
+    console.error('调用 API 失败:', error);
     const errorMessage = error instanceof Error ? error.message : '未知错误';
     console.error('错误详情:', errorMessage);
 

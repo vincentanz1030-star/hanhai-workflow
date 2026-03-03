@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { NotificationBell } from '@/components/NotificationBell';
 import { WorkloadMonitor } from '@/components/WorkloadMonitor';
 import { CriticalPathAnalyzer } from '@/components/CriticalPathAnalyzer';
+import { NotificationCenter } from '@/components/NotificationCenter';
 import { getPositionName } from '@/lib/config';
 
 // 类型定义
@@ -1084,6 +1085,19 @@ export default function HomePage() {
     setProjects(newProjects);
     console.log(`调用后长度: ${typeof newProjects === 'function' ? 'N/A' : newProjects.length}`);
   };
+
+  // 通知中心状态
+  const [notifications, setNotifications] = useState<{
+    collaborations: any[];
+    reminders: any[];
+    weeklyPlans: any[];
+    projectNotifications: any[];
+  }>({
+    collaborations: [],
+    reminders: [],
+    weeklyPlans: [],
+    projectNotifications: [],
+  });
   
   // 销售目标相关状态
   const [salesTargets, setSalesTargets] = useState<AnnualSalesTarget[]>([]);
@@ -1725,6 +1739,22 @@ export default function HomePage() {
     }
   };
 
+  // 加载通知中心数据
+  const loadNotifications = async () => {
+    try {
+      const response = await fetch('/api/notifications/dashboard');
+      const data = await response.json();
+      setNotifications({
+        collaborations: data.collaborations || [],
+        reminders: data.reminders || [],
+        weeklyPlans: data.weeklyPlans || [],
+        projectNotifications: data.projectNotifications || [],
+      });
+    } catch (error) {
+      console.error('加载通知数据失败:', error);
+    }
+  };
+
   // 加载销售目标
   const loadSalesTargets = async () => {
     try {
@@ -2028,6 +2058,7 @@ export default function HomePage() {
     loadSalesTargets();
     loadWeeklyWorkPlans();
     loadCollaborationTasks();
+    loadNotifications();
 
     // 添加超时处理，防止页面一直卡住
     const timeoutId = setTimeout(() => {
@@ -2045,6 +2076,7 @@ export default function HomePage() {
     loadProductCategories(brandFilter);
     loadWeeklyWorkPlans();
     loadCollaborationTasks();
+    loadNotifications();
   }, [brandFilter]);
 
   if (loading && !initTimeout) {
@@ -2403,6 +2435,14 @@ export default function HomePage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* 通知中心 */}
+            <NotificationCenter
+              collaborations={notifications.collaborations}
+              reminders={notifications.reminders}
+              weeklyPlans={notifications.weeklyPlans}
+              projectNotifications={notifications.projectNotifications}
+            />
 
             {/* 销售目标 */}
             <Card>

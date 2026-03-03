@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 
 // 将蛇形命名转换为驼峰命名
 function toCamelCase(obj: any): any {
@@ -34,6 +35,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    // 认证和权限检查
+    const authResult = await requireAuth(request, 'sales_target', 'edit');
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
     const body = await request.json();
     const { id, actualAmount } = body;
@@ -55,6 +62,18 @@ export async function PATCH(request: NextRequest) {
     if (fetchError || !monthlyTarget) {
       console.error('获取月度销售目标失败:', fetchError);
       return NextResponse.json({ error: '月度销售目标不存在' }, { status: 404 });
+    }
+
+    // 品牌隔离检查
+    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    const userBrand = authResult.brand;
+
+    if (!isAdmin && monthlyTarget.brand !== userBrand) {
+      console.warn(`⚠️ 品牌用户 ${authResult.email} 尝试修改品牌 ${monthlyTarget.brand} 的月度目标`);
+      return NextResponse.json(
+        { error: '您只能修改自己品牌的月度销售目标' },
+        { status: 403 }
+      );
     }
 
     // 更新月度目标

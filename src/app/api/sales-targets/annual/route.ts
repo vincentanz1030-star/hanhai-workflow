@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 
 // 将蛇形命名转换为驼峰命名
 function toCamelCase(obj: any): any {
@@ -32,16 +33,43 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase 环境变量未设置');
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // 认证和权限检查
+    const authResult = await requireAuth(request, 'sales_target', 'view');
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
+    console.log(`GET /api/sales-targets/annual - 用户: ${authResult.email}, 用户品牌: ${authResult.brand}, 用户角色: ${JSON.stringify(authResult.roles)}`);
+
     const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
 
-    // 获取所有年度目标
-    const { data: targets, error } = await client
+    // 品牌隔离逻辑
+    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    const userBrand = authResult.brand;
+
+    let query = client
       .from('annual_sales_targets')
       .select('*')
       .order('year', { ascending: false })
       .order('brand', { ascending: true });
+
+    // 应用品牌过滤
+    if (!isAdmin) {
+      // 品牌用户只能查看对应品牌的销售目标
+      if (!userBrand || userBrand === 'all') {
+        console.warn(`⚠️ 用户未设置品牌，返回空列表`);
+        return NextResponse.json({ targets: [] });
+      }
+      query = query.eq('brand', userBrand);
+      console.log(`品牌用户模式 - 只显示品牌 ${userBrand} 的销售目标`);
+    } else {
+      console.log(`管理员模式 - 显示所有品牌的销售目标`);
+    }
+
+    // 执行查询
+    const { data: targets, error } = await query;
 
     if (error) {
       console.error('获取年度销售目标失败:', error);
@@ -88,6 +116,12 @@ export async function GET() {
 // 创建年度销售目标
 export async function POST(request: NextRequest) {
   try {
+    // 认证和权限检查
+    const authResult = await requireAuth(request, 'sales_target', 'create');
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
     const body = await request.json();
     const { year, brand, targetAmount, description, monthlyTargets } = body;
@@ -96,6 +130,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: '年份、品牌和目标金额为必填项' },
         { status: 400 }
+      );
+    }
+
+    // 品牌隔离检查
+    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    const userBrand = authResult.brand;
+
+    // 非管理员用户只能创建自己品牌的销售目标
+    if (!isAdmin && brand !== userBrand) {
+      console.warn(`⚠️ 品牌用户 ${authResult.email} 尝试为品牌 ${brand} 创建销售目标，但用户品牌是 ${userBrand}`);
+      return NextResponse.json(
+        { error: '您只能为自己所属的品牌创建销售目标' },
+        { status: 403 }
       );
     }
 
@@ -171,12 +218,50 @@ export async function POST(request: NextRequest) {
 // 更新年度销售目标
 export async function PUT(request: NextRequest) {
   try {
+    // 认证和权限检查
+    const authResult = await requireAuth(request, 'sales_target', 'edit');
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
     const body = await request.json();
     const { id, year, brand, targetAmount, description, monthlyTargets } = body;
 
     if (!id) {
       return NextResponse.json({ error: '目标ID为必填项' }, { status: 400 });
+    }
+
+    // 检查用户是否有权限修改此目标的品牌
+    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    const userBrand = authResult.brand;
+
+    // 获取目标信息
+    const { data: existingTarget } = await client
+      .from('annual_sales_targets')
+      .select('brand')
+      .eq('id', id)
+      .single();
+
+    if (!existingTarget) {
+      return NextResponse.json({ error: '销售目标不存在' }, { status: 404 });
+    }
+
+    // 品牌隔离检查
+    if (!isAdmin && existingTarget.brand !== userBrand) {
+      console.warn(`⚠️ 品牌用户 ${authResult.email} 尝试修改品牌 ${existingTarget.brand} 的销售目标`);
+      return NextResponse.json(
+        { error: '您只能修改自己品牌的销售目标' },
+        { status: 403 }
+      );
+    }
+
+    // 如果要修改品牌，检查权限
+    if (brand && brand !== existingTarget.brand && !isAdmin) {
+      return NextResponse.json(
+        { error: '您无权修改销售目标的品牌' },
+        { status: 403 }
+      );
     }
 
     // 更新年度目标
@@ -242,12 +327,42 @@ export async function PUT(request: NextRequest) {
 // 删除年度销售目标
 export async function DELETE(request: NextRequest) {
   try {
+    // 认证和权限检查
+    const authResult = await requireAuth(request, 'sales_target', 'delete');
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id) {
       return NextResponse.json({ error: '目标ID为必填项' }, { status: 400 });
+    }
+
+    // 检查用户是否有权限删除此目标
+    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    const userBrand = authResult.brand;
+
+    // 获取目标信息
+    const { data: existingTarget } = await client
+      .from('annual_sales_targets')
+      .select('brand')
+      .eq('id', id)
+      .single();
+
+    if (!existingTarget) {
+      return NextResponse.json({ error: '销售目标不存在' }, { status: 404 });
+    }
+
+    // 品牌隔离检查
+    if (!isAdmin && existingTarget.brand !== userBrand) {
+      console.warn(`⚠️ 品牌用户 ${authResult.email} 尝试删除品牌 ${existingTarget.brand} 的销售目标`);
+      return NextResponse.json(
+        { error: '您只能删除自己品牌的销售目标' },
+        { status: 403 }
+      );
     }
 
     // 先删除关联的月度目标

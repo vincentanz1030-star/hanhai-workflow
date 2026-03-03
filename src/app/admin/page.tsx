@@ -75,13 +75,13 @@ export default function AdminPage() {
 
       {/* Tab 内容 */}
       <Tabs defaultValue="logs" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="logs">操作日志</TabsTrigger>
-          <TabsTrigger value="settings">系统设置</TabsTrigger>
-          <TabsTrigger value="backups">数据备份</TabsTrigger>
-          <TabsTrigger value="import">数据导入</TabsTrigger>
-          <TabsTrigger value="permissions">权限管理</TabsTrigger>
-          <TabsTrigger value="reports">报表统计</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
+          <TabsTrigger value="logs" className="text-xs md:text-sm">操作日志</TabsTrigger>
+          <TabsTrigger value="settings" className="text-xs md:text-sm">系统设置</TabsTrigger>
+          <TabsTrigger value="backups" className="text-xs md:text-sm">数据备份</TabsTrigger>
+          <TabsTrigger value="import" className="text-xs md:text-sm">数据导入</TabsTrigger>
+          <TabsTrigger value="permissions" className="text-xs md:text-sm">权限管理</TabsTrigger>
+          <TabsTrigger value="reports" className="text-xs md:text-sm">报表统计</TabsTrigger>
         </TabsList>
 
         <TabsContent value="logs" className="space-y-4">

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
+import { getBrandName } from '@/lib/config';
 
 interface KPIData {
   projects: {
@@ -239,8 +240,8 @@ export default function KPIDashboardPage() {
             fontWeight: 'bold',
           },
         },
-        data: Object.entries(data?.brandDistribution || {}).map(([name, value]) => ({
-          name,
+        data: Object.entries(data?.brandDistribution || {}).map(([key, value]) => ({
+          name: getBrandName(key),
           value,
         })),
       },

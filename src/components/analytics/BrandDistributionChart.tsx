@@ -2,13 +2,18 @@
 
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
+import { getBrandName } from '@/lib/config';
 
 interface BrandDistributionChartProps {
   data: Record<string, number>;
 }
 
 export default function BrandDistributionChart({ data }: BrandDistributionChartProps) {
-  const chartData = Object.entries(data).map(([name, value]) => ({ name, value }));
+  const chartData = Object.entries(data).map(([key, value]) => ({
+    name: getBrandName(key),
+    value,
+    originalKey: key,
+  }));
 
   const option: EChartsOption = {
     tooltip: {

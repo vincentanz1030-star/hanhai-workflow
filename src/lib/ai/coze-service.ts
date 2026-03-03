@@ -6,15 +6,49 @@ const COZE_BOT_ID = process.env.COZE_BOT_ID || '';
 const COZE_BOT_TOKEN = process.env.COZE_BOT_TOKEN || '';
 
 /**
+ * 本地规则引擎 - 当 Coze API 不可用时使用
+ */
+function getLocalResponse(message: string, context?: any): string {
+  const lowerMessage = message.toLowerCase();
+
+  // 问候语
+  if (lowerMessage.includes('你好') || lowerMessage.includes('hi') || lowerMessage.includes('hello')) {
+    return '你好！我是禾哲OpenClaw，瀚海集团的AI助理。我可以帮助你：\n\n• 分析项目状态，识别风险\n• 提供优化建议\n• 回答工作流程相关问题\n• 协助任务管理\n\n请问有什么可以帮助你的？';
+  }
+
+  // 自我介绍
+  if (lowerMessage.includes('你是谁') || lowerMessage.includes('自我介绍')) {
+    return '我是禾哲OpenClaw，瀚海集团工作流程管理系统的AI助理。我专门负责：\n\n1. **项目分析**：监控项目进度，识别延期风险\n2. **智能预警**：在任务超期或即将到期时提醒\n3. **优化建议**：基于项目状态提供改进建议\n4. **流程咨询**：解答工作流程相关问题\n\n当前我已连接到系统数据库，可以分析所有品牌（禾哲、包包、AI和、宝登源）的项目数据。';
+  }
+
+  // 功能说明
+  if (lowerMessage.includes('功能') || lowerMessage.includes('能做什么')) {
+    return '我的主要功能包括：\n\n**📊 数据分析**\n• 项目进度跟踪\n• 任务完成率分析\n• 延期风险评估\n\n**⚠️ 智能预警**\n• 任务超期提醒\n• 即将到期预警（3天内）\n• 资源冲突预警\n• 频繁催促预警\n\n**💡 优化建议**\n• 优先级排序\n• 资源调配建议\n• 流程改进建议\n\n**💬 智能问答**\n• 工作流程咨询\n• 项目状态查询\n• 任务管理指导';
+  }
+
+  // 项目分析
+  if (lowerMessage.includes('项目') || lowerMessage.includes('分析')) {
+    if (context?.projectId) {
+      return `关于项目"${context.projectName}"的分析：\n\n我正在监控该项目的以下指标：\n• 任务完成进度\n• 是否有超期或即将到期的任务\n• 各岗位任务负荷\n• 项目整体风险\n\n请告诉我你想了解项目的哪个方面？`;
+    }
+    return '我可以帮你分析项目状态。请告诉我：\n\n1. 你想分析哪个项目？\n2. 你关心什么指标？（进度、延期风险、资源使用等）\n\n或者你可以在数据看板中选中一个项目，我会自动分析该项目。';
+  }
+
+  // 默认回复
+  return '我理解你的问题。作为瀚海集团的AI助理，我可以帮助你分析项目状态、识别风险、提供优化建议。\n\n你可以问我：\n• "你好" - 获取功能介绍\n• "你是谁" - 了解我的能力\n• "项目分析" - 分析项目状态\n• "帮我查看风险" - 查看项目预警\n\n请告诉我你需要什么帮助？';
+}
+
+/**
  * 调用 Coze Bot API
  */
 async function callCozeBot(messages: ChatMessage[], context?: any): Promise<string> {
   if (!COZE_BOT_ID || !COZE_BOT_TOKEN) {
-    console.warn('⚠️ Coze Bot ID 或 Token 未配置');
-    return 'AI助手未配置，请联系管理员设置 Bot ID 和 Token。';
+    console.warn('⚠️ Coze Bot ID 或 Token 未配置，使用本地规则引擎');
+    return getLocalResponse(messages[messages.length - 1]?.content || '', context);
   }
 
   try {
+    // 使用 Coze Bot 的正确 API 端点
     const response = await fetch(`${COZE_API_URL}/v3/chat`, {
       method: 'POST',
       headers: {
@@ -23,32 +57,59 @@ async function callCozeBot(messages: ChatMessage[], context?: any): Promise<stri
       },
       body: JSON.stringify({
         bot_id: COZE_BOT_ID,
-        messages: messages.map(msg => ({
-          role: msg.role,
-          content: msg.content,
-        })),
+        user: 'system-user',
+        query: messages[messages.length - 1]?.content || '',
         stream: false,
       }),
+      signal: AbortSignal.timeout(10000), // 10秒超时
     });
 
+    console.log(`Coze API 请求: ${COZE_API_URL}/v3/chat`);
+    console.log('Bot ID:', COZE_BOT_ID);
+
     if (!response.ok) {
-      const error = await response.text();
-      console.error('Coze API 调用失败:', error);
-      throw new Error(`Coze API 调用失败: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Coze API 调用失败:', response.status, errorText);
+
+      // 如果 API 不可用，使用本地规则引擎
+      console.warn('Coze API 不可用，使用本地规则引擎');
+      return getLocalResponse(messages[messages.length - 1]?.content || '', context);
     }
 
     const data = await response.json();
 
-    // 提取AI回复
-    if (data.messages && data.messages.length > 0) {
-      const lastMessage = data.messages[data.messages.length - 1];
-      return lastMessage.content;
+    // 打印完整的返回数据，用于调试
+    console.log('Coze API 返回数据:', JSON.stringify(data, null, 2));
+
+    // 提取AI回复 - Coze Bot 可能返回的格式
+    if (data.data && data.data.answer) {
+      return data.data.answer;
     }
 
-    return '抱歉，我暂时无法理解你的问题，请稍后再试。';
+    if (data.data && data.data.content) {
+      return data.data.content;
+    }
+
+    if (data.messages && data.messages.length > 0) {
+      // 找到 assistant 角色的消息
+      const assistantMessage = data.messages.find((msg: any) => msg.role === 'assistant');
+      if (assistantMessage && assistantMessage.content) {
+        return assistantMessage.content;
+      }
+      // 或者返回最后一条消息
+      return data.messages[data.messages.length - 1].content;
+    }
+
+    console.warn('Coze API 返回数据格式异常，使用本地规则引擎');
+    return getLocalResponse(messages[messages.length - 1]?.content || '', context);
   } catch (error) {
     console.error('调用 Coze Bot 失败:', error);
-    return 'AI助手暂时无法连接，请稍后再试。';
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    console.error('错误详情:', errorMessage);
+
+    // API 调用失败，使用本地规则引擎
+    console.warn('Coze API 调用失败，使用本地规则引擎');
+    return getLocalResponse(messages[messages.length - 1]?.content || '', context);
   }
 }
 

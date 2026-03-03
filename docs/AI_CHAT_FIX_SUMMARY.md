@@ -127,10 +127,19 @@ COZE_BOT_TOKEN=d812rEa... (已安全配置)
 5. AI 会基于项目上下文提供智能回复
 
 ## 注意事项
-- Coze Bot 已配置，但回复内容可能较为通用（"无法理解"是默认回复）
-- 如需更智能的回复，需要在 Coze 平台为 Bot 配置知识库和对话流
-- AI 助手目前支持项目分析、风险评估、工作流程咨询等功能
-- 所有项目数据仅在本地分析，发送给 Coze 的仅是必要的上下文信息
+- ✅ AI 助手前端调用已修复（前后端分离架构）
+- ❌ Coze Bot Token 配置不正确（使用的是 PAT Token 而非 Bot Token）
+- ✅ 本地规则引擎已启用作为回退方案
+- ⚠️ 如需使用 Coze AI，需要重新获取正确的 Bot Token
+
+### Coze Bot Token 问题
+当前 Token 错误信息：`The token you entered is incorrect.`
+
+**原因：** 当前使用的是 Personal Access Token (PAT)，而不是 Bot Token。
+
+**解决方案：** 参考 [COZE_BOT_TOKEN_ISSUE.md](./COZE_BOT_TOKEN_ISSUE.md) 获取正确的 Bot Token。
+
+**临时方案：** 系统已启用本地规则引擎，支持基础对话功能。
 
 ## 后续优化建议
 1. 为 Coze Bot 添加知识库和对话流，提升回复质量

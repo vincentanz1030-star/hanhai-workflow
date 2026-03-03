@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bot, MessageCircle, X, Send, AlertTriangle, Lightbulb, CheckCircle, Clock } from 'lucide-react';
 import { ChatMessage } from '@/lib/ai/types';
-import { chatWithAI } from '@/lib/ai/coze-service';
 
 interface AIAssistantProps {
   context?: {
@@ -41,6 +40,32 @@ export function AIAssistant({ context }: AIAssistantProps) {
     }
   }, []);
 
+  // 检查 AI 服务状态
+  useEffect(() => {
+    const checkAIService = async () => {
+      try {
+        const response = await fetch('/api/ai/chat');
+        const data = await response.json();
+
+        if (!data.configured) {
+          setMessages(prev => [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              role: 'system',
+              content: '⚠️ AI助手未配置，请联系管理员设置 Coze Bot ID 和 Token。',
+              timestamp: new Date().toISOString(),
+            },
+          ]);
+        }
+      } catch (error) {
+        console.error('检查 AI 服务状态失败:', error);
+      }
+    };
+
+    checkAIService();
+  }, []);
+
   // 自动滚动到底部
   useEffect(() => {
     if (scrollRef.current) {
@@ -64,11 +89,27 @@ export function AIAssistant({ context }: AIAssistantProps) {
     setIsLoading(true);
 
     try {
-      const response = await chatWithAI(input, context);
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: input,
+          context,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || '请求失败');
+      }
+
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response,
+        content: data.response,
         context,
         timestamp: new Date().toISOString(),
       };
@@ -77,7 +118,7 @@ export function AIAssistant({ context }: AIAssistantProps) {
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: '抱歉，我遇到了一些问题，请稍后再试。',
+        content: `抱歉，我遇到了一些问题。${error instanceof Error ? error.message : '请稍后再试。'}`,
         context,
         timestamp: new Date().toISOString(),
       };

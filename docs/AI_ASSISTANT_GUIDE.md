@@ -104,6 +104,93 @@ COZE_BOT_TOKEN=your_bot_token_here
 - 自然语言对话
 - 上下文理解
 
+## 技术架构
+
+### 前后端分离设计
+
+AI 助手采用前后端分离架构，确保服务端环境变量的安全访问：
+
+```
+用户界面
+    ↓
+前端组件 (AIAssistant.tsx)
+    ↓ fetch()
+API 路由 (/api/ai/chat)
+    ↓ callCozeBot()
+服务层 (coze-service.ts)
+    ↓ API Request
+Coze AI 服务
+    ↓ Response
+用户界面显示
+```
+
+### API 接口
+
+#### 1. 检查 AI 服务状态
+```bash
+GET /api/ai/chat
+```
+
+响应：
+```json
+{
+  "configured": true,
+  "message": "AI助手已配置"
+}
+```
+
+#### 2. 发送聊天消息
+```bash
+POST /api/ai/chat
+Content-Type: application/json
+
+{
+  "message": "请分析当前项目状态",
+  "context": {
+    "projectId": "xxx",
+    "projectName": "示例项目"
+  }
+}
+```
+
+响应：
+```json
+{
+  "success": true,
+  "response": "AI 回复内容"
+}
+```
+
+#### 3. 测试 Coze Bot 配置
+```bash
+GET /api/ai/test
+```
+
+响应：
+```json
+{
+  "success": true,
+  "config": {
+    "configured": true,
+    "botId": "7612859121276125222",
+    "hasToken": true
+  }
+}
+```
+
+### 环境变量配置
+
+AI 助手依赖以下环境变量：
+
+```bash
+# Coze API 配置
+COZE_API_URL=https://api.coze.com
+COZE_BOT_ID=7612859121276125222
+COZE_BOT_TOKEN=your_token_here
+```
+
+这些配置在服务端安全存储，前端无法直接访问。
+
 ## 常见问题
 
 ### Q: AI 助手的预警准确吗？

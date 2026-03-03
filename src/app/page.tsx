@@ -3191,7 +3191,36 @@ export default function HomePage() {
                         <div className="absolute -left-2 top-0 h-4 w-4 rounded-full bg-primary" />
                         <div className="mb-4">
                           <div className="flex items-start justify-between">
-                            <h3 className="text-xl font-bold">{project.name}</h3>
+                            <div className="flex-1">
+                              <h3 className="text-xl font-bold mb-2">{project.name}</h3>
+                              {/* 整体进度 */}
+                              {(project.tasks || []).length > 0 && (() => {
+                                const totalProgress = Math.round(
+                                  (project.tasks || []).reduce((sum, t) => sum + t.progress, 0) / (project.tasks || []).length
+                                );
+                                const completedTasks = (project.tasks || []).filter(t => t.progress === 100).length;
+                                const totalTasks = (project.tasks || []).length;
+                                return (
+                                  <div className="mb-3">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-sm font-medium text-muted-foreground">项目整体进度</span>
+                                      <span className={`text-lg font-bold ${
+                                        totalProgress === 0 ? 'text-muted-foreground' :
+                                        totalProgress < 50 ? 'text-blue-600' :
+                                        totalProgress < 100 ? 'text-yellow-600' :
+                                        'text-green-600'
+                                      }`}>
+                                        {totalProgress}%
+                                      </span>
+                                    </div>
+                                    <Progress value={totalProgress} className="h-3" />
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      已完成 {completedTasks} / {totalTasks} 个任务
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
                             {editingProjectId === project.id ? (
                               <div className="flex gap-2">
                                 <Button size="sm" onClick={() => handleSaveDates(project.id)}>
@@ -3259,13 +3288,36 @@ export default function HomePage() {
                               const avgProgress = roleTasks.length > 0
                                 ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)
                                 : 0;
+                              const completedTasks = roleTasks.filter(t => t.progress === 100).length;
+                              const inProgressTasks = roleTasks.filter(t => t.progress > 0 && t.progress < 100).length;
+                              const pendingTasks = roleTasks.filter(t => t.progress === 0).length;
+                              const delayedTasks = roleTasks.filter(t => {
+                                if (!t.estimatedCompletionDate || t.status === 'completed') return false;
+                                const estimatedDate = new Date(t.estimatedCompletionDate);
+                                return new Date() > estimatedDate;
+                              }).length;
+                              
                               return (
-                                <div key={role} className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
+                                <div key={role} className={`bg-slate-50 dark:bg-slate-800 rounded-lg p-3 border-2 hover:shadow-md transition-shadow cursor-pointer ${
+                                  delayedTasks > 0 ? 'border-red-300 dark:border-red-700' : 'border-transparent'
+                                }`}>
                                   <div className="flex items-center justify-between mb-2">
                                     <span className="font-medium text-sm">{ROLE_NAMES[role]}</span>
-                                    <span className="text-xs font-medium">{avgProgress}%</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-medium">{avgProgress}%</span>
+                                      {delayedTasks > 0 && (
+                                        <Badge variant="destructive" className="text-xs h-5 px-1.5">
+                                          {delayedTasks}延期
+                                        </Badge>
+                                      )}
+                                    </div>
                                   </div>
-                                  <Progress value={avgProgress} className="h-2" />
+                                  <Progress value={avgProgress} className="h-2 mb-2" />
+                                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                    <span>总任务: {roleTasks.length}</span>
+                                    <span className="text-green-600">✓ {completedTasks}</span>
+                                    <span className="text-blue-600">● {inProgressTasks}</span>
+                                  </div>
                                 </div>
                               );
                             })}
@@ -3278,13 +3330,36 @@ export default function HomePage() {
                               const avgProgress = roleTasks.length > 0
                                 ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)
                                 : 0;
+                              const completedTasks = roleTasks.filter(t => t.progress === 100).length;
+                              const inProgressTasks = roleTasks.filter(t => t.progress > 0 && t.progress < 100).length;
+                              const pendingTasks = roleTasks.filter(t => t.progress === 0).length;
+                              const delayedTasks = roleTasks.filter(t => {
+                                if (!t.estimatedCompletionDate || t.status === 'completed') return false;
+                                const estimatedDate = new Date(t.estimatedCompletionDate);
+                                return new Date() > estimatedDate;
+                              }).length;
+                              
                               return (
-                                <div key={role} className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
+                                <div key={role} className={`bg-slate-50 dark:bg-slate-800 rounded-lg p-3 border-2 hover:shadow-md transition-shadow cursor-pointer ${
+                                  delayedTasks > 0 ? 'border-red-300 dark:border-red-700' : 'border-transparent'
+                                }`}>
                                   <div className="flex items-center justify-between mb-2">
                                     <span className="font-medium text-sm">{ROLE_NAMES[role]}</span>
-                                    <span className="text-xs font-medium">{avgProgress}%</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-medium">{avgProgress}%</span>
+                                      {delayedTasks > 0 && (
+                                        <Badge variant="destructive" className="text-xs h-5 px-1.5">
+                                          {delayedTasks}延期
+                                        </Badge>
+                                      )}
+                                    </div>
                                   </div>
-                                  <Progress value={avgProgress} className="h-2" />
+                                  <Progress value={avgProgress} className="h-2 mb-2" />
+                                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                    <span>总任务: {roleTasks.length}</span>
+                                    <span className="text-green-600">✓ {completedTasks}</span>
+                                    <span className="text-blue-600">● {inProgressTasks}</span>
+                                  </div>
                                 </div>
                               );
                             })}
@@ -3297,13 +3372,36 @@ export default function HomePage() {
                               const avgProgress = roleTasks.length > 0
                                 ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)
                                 : 0;
+                              const completedTasks = roleTasks.filter(t => t.progress === 100).length;
+                              const inProgressTasks = roleTasks.filter(t => t.progress > 0 && t.progress < 100).length;
+                              const pendingTasks = roleTasks.filter(t => t.progress === 0).length;
+                              const delayedTasks = roleTasks.filter(t => {
+                                if (!t.estimatedCompletionDate || t.status === 'completed') return false;
+                                const estimatedDate = new Date(t.estimatedCompletionDate);
+                                return new Date() > estimatedDate;
+                              }).length;
+                              
                               return (
-                                <div key={role} className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
+                                <div key={role} className={`bg-slate-50 dark:bg-slate-800 rounded-lg p-3 border-2 hover:shadow-md transition-shadow cursor-pointer ${
+                                  delayedTasks > 0 ? 'border-red-300 dark:border-red-700' : 'border-transparent'
+                                }`}>
                                   <div className="flex items-center justify-between mb-2">
                                     <span className="font-medium text-sm">{ROLE_NAMES[role]}</span>
-                                    <span className="text-xs font-medium">{avgProgress}%</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-medium">{avgProgress}%</span>
+                                      {delayedTasks > 0 && (
+                                        <Badge variant="destructive" className="text-xs h-5 px-1.5">
+                                          {delayedTasks}延期
+                                        </Badge>
+                                      )}
+                                    </div>
                                   </div>
-                                  <Progress value={avgProgress} className="h-2" />
+                                  <Progress value={avgProgress} className="h-2 mb-2" />
+                                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                    <span>总任务: {roleTasks.length}</span>
+                                    <span className="text-green-600">✓ {completedTasks}</span>
+                                    <span className="text-blue-600">● {inProgressTasks}</span>
+                                  </div>
                                 </div>
                               );
                             })}

@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
   try {
     const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
     const body = await request.json();
-    const { brand, weekStart, weekEnd, content, priority } = body;
+    const { brand, weekStart, weekEnd, content, priority, position } = body;
 
     console.log('=== POST 创建本周工作安排 ===');
     console.log('body:', body);
@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
         week_end: weekEnd,
         content,
         priority: priority || 'normal',
+        position: position || null,
       })
       .select()
       .single();

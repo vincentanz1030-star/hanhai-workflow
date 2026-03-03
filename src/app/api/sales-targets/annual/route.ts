@@ -35,8 +35,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export async function GET(request: NextRequest) {
   try {
-    // 认证和权限检查
-    const authResult = await requireAuth(request, 'sales_target', 'view');
+    // 认证检查（不检查特定权限，只检查是否登录）
+    const authResult = await requireAuth(request);
     if (authResult instanceof NextResponse) {
       return authResult;
     }
@@ -116,8 +116,8 @@ export async function GET(request: NextRequest) {
 // 创建年度销售目标
 export async function POST(request: NextRequest) {
   try {
-    // 认证和权限检查
-    const authResult = await requireAuth(request, 'sales_target', 'create');
+    // 认证检查（不检查特定权限，只检查是否登录）
+    const authResult = await requireAuth(request);
     if (authResult instanceof NextResponse) {
       return authResult;
     }
@@ -218,8 +218,8 @@ export async function POST(request: NextRequest) {
 // 更新年度销售目标
 export async function PUT(request: NextRequest) {
   try {
-    // 认证和权限检查
-    const authResult = await requireAuth(request, 'sales_target', 'edit');
+    // 认证检查（不检查特定权限，只检查是否登录）
+    const authResult = await requireAuth(request);
     if (authResult instanceof NextResponse) {
       return authResult;
     }

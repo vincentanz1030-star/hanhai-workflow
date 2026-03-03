@@ -65,7 +65,7 @@ export async function PUT(
     const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
     const { id } = await params;
     const body = await request.json();
-    const { brand, weekStart, weekEnd, content, priority } = body;
+    const { brand, weekStart, weekEnd, content, priority, position } = body;
 
     console.log('=== PUT 更新本周工作安排 ===');
     console.log('id:', id);
@@ -82,6 +82,7 @@ export async function PUT(
     if (weekEnd !== undefined) updateData.week_end = weekEnd;
     if (content !== undefined) updateData.content = content;
     if (priority !== undefined) updateData.priority = priority;
+    if (position !== undefined) updateData.position = position;
 
     console.log('updateData:', updateData);
 

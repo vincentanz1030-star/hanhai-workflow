@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { NotificationBell } from '@/components/NotificationBell';
 import { WorkloadMonitor } from '@/components/WorkloadMonitor';
 import { CriticalPathAnalyzer } from '@/components/CriticalPathAnalyzer';
+import { getPositionName } from '@/lib/config';
 
 // 类型定义
 interface Project {
@@ -123,6 +124,7 @@ interface WeeklyWorkPlan {
   weekEnd: string; // 本周结束日期
   content: string; // 工作内容
   priority: 'urgent' | 'important' | 'normal'; // 优先级
+  position?: '' | 'illustration' | 'product_design' | 'detail_design' | 'copywriting' | 'procurement' | 'packaging_design' | 'finance' | 'customer_service' | 'warehouse' | 'operations'; // 岗位
   createdAt: string;
   updatedAt: string | null;
 }
@@ -1127,6 +1129,7 @@ export default function HomePage() {
     weekEnd: '',
     content: '',
     priority: 'normal' as 'urgent' | 'important' | 'normal',
+    position: '' as '' | 'illustration' | 'product_design' | 'detail_design' | 'copywriting' | 'procurement' | 'packaging_design' | 'finance' | 'customer_service' | 'warehouse' | 'operations',
   });
 
   // 协同合作相关状态
@@ -1401,6 +1404,7 @@ export default function HomePage() {
           weekEnd: '',
           content: '',
           priority: 'normal',
+          position: '' as 'illustration' | 'product_design' | 'detail_design' | 'copywriting' | 'procurement' | 'packaging_design' | 'finance' | 'customer_service' | 'warehouse' | 'operations',
         });
         loadWeeklyWorkPlans();
       } else {
@@ -1422,6 +1426,7 @@ export default function HomePage() {
       weekEnd: plan.weekEnd,
       content: plan.content,
       priority: plan.priority,
+      position: plan.position || '',
     });
     setIsWeeklyWorkPlanDialogOpen(true);
   };
@@ -1734,12 +1739,12 @@ export default function HomePage() {
   // 创建销售目标
   const handleCreateSalesTarget = async () => {
     try {
-      const url = editingSalesTarget 
+      const url = editingSalesTarget
         ? '/api/sales-targets/annual'
         : '/api/sales-targets/annual';
       const method = editingSalesTarget ? 'PUT' : 'POST';
 
-      const body = editingSalesTarget 
+      const body = editingSalesTarget
         ? {
             id: editingSalesTarget.id,
             ...newSalesTarget,
@@ -1767,9 +1772,14 @@ export default function HomePage() {
           })),
         });
         loadSalesTargets();
+        alert(editingSalesTarget ? '销售目标更新成功' : '销售目标创建成功');
+      } else {
+        const errorData = await response.json();
+        alert(editingSalesTarget ? `更新失败: ${errorData.error || '未知错误'}` : `创建失败: ${errorData.error || '未知错误'}`);
       }
     } catch (error) {
       console.error(editingSalesTarget ? '更新销售目标失败:' : '创建销售目标失败:', error);
+      alert(editingSalesTarget ? '更新销售目标失败，请稍后重试' : '创建销售目标失败，请稍后重试');
     }
   };
 
@@ -2572,6 +2582,7 @@ export default function HomePage() {
                         weekEnd: weekEndStr,
                         content: '',
                         priority: 'normal',
+                        position: '',
                       });
                       setIsWeeklyWorkPlanDialogOpen(true);
                     }} size="sm" className="w-full sm:w-auto">
@@ -2614,6 +2625,9 @@ export default function HomePage() {
                                 <div className="flex items-center gap-2 mb-2">
                                   <Badge className={config.color}>{config.label}</Badge>
                                   <Badge variant="outline">{BRAND_NAMES[plan.brand]}</Badge>
+                                  {plan.position && (
+                                    <Badge variant="secondary">{getPositionName(plan.position)}</Badge>
+                                  )}
                                 </div>
                                 <div className="text-sm whitespace-pre-wrap">{plan.content}</div>
                               </div>
@@ -4198,6 +4212,26 @@ export default function HomePage() {
                 </select>
               </div>
               <div className="grid gap-2">
+                <Label>岗位</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={newWeeklyWorkPlan.position}
+                  onChange={(e) => setNewWeeklyWorkPlan({ ...newWeeklyWorkPlan, position: e.target.value as any })}
+                >
+                  <option value="">选择岗位</option>
+                  <option value="illustration">插画</option>
+                  <option value="product_design">产品设计</option>
+                  <option value="detail_design">详情设计</option>
+                  <option value="copywriting">文案撰写</option>
+                  <option value="procurement">采购管理</option>
+                  <option value="packaging_design">包装设计</option>
+                  <option value="finance">财务管理</option>
+                  <option value="customer_service">客服培训</option>
+                  <option value="warehouse">仓储管理</option>
+                  <option value="operations">运营管理</option>
+                </select>
+              </div>
+              <div className="grid gap-2">
                 <Label>工作内容 *</Label>
                 <Textarea
                   value={newWeeklyWorkPlan.content}
@@ -4219,6 +4253,7 @@ export default function HomePage() {
                     weekEnd: '',
                     content: '',
                     priority: 'normal',
+                    position: '',
                   });
                 }}
               >

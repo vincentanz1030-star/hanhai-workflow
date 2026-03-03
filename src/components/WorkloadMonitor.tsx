@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { AlertCircle, CheckCircle, Clock, TrendingUp, Users, ChevronRight, ChevronDown, FileText } from 'lucide-react';
+import { AlertCircle, CheckCircle, TrendingUp, Users, ChevronRight, ChevronDown, FileText } from 'lucide-react';
 
 interface WorkloadSummary {
   totalTasks: number;
@@ -127,7 +127,7 @@ export default function WorkloadMonitor() {
     return <div className="p-6">暂无数据</div>;
   }
 
-  const { byUser, byPosition, overloadedUsers, summary } = workload;
+  const { byPosition, overloadedUsers, summary } = workload;
 
   return (
     <div className="space-y-6">
@@ -226,93 +226,93 @@ export default function WorkloadMonitor() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2 max-h-96 overflow-y-auto">
-          {byPosition.map(position => (
-            <div key={position.position} className="space-y-1">
-              <div
-                className="flex items-center justify-between p-3 rounded border hover:bg-muted/50 cursor-pointer transition-colors"
-                onClick={() => handlePositionToggle(position)}
-              >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <div className="text-muted-foreground flex-shrink-0">
-                    {expandedPosition === position.position ? (
-                      <ChevronDown className="h-5 w-5" />
-                    ) : (
-                      <ChevronRight className="h-5 w-5" />
+              {byPosition.map(position => (
+                <div key={position.position} className="space-y-1">
+                  <div
+                    className="flex items-center justify-between p-3 rounded border hover:bg-muted/50 cursor-pointer transition-colors"
+                    onClick={() => handlePositionToggle(position)}
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="text-muted-foreground flex-shrink-0">
+                        {expandedPosition === position.position ? (
+                          <ChevronDown className="h-5 w-5" />
+                        ) : (
+                          <ChevronRight className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{position.position}</div>
+                        <div className="text-xs text-muted-foreground">
+                          总:{position.totalTasks} · 进行中:{position.inProgressTasks}
+                        </div>
+                      </div>
+                    </div>
+                    {position.overdueTasks > 0 && (
+                      <Badge variant="destructive" className="flex items-center gap-1 flex-shrink-0 ml-2">
+                        <AlertCircle className="h-3 w-3" />
+                        {position.overdueTasks}
+                      </Badge>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{position.position}</div>
-                    <div className="text-xs text-muted-foreground">
-                      总:{position.totalTasks} · 进行中:{position.inProgressTasks}
-                    </div>
-                  </div>
-                </div>
-                {position.overdueTasks > 0 && (
-                  <Badge variant="destructive" className="flex items-center gap-1 flex-shrink-0 ml-2">
-                    <AlertCircle className="h-3 w-3" />
-                    {position.overdueTasks}
-                  </Badge>
-                )}
-              </div>
 
-              {/* 任务详情 */}
-              {expandedPosition === position.position && (
-                <div className="pl-8 pr-3 py-3 space-y-2 bg-muted/30 rounded">
-                  {loadingTasks[position.position] ? (
-                    <div className="text-center text-sm text-muted-foreground py-4">
-                      加载中...
-                    </div>
-                  ) : positionTasks[position.position] && positionTasks[position.position].length > 0 ? (
-                    <div className="space-y-2">
-                      {positionTasks[position.position].map(task => (
-                        <div key={task.id} className="p-3 bg-background rounded border space-y-2">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-2 flex-1 min-w-0">
-                              <FileText className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium truncate">{task.taskName}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  项目: {task.projectName}
+                  {/* 任务详情 */}
+                  {expandedPosition === position.position && (
+                    <div className="pl-8 pr-3 py-3 space-y-2 bg-muted/30 rounded">
+                      {loadingTasks[position.position] ? (
+                        <div className="text-center text-sm text-muted-foreground py-4">
+                          加载中...
+                        </div>
+                      ) : positionTasks[position.position] && positionTasks[position.position].length > 0 ? (
+                        <div className="space-y-2">
+                          {positionTasks[position.position].map(task => (
+                            <div key={task.id} className="p-3 bg-background rounded border space-y-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-start gap-2 flex-1 min-w-0">
+                                  <FileText className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium truncate">{task.taskName}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      项目: {task.projectName}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  {task.isOverdue ? (
+                                    <Badge variant="destructive">逾期</Badge>
+                                  ) : (
+                                    <Badge variant={task.status === 'completed' ? 'default' : 'outline'}>
+                                      {task.status === 'completed' ? '完成' :
+                                       task.status === 'in-progress' ? '进行' : '待办'}
+                                    </Badge>
+                                  )}
                                 </div>
                               </div>
-                            </div>
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                              {task.isOverdue ? (
-                                <Badge variant="destructive">逾期</Badge>
-                              ) : (
-                                <Badge variant={task.status === 'completed' ? 'default' : 'outline'}>
-                                  {task.status === 'completed' ? '完成' :
-                                   task.status === 'in-progress' ? '进行' : '待办'}
-                                </Badge>
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span>进度 {task.progress}%</span>
+                                {task.estimatedCompletionDate && (
+                                  <span>
+                                    {new Date(task.estimatedCompletionDate).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+                                  </span>
+                                )}
+                              </div>
+                              {task.progress > 0 && (
+                                <Progress value={task.progress} className="h-1" />
                               )}
                             </div>
-                          </div>
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>进度 {task.progress}%</span>
-                            {task.estimatedCompletionDate && (
-                              <span>
-                                {new Date(task.estimatedCompletionDate).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
-                              </span>
-                            )}
-                          </div>
-                          {task.progress > 0 && (
-                            <Progress value={task.progress} className="h-1" />
-                          )}
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center text-sm text-muted-foreground py-4">
-                      暂无任务
+                      ) : (
+                        <div className="text-center text-sm text-muted-foreground py-4">
+                          暂无任务
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
-      </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

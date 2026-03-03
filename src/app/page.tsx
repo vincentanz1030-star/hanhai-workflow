@@ -18,10 +18,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { NotificationBell } from '@/components/NotificationBell';
-import { AIAssistant } from '@/components/AIAssistant';
-import { AIInsights } from '@/components/AIInsights';
-import { analyzeProjectLocally } from '@/lib/ai/local-rules';
-import { ProjectWarning, AISuggestion } from '@/lib/ai/types';
 
 // 类型定义
 interface Project {
@@ -1048,12 +1044,6 @@ export default function HomePage() {
   const [brandFilter, setBrandFilter] = useState<'all' | 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan'>('all');
   const [deleteConfirmProject, setDeleteConfirmProject] = useState<Project | null>(null);
 
-  // AI 分析相关状态
-  const [aiInsights, setAiInsights] = useState<any>(null);
-  const [aiWarnings, setAiWarnings] = useState<ProjectWarning[]>([]);
-  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
-  const [aiContext, setAiContext] = useState<any>(null);
-
   // 辅助函数：发送带认证的 API 请求
   const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     const token = localStorage.getItem('auth_token');
@@ -1241,55 +1231,6 @@ export default function HomePage() {
     } catch (error) {
       console.error('加载本周工作安排失败:', error);
     }
-  };
-
-  // 运行AI分析
-  const runAIAnalysis = () => {
-    if (!selectedProject || projects.length === 0) return;
-
-    // 如果有选中的项目，分析该项目
-    if (selectedProject) {
-      const analysis = analyzeProjectLocally(selectedProject, selectedProject.tasks || []);
-      setAiInsights(analysis);
-      setAiWarnings(analysis.warnings);
-      setAiSuggestions(analysis.suggestions);
-    } else {
-      // 分析所有项目
-      // 这里可以添加批量分析逻辑
-      setAiInsights(null);
-      setAiWarnings([]);
-      setAiSuggestions([]);
-    }
-  };
-
-  // 当选中项目时，更新AI上下文
-  useEffect(() => {
-    if (selectedProject) {
-      setAiContext({
-        projectId: selectedProject.id,
-        projectName: selectedProject.name,
-      });
-      runAIAnalysis();
-    } else {
-      setAiContext(null);
-      setAiInsights(null);
-    }
-  }, [selectedProject]);
-
-  // 处理AI建议的行动
-  const handleAISuggestionAction = (suggestion: AISuggestion) => {
-    console.log('AI建议行动:', suggestion);
-    // 根据建议类型执行不同的操作
-    // 例如：过滤任务、跳转到项目等
-  };
-
-  // 处理预警的关闭
-  const handleDismissWarning = (warningId: string) => {
-    setAiWarnings(prev => prev.map(w =>
-      `${w.type}-${w.projectId}-${w.taskId}` === warningId
-        ? { ...w, dismissed: true }
-        : w
-    ));
   };
 
   // 简化：打开新建对话框
@@ -2448,19 +2389,6 @@ export default function HomePage() {
                 </CardContent>
               </Card>
             </div>
-
-            {/* AI 智能洞察 */}
-            {aiInsights && (
-              <AIInsights
-                warnings={aiWarnings}
-                suggestions={aiSuggestions}
-                insights={aiInsights.insights || []}
-                nextSteps={aiInsights.nextSteps || []}
-                overallStatus={aiInsights.overallStatus}
-                onDismissWarning={handleDismissWarning}
-                onActionSuggestion={handleAISuggestionAction}
-              />
-            )}
 
             {/* 销售目标 */}
             <Card>
@@ -4427,9 +4355,6 @@ export default function HomePage() {
           </DialogContent>
         </Dialog>
       </main>
-
-      {/* AI 助手 */}
-      <AIAssistant context={aiContext} />
 
       </>
       )}

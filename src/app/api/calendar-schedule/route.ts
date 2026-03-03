@@ -1,72 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.COZE_SUPABASE_URL!;
-const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
 
-interface CalendarProject {
-  id: string;
-  name: string;
-  brand: string;
-  sales_date: string;
-  category: string;
-  status: string;
+function toCamelCase(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(toCamelCase);
+  if (typeof obj !== 'object') return obj;
+
+  const newObj: any = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const newKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      newObj[newKey] = toCamelCase(obj[key]);
+    }
+  }
+  return newObj;
 }
 
 export async function GET(request: NextRequest) {
   try {
+    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
     const searchParams = request.nextUrl.searchParams;
-    const year = searchParams.get('year') || new Date().getFullYear().toString();
-    const month = searchParams.get('month') || (new Date().getMonth() + 1).toString();
+    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
+    const month = parseInt(searchParams.get('month') || (new Date().getMonth() + 1).toString());
 
-    // 查询指定月份的项目
-    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-    const endDate = new Date(parseInt(year), parseInt(month), 0);
+    // 获取指定月份的新品排期
+    const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+    const endDate = `${year}-${month.toString().padStart(2, '0')}-31`;
 
-    const { data: projects, error } = await supabase
-      .from('projects')
-      .select('id, name, brand, sales_date, category, status')
-      .gte('sales_date', startDate.toISOString())
-      .lte('sales_date', endDate.toISOString())
+    const { data: launches, error } = await client
+      .from('new_product_launches')
+      .select('*')
+      .gte('sales_date', startDate)
+      .lte('sales_date', endDate)
       .order('sales_date', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('获取新品排期失败:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // 计算当月天数
+    const daysInMonth = new Date(year, month, 0).getDate();
 
     // 按品牌分组
-    const brandGroups = projects?.reduce((acc, project) => {
-      if (!acc[project.brand]) {
-        acc[project.brand] = [];
-      }
-      acc[project.brand].push({
-        id: project.id,
-        name: project.name,
-        brand: project.brand,
-        sales_date: project.sales_date,
-        category: project.category,
-        status: project.status,
-      });
-      return acc;
-    }, {} as Record<string, CalendarProject[]>) || {};
+    const brandGroups: Record<string, any[]> = {};
+    const camelLaunches = toCamelCase(launches || []);
 
-    // 获取当月天数
-    const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+    camelLaunches.forEach((launch: any) => {
+      if (!brandGroups[launch.brand]) {
+        brandGroups[launch.brand] = [];
+      }
+      brandGroups[launch.brand].push(launch);
+    });
+
+    // 为每个排期添加状态字段（用于显示颜色）
+    Object.keys(brandGroups).forEach(brand => {
+      brandGroups[brand] = brandGroups[brand].map((launch: any) => ({
+        ...launch,
+        status: 'pending', // 新品排期没有状态，使用 pending 作为默认颜色
+      }));
+    });
 
     return NextResponse.json({
       success: true,
       data: {
-        year: parseInt(year),
-        month: parseInt(month),
+        year,
+        month,
         daysInMonth,
         brandGroups,
-        totalProjects: projects?.length || 0,
+        totalLaunches: camelLaunches.length,
       },
     });
   } catch (error) {
-    console.error('获取日历数据失败:', error);
-    return NextResponse.json({
-      success: false,
-      error: '获取数据失败',
-    }, { status: 500 });
+    console.error('服务器错误:', error);
+    return NextResponse.json({ error: '服务器错误' }, { status: 500 });
   }
 }

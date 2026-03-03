@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Package, Plus, Edit2, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, Edit2, Trash2, X } from 'lucide-react';
 import { getBrandName, BRAND_CONFIG } from '@/lib/config';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -12,12 +12,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
-interface CalendarProject {
+interface CalendarLaunch {
   id: string;
-  name: string;
   brand: string;
+  description: string;
   sales_date: string;
-  category: string;
   status: string;
 }
 
@@ -25,8 +24,8 @@ interface CalendarData {
   year: number;
   month: number;
   daysInMonth: number;
-  brandGroups: Record<string, CalendarProject[]>;
-  totalProjects: number;
+  brandGroups: Record<string, CalendarLaunch[]>;
+  totalLaunches: number;
 }
 
 interface ProductScheduleCalendarProps {
@@ -41,14 +40,12 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
   // 编辑相关状态
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<CalendarProject | null>(null);
+  const [editingLaunch, setEditingLaunch] = useState<CalendarLaunch | null>(null);
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string>('');
 
   const [formData, setFormData] = useState({
-    name: '',
     brand: '',
-    category: 'product_development',
     description: '',
     sales_date: '',
   });
@@ -88,58 +85,45 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
     setSelectedDate(day);
     setSelectedBrand(brand || Object.keys(data?.brandGroups || {})[0] || '');
     setFormData({
-      name: '',
       brand: brand || '',
-      category: 'product_development',
       description: '',
       sales_date: dateStr,
     });
-    setEditingProject(null);
+    setEditingLaunch(null);
     setIsEditDialogOpen(true);
   };
 
-  const handleProjectEdit = (project: CalendarProject, e: React.MouseEvent) => {
+  const handleLaunchEdit = (launch: CalendarLaunch, e: React.MouseEvent) => {
     e.stopPropagation();
-    setEditingProject(project);
+    setEditingLaunch(launch);
     setFormData({
-      name: project.name,
-      brand: project.brand,
-      category: project.category,
-      description: '',
-      sales_date: project.sales_date.split('T')[0],
+      brand: launch.brand,
+      description: launch.description || '',
+      sales_date: launch.sales_date.split('T')[0],
     });
     setIsEditDialogOpen(true);
   };
 
-  const handleProjectDelete = (project: CalendarProject, e: React.MouseEvent) => {
+  const handleLaunchDelete = (launch: CalendarLaunch, e: React.MouseEvent) => {
     e.stopPropagation();
-    setEditingProject(project);
+    setEditingLaunch(launch);
     setIsDeleteDialogOpen(true);
   };
 
-  const handleSaveProject = async () => {
+  const handleSaveLaunch = async () => {
     try {
-      const url = editingProject
-        ? `/api/projects/${editingProject.id}`
-        : '/api/projects';
+      const url = editingLaunch
+        ? `/api/new-product-launches/${editingLaunch.id}`
+        : '/api/new-product-launches';
       
-      const method = editingProject ? 'PATCH' : 'POST';
+      const method = editingLaunch ? 'PATCH' : 'POST';
 
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: formData.name,
-          brand: formData.brand,
-          category: formData.category,
-          description: formData.description,
-          salesDate: formData.sales_date,
-          project_confirm_date: formData.sales_date,
-          overall_completion_date: null,
-          status: 'pending',
-        }),
+        body: JSON.stringify(formData),
       });
 
       const result = await response.json();
@@ -151,16 +135,16 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
         alert('保存失败: ' + result.error);
       }
     } catch (error) {
-      console.error('保存项目失败:', error);
+      console.error('保存排期失败:', error);
       alert('保存失败');
     }
   };
 
-  const handleDeleteProject = async () => {
-    if (!editingProject) return;
+  const handleDeleteLaunch = async () => {
+    if (!editingLaunch) return;
 
     try {
-      const response = await fetch(`/api/projects/${editingProject.id}`, {
+      const response = await fetch(`/api/new-product-launches/${editingLaunch.id}`, {
         method: 'DELETE',
       });
 
@@ -173,7 +157,7 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
         alert('删除失败: ' + result.error);
       }
     } catch (error) {
-      console.error('删除项目失败:', error);
+      console.error('删除排期失败:', error);
       alert('删除失败');
     }
   };
@@ -182,19 +166,6 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
     const date = new Date(year, month - 1, day);
     const days = ['日', '一', '二', '三', '四', '五', '六'];
     return days[date.getDay()];
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-500';
-      case 'in-progress':
-        return 'bg-blue-500';
-      case 'pending':
-        return 'bg-gray-400';
-      default:
-        return 'bg-gray-400';
-    }
   };
 
   const getDayIndex = (dateString: string) => {
@@ -222,7 +193,7 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
     );
   }
 
-  const { daysInMonth, brandGroups } = data;
+  const { daysInMonth, brandGroups, totalLaunches } = data;
   const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
 
   return (
@@ -259,16 +230,8 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
           {/* 图例 */}
           <div className="flex items-center gap-4 mb-4 text-xs">
             <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span>已完成</span>
-            </div>
-            <div className="flex items-center gap-1">
               <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              <span>进行中</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-gray-400"></div>
-              <span>待开始</span>
+              <span>计划中</span>
             </div>
             <div className="flex items-center gap-1 ml-auto text-muted-foreground">
               <span>点击日期添加排期</span>
@@ -281,7 +244,7 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
               {/* 日期头 */}
               <div className="grid grid-cols-[200px_repeat(31,minmax(40px,1fr))] gap-0 border-b">
                 <div className="p-2 text-xs font-medium bg-muted/50 sticky left-0 z-10">
-                  品牌 / 产品
+                  品牌 / 描述
                 </div>
                 {Array.from({ length: daysInMonth }, (_, i) => {
                   const day = i + 1;
@@ -301,21 +264,20 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                 })}
               </div>
 
-              {/* 品牌和产品行 */}
+              {/* 品牌和排期行 */}
               {Object.entries(brandGroups).length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground">
                   本月暂无排期，点击上方"添加排期"按钮或点击日期添加
                 </div>
               ) : (
-                Object.entries(brandGroups).map(([brand, projects]) => (
+                Object.entries(brandGroups).map(([brand, launches]) => (
                   <div key={brand} className="border-b last:border-b-0">
                     {/* 品牌标题行 */}
                     <div className="grid grid-cols-[200px_repeat(31,minmax(40px,1fr))] gap-0 bg-muted/20">
                       <div className="p-2 text-sm font-semibold sticky left-0 z-10 bg-muted/20 flex items-center gap-2 overflow-hidden">
-                        <Package className="h-4 w-4" />
                         <span className="truncate">{getBrandName(brand)}</span>
                         <Badge variant="outline" className="ml-auto">
-                          {projects.length}
+                          {launches.length}
                         </Badge>
                       </div>
                       {Array.from({ length: daysInMonth }, (_, i) => (
@@ -332,27 +294,25 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                       ))}
                     </div>
 
-                    {/* 产品行 */}
-                    {projects.map((project) => {
-                      const dayIndex = getDayIndex(project.sales_date);
+                    {/* 排期行 */}
+                    {launches.map((launch) => {
+                      const dayIndex = getDayIndex(launch.sales_date);
                       return (
                         <div
-                          key={project.id}
+                          key={launch.id}
                           className="grid grid-cols-[200px_repeat(31,minmax(40px,1fr))] gap-0 hover:bg-muted/10"
                         >
                           <div className="p-2 text-xs border-l sticky left-0 z-10 bg-background flex items-center gap-2 overflow-hidden">
-                            <div
-                              className={`w-2 h-2 rounded-full flex-shrink-0 ${getStatusColor(project.status)}`}
-                            />
-                            <span className="truncate flex-1" title={project.name}>
-                              {project.name}
+                            <div className="w-2 h-2 rounded-full flex-shrink-0 bg-blue-500" />
+                            <span className="truncate flex-1" title={launch.description || '无描述'}>
+                              {launch.description || '无描述'}
                             </span>
                             <div className="flex items-center gap-1 flex-shrink-0">
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-5 w-5 p-0"
-                                onClick={(e) => handleProjectEdit(project, e)}
+                                onClick={(e) => handleLaunchEdit(launch, e)}
                               >
                                 <Edit2 className="h-3 w-3" />
                               </Button>
@@ -360,7 +320,7 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                                 variant="ghost"
                                 size="icon"
                                 className="h-5 w-5 p-0 text-red-500"
-                                onClick={(e) => handleProjectDelete(project, e)}
+                                onClick={(e) => handleLaunchDelete(launch, e)}
                               >
                                 <Trash2 className="h-3 w-3" />
                               </Button>
@@ -377,8 +337,8 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                             >
                               {i === dayIndex && (
                                 <div
-                                  className={`w-6 h-6 rounded-full mx-auto flex items-center justify-center ${getStatusColor(project.status)} text-white text-xs font-bold relative group`}
-                                  title={`${project.name}\n日期: ${project.sales_date}\n状态: ${project.status}`}
+                                  className="w-6 h-6 rounded-full mx-auto flex items-center justify-center bg-blue-500 text-white text-xs font-bold relative group"
+                                  title={`${launch.description || '无描述'}\n日期: ${launch.sales_date}`}
                                 >
                                   ✓
                                   <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></div>
@@ -397,7 +357,7 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
 
           {/* 统计信息 */}
           <div className="mt-4 pt-4 border-t flex items-center justify-between text-sm text-muted-foreground">
-            <span>本月共 {data.totalProjects} 个新品排期</span>
+            <span>本月共 {totalLaunches} 个新品排期</span>
             <span>共 {Object.keys(brandGroups).length} 个品牌</span>
           </div>
         </CardContent>
@@ -408,22 +368,13 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>
-              {editingProject ? '编辑排期' : '添加排期'}
+              {editingLaunch ? '编辑排期' : '添加排期'}
             </DialogTitle>
             <DialogDescription>
-              {editingProject ? '修改项目信息' : '创建新的项目排期'}
+              {editingLaunch ? '修改排期信息' : '创建新的新品排期'}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">产品名称 *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="请输入产品名称"
-              />
-            </div>
             <div className="grid gap-2">
               <Label htmlFor="brand">品牌 *</Label>
               <Select
@@ -445,21 +396,6 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="category">项目类型 *</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) => setFormData({ ...formData, category: value })}
-              >
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="选择项目类型" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="product_development">产品开发</SelectItem>
-                  <SelectItem value="operations_activity">运营活动</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
               <Label htmlFor="sales_date">销售日期 *</Label>
               <Input
                 id="sales_date"
@@ -469,12 +405,12 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="description">项目描述</Label>
+              <Label htmlFor="description">描述</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="请输入项目描述（可选）"
+                placeholder="请输入描述（可选）"
                 rows={3}
               />
             </div>
@@ -483,8 +419,8 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               取消
             </Button>
-            <Button onClick={handleSaveProject}>
-              {editingProject ? '保存' : '创建'}
+            <Button onClick={handleSaveLaunch}>
+              {editingLaunch ? '保存' : '创建'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -496,14 +432,14 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
           <DialogHeader>
             <DialogTitle>确认删除</DialogTitle>
             <DialogDescription>
-              确定要删除项目"{editingProject?.name}"吗？此操作无法撤销。
+              确定要删除此排期吗？此操作无法撤销。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               取消
             </Button>
-            <Button variant="destructive" onClick={handleDeleteProject}>
+            <Button variant="destructive" onClick={handleDeleteLaunch}>
               删除
             </Button>
           </DialogFooter>

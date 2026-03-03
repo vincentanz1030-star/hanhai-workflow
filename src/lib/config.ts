@@ -21,6 +21,7 @@ export const getAllBrands = () => {
 
 // 岗位配置（任务岗位）
 export const POSITION_CONFIG = {
+  project_manager: { name: '项目经理', key: 'project_manager', order: 0 },
   illustration: { name: '插画', key: 'illustration', order: 1 },
   product_design: { name: '产品设计', key: 'product_design', order: 2 },
   detail_design: { name: '详情设计', key: 'detail_design', order: 3 },
@@ -48,6 +49,7 @@ export const getAllPositions = () => {
 // 角色配置
 export const ROLE_CONFIG = {
   admin: { name: '管理员', key: 'admin' },
+  project_manager: { name: '项目经理', key: 'project_manager' },
   operations: { name: '运营', key: 'operations' },
   product: { name: '产品', key: 'product' },
   copywriting: { name: '文案', key: 'copywriting' },

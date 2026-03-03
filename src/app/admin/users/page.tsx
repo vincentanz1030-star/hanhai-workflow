@@ -23,6 +23,7 @@ const BRAND_NAMES: Record<string, string> = {
 
 const ROLE_NAMES: Record<string, string> = {
   admin: '管理员',
+  project_manager: '项目经理',
   operations: '运营',
   product: '产品',
   copywriting: '文案',

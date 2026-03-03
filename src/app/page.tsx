@@ -229,6 +229,7 @@ function CategoryTree({ category, allCategories, onEdit, onDelete, level }: Cate
 
 // 岗位映射
 const ROLE_NAMES: Record<string, string> = {
+  project_manager: '项目经理',
   illustration: '插画设计',
   product_design: '产品设计',
   detail_design: '详情页设计',
@@ -258,8 +259,8 @@ const CATEGORY_NAMES: Record<string, string> = {
 
 // 项目分类对应的岗位
 const CATEGORY_ROLES: Record<string, string[]> = {
-  product_development: ['illustration', 'product_design', 'packaging_design', 'procurement', 'finance', 'warehouse'],
-  operations_activity: ['copywriting', 'detail_design', 'operations', 'customer_service'],
+  product_development: ['project_manager', 'illustration', 'product_design', 'packaging_design', 'procurement', 'finance', 'warehouse'],
+  operations_activity: ['project_manager', 'copywriting', 'detail_design', 'operations', 'customer_service'],
 };
 
 // 状态映射
@@ -2185,15 +2186,17 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsGlobalSearchOpen(true)}
-                className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0"
-                title="搜索 (Ctrl+K)"
-              >
-                <Search className="h-4 w-4 sm:h-5 sm:w-5" />
-              </Button>
+              {/* 全局搜索框 - 始终显示 */}
+              <div className="relative flex-1 sm:flex-none sm:w-64 lg:w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="搜索项目、任务、用户... (Ctrl+K)"
+                  className="pl-9 h-9 sm:h-10 w-full"
+                  onClick={() => setIsGlobalSearchOpen(true)}
+                  readOnly
+                />
+              </div>
               <NotificationBell />
               <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 flex-1 sm:flex-none">
                 <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary flex items-center justify-center">
@@ -3278,29 +3281,29 @@ export default function HomePage() {
 
                 {/* 瓶颈任务列表 */}
                 {criticalPathData && criticalPathData.bottleneckTasks && criticalPathData.bottleneckTasks.length > 0 && (
-                  <Card className="border-destructive p-3 mb-6">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle className="h-4 w-4 text-destructive" />
-                      <div className="text-sm font-medium">关键瓶颈任务</div>
-                      <Badge variant="destructive" className="text-xs ml-auto">
+                  <Card className="border-destructive p-4 mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                      <div className="text-base font-medium">关键瓶颈任务</div>
+                      <Badge variant="destructive" className="text-sm ml-auto">
                         {criticalPathData.bottleneckTasks.length}个
                       </Badge>
                     </div>
-                    <div className="space-y-1.5">
-                      {criticalPathData.bottleneckTasks.slice(0, 5).map((task: any) => (
-                        <div key={task.taskId} className="flex items-center justify-between p-2 bg-destructive/10 rounded">
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {criticalPathData.bottleneckTasks.map((task: any) => (
+                        <div key={task.taskId} className="flex items-center justify-between p-3 bg-destructive/10 rounded">
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-medium truncate">{task.taskTitle}</div>
-                            <div className="text-[10px] text-muted-foreground truncate">
+                            <div className="text-sm font-medium truncate mb-1">{task.taskTitle}</div>
+                            <div className="text-xs text-muted-foreground truncate mb-1">
                               {getPositionName(task.position)} · {task.assignee || '未分配'}
                             </div>
                             {task.deadline && (
-                              <div className="text-[10px] text-destructive mt-0.5">
-                                {new Date(task.deadline).toLocaleDateString()}
+                              <div className="text-xs text-destructive">
+                                截止: {new Date(task.deadline).toLocaleDateString()}
                               </div>
                             )}
                           </div>
-                          <div className="flex items-center gap-1 ml-2">
+                          <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                             {task.riskLevel === 'critical' && <Badge variant="destructive" className="text-xs">严重</Badge>}
                             {task.riskLevel === 'high' && <Badge className="bg-orange-500 hover:bg-orange-600 text-xs">高</Badge>}
                             {task.riskLevel === 'medium' && <Badge variant="outline" className="text-xs">中</Badge>}
@@ -3308,11 +3311,6 @@ export default function HomePage() {
                           </div>
                         </div>
                       ))}
-                      {criticalPathData.bottleneckTasks.length > 5 && (
-                        <div className="text-center text-[10px] text-muted-foreground py-1">
-                          还有 {criticalPathData.bottleneckTasks.length - 5} 个未显示
-                        </div>
-                      )}
                     </div>
                   </Card>
                 )}
@@ -3421,7 +3419,7 @@ export default function HomePage() {
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                           <div className="space-y-2">
                             <h4 className="font-medium text-sm text-muted-foreground">前期阶段 (项目确认后)</h4>
-                            {['illustration', 'product_design', 'packaging_design'].map((role) => {
+                            {['project_manager', 'illustration', 'product_design', 'packaging_design'].map((role) => {
                               const roleTasks = (project.tasks || []).filter(t => t.role === role);
                               const avgProgress = roleTasks.length > 0
                                 ? Math.round(roleTasks.reduce((sum, t) => sum + t.progress, 0) / roleTasks.length)

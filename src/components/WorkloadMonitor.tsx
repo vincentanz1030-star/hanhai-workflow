@@ -130,250 +130,225 @@ export default function WorkloadMonitor() {
   const { byUser, byPosition, overloadedUsers, summary } = workload;
 
   return (
-    <div className="space-y-6">
-      {/* 汇总统计 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">总任务数</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.totalTasks}</div>
-            <p className="text-xs text-muted-foreground">
-              进行中: {summary.inProgressTasks}
-            </p>
-          </CardContent>
+    <div className="space-y-4">
+      {/* 汇总统计 - 紧凑版 */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+        <Card className="p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="text-[11px] font-medium text-muted-foreground">总任务数</div>
+              <div className="text-lg font-bold">{summary.totalTasks}</div>
+              <div className="text-[10px] text-muted-foreground">
+                进行中: {summary.inProgressTasks}
+              </div>
+            </div>
+            <Users className="h-3.5 w-3.5 text-muted-foreground" />
+          </div>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">已完成任务</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.completedTasks}</div>
-            <p className="text-xs text-muted-foreground">
-              完成率: {summary.totalTasks > 0 ? Math.round((summary.completedTasks / summary.totalTasks) * 100) : 0}%
-            </p>
-          </CardContent>
+        <Card className="p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="text-[11px] font-medium text-muted-foreground">已完成</div>
+              <div className="text-lg font-bold">{summary.completedTasks}</div>
+              <div className="text-[10px] text-muted-foreground">
+                完成率 {summary.totalTasks > 0 ? Math.round((summary.completedTasks / summary.totalTasks) * 100) : 0}%
+              </div>
+            </div>
+            <CheckCircle className="h-3.5 w-3.5 text-muted-foreground" />
+          </div>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">逾期任务</CardTitle>
-            <AlertCircle className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{summary.overdueTasks}</div>
-            <p className="text-xs text-muted-foreground">
-              需要立即处理
-            </p>
-          </CardContent>
+        <Card className="p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="text-[11px] font-medium text-muted-foreground">逾期任务</div>
+              <div className="text-lg font-bold text-destructive">{summary.overdueTasks}</div>
+              <div className="text-[10px] text-muted-foreground">
+                需立即处理
+              </div>
+            </div>
+            <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+          </div>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">平均工作负载</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.averageWorkload}</div>
-            <p className="text-xs text-muted-foreground">
-              工作负载评分
-            </p>
-          </CardContent>
+        <Card className="p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="text-[11px] font-medium text-muted-foreground">平均负载</div>
+              <div className="text-lg font-bold">{summary.averageWorkload}</div>
+              <div className="text-[10px] text-muted-foreground">
+                负载评分
+              </div>
+            </div>
+            <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
+          </div>
         </Card>
       </div>
 
-      {/* 超负荷预警 */}
+      {/* 超负荷预警 - 紧凑版 */}
       {overloadedUsers.length > 0 && (
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-destructive" />
-              工作负载预警
-            </CardTitle>
-            <CardDescription>
-              以下员工工作负载过高，建议调整任务分配
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {overloadedUsers.map(user => (
-                <div key={user.userId} className="flex items-center justify-between p-3 bg-destructive/10 rounded-lg">
-                  <div className="flex-1">
-                    <div className="font-medium">{user.nickname || user.username}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {user.brand} · 进行中: {user.inProgressTasks} · 逾期: {user.overdueTasks}
-                    </div>
+        <Card className="border-destructive p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertCircle className="h-4 w-4 text-destructive" />
+            <div className="text-sm font-medium">工作负载预警</div>
+            <Badge variant="destructive" className="text-xs ml-auto">
+              {overloadedUsers.length}人
+            </Badge>
+          </div>
+          <div className="space-y-1.5">
+            {overloadedUsers.map(user => (
+              <div key={user.userId} className="flex items-center justify-between p-2 bg-destructive/10 rounded">
+                <div className="flex-1">
+                  <div className="text-xs font-medium">{user.nickname || user.username}</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {user.brand} · 进行中:{user.inProgressTasks} · 逾期:{user.overdueTasks}
                   </div>
-                  <Badge variant="destructive">超负荷</Badge>
                 </div>
-              ))}
-            </div>
-          </CardContent>
+                <Badge variant="destructive" className="text-[10px] h-5 px-1.5">超负荷</Badge>
+              </div>
+            ))}
+          </div>
         </Card>
       )}
 
-      {/* 按员工统计 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>员工工作负载</CardTitle>
-          <CardDescription>
-            按员工查看任务分配和工作负载情况
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {byUser.map(user => (
-              <div key={user.userId} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="font-medium">{user.nickname || user.username}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {user.brand} · 总任务: {user.totalTasks} · 
-                      进行中: {user.inProgressTasks} · 
-                      待处理: {user.pendingTasks} · 
-                      已完成: {user.completedTasks}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {user.overdueTasks > 0 && (
-                      <Badge variant="destructive" className="flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        逾期 {user.overdueTasks}
-                      </Badge>
-                    )}
-                    {user.isOverloaded ? (
-                      <Badge variant="destructive">超负荷</Badge>
-                    ) : (
-                      <Badge variant="outline">正常</Badge>
-                    )}
+      {/* 按员工统计 - 紧凑版 */}
+      <Card className="p-3">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium">员工工作负载</h3>
+          <span className="text-[10px] text-muted-foreground">{byUser.length}人</span>
+        </div>
+        <div className="space-y-2">
+          {byUser.map(user => (
+            <div key={user.userId} className="p-2 rounded-lg border space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium truncate">{user.nickname || user.username}</div>
+                  <div className="text-[10px] text-muted-foreground truncate">
+                    {user.brand} · 总:{user.totalTasks} · 进行中:{user.inProgressTasks} · 待处理:{user.pendingTasks}
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>工作负载评分</span>
-                    <span>{user.workloadScore} / 15</span>
-                  </div>
-                  <Progress 
-                    value={Math.min((user.workloadScore / 15) * 100, 100)} 
-                    className={user.workloadScore >= 15 ? "bg-destructive/20" : ""}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 按岗位统计 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>岗位工作负载</CardTitle>
-          <CardDescription>
-            按岗位查看任务分配情况，点击岗位查看详情
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {byPosition.map(position => (
-              <div key={position.position} className="space-y-2">
-                <div 
-                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => handlePositionToggle(position)}
-                >
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="text-muted-foreground">
-                      {expandedPosition === position.position ? (
-                        <ChevronDown className="h-5 w-5" />
-                      ) : (
-                        <ChevronRight className="h-5 w-5" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium">{position.position}</div>
-                      <div className="text-sm text-muted-foreground">
-                        总任务: {position.totalTasks} · 
-                        进行中: {position.inProgressTasks} · 
-                        待处理: {position.pendingTasks} · 
-                        已完成: {position.completedTasks}
-                      </div>
-                    </div>
-                  </div>
-                  {position.overdueTasks > 0 && (
-                    <Badge variant="destructive" className="flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      逾期 {position.overdueTasks}
+                <div className="flex items-center gap-1.5 ml-2">
+                  {user.overdueTasks > 0 && (
+                    <Badge variant="destructive" className="text-[10px] h-5 px-1.5 flex items-center gap-0.5">
+                      <AlertCircle className="h-2.5 w-2.5" />
+                      {user.overdueTasks}
                     </Badge>
                   )}
+                  {user.isOverloaded ? (
+                    <Badge variant="destructive" className="text-[10px] h-5 px-1.5">超负荷</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] h-5 px-1.5">正常</Badge>
+                  )}
                 </div>
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>工作负载评分</span>
+                  <span>{user.workloadScore} / 15</span>
+                </div>
+                <Progress 
+                  value={Math.min((user.workloadScore / 15) * 100, 100)} 
+                  className="h-1"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
 
-                {/* 任务详情 */}
-                {expandedPosition === position.position && (
-                  <div className="pl-8 pr-2 py-2 space-y-2 bg-muted/30 rounded-lg">
-                    {loadingTasks[position.position] ? (
-                      <div className="text-center text-sm text-muted-foreground py-4">
-                        加载任务详情中...
-                      </div>
-                    ) : positionTasks[position.position] && positionTasks[position.position].length > 0 ? (
-                      <div className="space-y-2">
-                        {positionTasks[position.position].map(task => (
-                          <div key={task.id} className="p-3 bg-background rounded-lg border space-y-2">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex items-start gap-2 flex-1">
-                                <FileText className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm">{task.taskName}</div>
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    项目: {task.projectName}
-                                  </div>
-                                  {task.description && (
-                                    <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                      {task.description}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {task.isOverdue ? (
-                                  <Badge variant="destructive" className="text-xs">
-                                    已逾期
-                                  </Badge>
-                                ) : (
-                                  <Badge variant={task.status === 'completed' ? 'default' : 'outline'} className="text-xs">
-                                    {task.status === 'completed' ? '已完成' : 
-                                     task.status === 'in-progress' ? '进行中' : '待处理'}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                              <span>进度: {task.progress}%</span>
-                              {task.estimatedCompletionDate && (
-                                <span>
-                                  预计完成: {new Date(task.estimatedCompletionDate).toLocaleDateString('zh-CN')}
-                                </span>
-                              )}
-                            </div>
-                            {task.progress > 0 && (
-                              <Progress value={task.progress} className="h-1" />
-                            )}
-                          </div>
-                        ))}
-                      </div>
+      {/* 按岗位统计 - 紧凑版 */}
+      <Card className="p-3">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium">岗位工作负载</h3>
+          <span className="text-[10px] text-muted-foreground">点击查看详情</span>
+        </div>
+        <div className="space-y-1.5">
+          {byPosition.map(position => (
+            <div key={position.position} className="space-y-1">
+              <div 
+                className="flex items-center justify-between p-2 rounded border hover:bg-muted/50 cursor-pointer transition-colors"
+                onClick={() => handlePositionToggle(position)}
+              >
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="text-muted-foreground flex-shrink-0">
+                    {expandedPosition === position.position ? (
+                      <ChevronDown className="h-4 w-4" />
                     ) : (
-                      <div className="text-center text-sm text-muted-foreground py-4">
-                        该岗位暂无任务详情
-                      </div>
+                      <ChevronRight className="h-4 w-4" />
                     )}
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium truncate">{position.position}</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      总:{position.totalTasks} · 进行中:{position.inProgressTasks}
+                    </div>
+                  </div>
+                </div>
+                {position.overdueTasks > 0 && (
+                  <Badge variant="destructive" className="text-[10px] h-5 px-1.5 flex items-center gap-0.5 flex-shrink-0 ml-2">
+                    <AlertCircle className="h-2.5 w-2.5" />
+                    {position.overdueTasks}
+                  </Badge>
                 )}
               </div>
-            ))}
-          </div>
-        </CardContent>
+
+              {/* 任务详情 - 紧凑版 */}
+              {expandedPosition === position.position && (
+                <div className="pl-6 pr-2 py-1.5 space-y-1.5 bg-muted/30 rounded">
+                  {loadingTasks[position.position] ? (
+                    <div className="text-center text-[10px] text-muted-foreground py-2">
+                      加载中...
+                    </div>
+                  ) : positionTasks[position.position] && positionTasks[position.position].length > 0 ? (
+                    <div className="space-y-1">
+                      {positionTasks[position.position].map(task => (
+                        <div key={task.id} className="p-2 bg-background rounded border space-y-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start gap-1.5 flex-1 min-w-0">
+                              <FileText className="h-3 w-3 mt-0.5 text-muted-foreground flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[11px] font-medium truncate">{task.taskName}</div>
+                                <div className="text-[10px] text-muted-foreground">
+                                  项目: {task.projectName}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {task.isOverdue ? (
+                                <Badge variant="destructive" className="text-[10px] h-5 px-1">逾期</Badge>
+                              ) : (
+                                <Badge variant={task.status === 'completed' ? 'default' : 'outline'} className="text-[10px] h-5 px-1">
+                                  {task.status === 'completed' ? '完成' : 
+                                   task.status === 'in-progress' ? '进行' : '待办'}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                            <span>进度 {task.progress}%</span>
+                            {task.estimatedCompletionDate && (
+                              <span>
+                                {new Date(task.estimatedCompletionDate).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+                              </span>
+                            )}
+                          </div>
+                          {task.progress > 0 && (
+                            <Progress value={task.progress} className="h-0.5" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-[10px] text-muted-foreground py-2">
+                      暂无任务
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </Card>
     </div>
   );

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BarChart3, TrendingUp, PieChart, FileText, Download, RefreshCw, Calendar, Filter, ArrowUp, ArrowDown } from 'lucide-react';
+import { BarChart3, TrendingUp, PieChart, FileText, Download, RefreshCw, Calendar, Filter, ArrowUp, ArrowDown, Activity } from 'lucide-react';
 import TrendChart from '@/components/analytics/TrendChart';
 import BrandDistributionChart from '@/components/analytics/BrandDistributionChart';
 import PositionEfficiencyChart from '@/components/analytics/PositionEfficiencyChart';
@@ -296,14 +296,20 @@ export default function AnalyticsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>KPI监控大屏</CardTitle>
-                <CardDescription>实时监控关键绩效指标</CardDescription>
+                <CardDescription>实时监控关键绩效指标，自动刷新数据</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[500px] flex items-center justify-center bg-muted/20 rounded">
-                  <div className="text-center">
-                    <div className="animate-pulse rounded-full h-12 w-12 border-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-muted-foreground">KPI监控大屏功能正在开发中...</p>
-                  </div>
+                <div className="text-center py-12">
+                  <a
+                    href="/analytics/kpi"
+                    className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                  >
+                    <Activity className="mr-2 h-5 w-5" />
+                    打开KPI监控大屏
+                  </a>
+                  <p className="text-muted-foreground mt-4 text-sm">
+                    点击按钮打开全屏KPI监控大屏，享受沉浸式数据可视化体验
+                  </p>
                 </div>
               </CardContent>
             </Card>

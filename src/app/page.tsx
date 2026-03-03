@@ -22,6 +22,7 @@ import { WorkloadMonitor } from '@/components/WorkloadMonitor';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { getPositionName } from '@/lib/config';
+import ProductScheduleCalendar from '@/components/calendar/ProductScheduleCalendar';
 
 // 类型定义
 interface Project {
@@ -2493,6 +2494,9 @@ export default function HomePage() {
               weeklyPlans={notifications.weeklyPlans}
               projectNotifications={notifications.projectNotifications}
             />
+
+            {/* 新品排期日历 */}
+            <ProductScheduleCalendar />
 
             {/* 销售目标 */}
             <Card>

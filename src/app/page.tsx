@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, Users, CheckCircle, AlertCircle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil, LogOut, User, Shield, Loader2, Settings } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, AlertCircle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil, LogOut, User, Shield, Loader2, Settings, Search } from 'lucide-react';
 import { format, differenceInDays, isBefore, isAfter, isToday } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Slider } from '@/components/ui/slider';
@@ -21,6 +21,7 @@ import { NotificationBell } from '@/components/NotificationBell';
 import { WorkloadMonitor } from '@/components/WorkloadMonitor';
 import { CriticalPathAnalyzer } from '@/components/CriticalPathAnalyzer';
 import { NotificationCenter } from '@/components/NotificationCenter';
+import { GlobalSearch } from '@/components/GlobalSearch';
 import { getPositionName } from '@/lib/config';
 
 // 类型定义
@@ -1202,7 +1203,10 @@ export default function HomePage() {
     content: '',
     priority: 'medium' as 'low' | 'medium' | 'high',
   });
-  
+
+  // 全局搜索状态
+  const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
+
   // 加载项目列表 - 最简单的实现
   const loadProjects = async () => {
     const timestamp = new Date().toISOString();
@@ -2161,6 +2165,15 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsGlobalSearchOpen(true)}
+                className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0"
+                title="搜索 (Ctrl+K)"
+              >
+                <Search className="h-4 w-4 sm:h-5 sm:w-5" />
+              </Button>
               <NotificationBell />
               <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 flex-1 sm:flex-none">
                 <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary flex items-center justify-center">
@@ -4570,6 +4583,9 @@ export default function HomePage() {
           </DialogContent>
         </Dialog>
       </main>
+
+      {/* 全局搜索 */}
+      <GlobalSearch open={isGlobalSearchOpen} onOpenChange={setIsGlobalSearchOpen} />
 
       </>
       )}

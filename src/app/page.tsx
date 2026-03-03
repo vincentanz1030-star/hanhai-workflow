@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, Users, CheckCircle, AlertCircle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil, LogOut, User, Shield, Loader2, Settings, Search } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, AlertCircle, AlertTriangle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil, LogOut, User, Shield, Loader2, Settings, Search } from 'lucide-react';
 import { format, differenceInDays, isBefore, isAfter, isToday } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Slider } from '@/components/ui/slider';
@@ -19,7 +19,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { NotificationBell } from '@/components/NotificationBell';
 import { WorkloadMonitor } from '@/components/WorkloadMonitor';
-import { CriticalPathAnalyzer } from '@/components/CriticalPathAnalyzer';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { getPositionName } from '@/lib/config';
@@ -1207,6 +1206,11 @@ export default function HomePage() {
   // 全局搜索状态
   const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
 
+  // 关键路径分析状态
+  const [criticalPathData, setCriticalPathData] = useState<any>(null);
+  const [criticalPathLoading, setCriticalPathLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
+
   // 加载项目列表 - 最简单的实现
   const loadProjects = async () => {
     const timestamp = new Date().toISOString();
@@ -1253,6 +1257,22 @@ export default function HomePage() {
       setWeeklyWorkPlans(data.plans || []);
     } catch (error) {
       console.error('加载本周工作安排失败:', error);
+    }
+  };
+
+  // 加载关键路径数据
+  const loadCriticalPath = async () => {
+    setCriticalPathLoading(true);
+    try {
+      const response = await fetch('/api/critical-path?includeCompleted=false');
+      const data = await response.json();
+      if (data.success) {
+        setCriticalPathData(data.criticalPath);
+      }
+    } catch (error) {
+      console.error('获取关键路径失败:', error);
+    } finally {
+      setCriticalPathLoading(false);
     }
   };
 
@@ -2365,15 +2385,19 @@ export default function HomePage() {
 
       {/* 主内容 */}
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
-        <Tabs defaultValue="dashboard" className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-8 gap-1 h-auto">
+        <Tabs defaultValue="dashboard" value={activeTab} onValueChange={(value) => {
+          setActiveTab(value);
+          if (value === 'timeline' && !criticalPathData) {
+            loadCriticalPath();
+          }
+        }} className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 gap-1 h-auto">
             <TabsTrigger value="dashboard" className="text-xs sm:text-sm py-2 px-2">数据看板</TabsTrigger>
             <TabsTrigger value="projects" className="text-xs sm:text-sm py-2 px-2">项目列表</TabsTrigger>
             <TabsTrigger value="timeline" className="text-xs sm:text-sm py-2 px-2">时间线</TabsTrigger>
             <TabsTrigger value="roles" className="text-xs sm:text-sm py-2 px-2">岗位进度</TabsTrigger>
             <TabsTrigger value="product-framework" className="text-xs sm:text-sm py-2 px-2">产品框架</TabsTrigger>
             <TabsTrigger value="workload" className="text-xs sm:text-sm py-2 px-2">工作负载</TabsTrigger>
-            <TabsTrigger value="critical-path" className="text-xs sm:text-sm py-2 px-2">关键路径</TabsTrigger>
             <TabsTrigger value="feedback" className="text-xs sm:text-sm py-2 px-2">支持协助</TabsTrigger>
           </TabsList>
 
@@ -3088,7 +3112,7 @@ export default function HomePage() {
                   </div>
                 </CardContent>
               </Card>
-          </TabsContent>
+            </TabsContent>
 
           {/* 项目列表 */}
           <TabsContent value="projects" className="space-y-6">
@@ -3194,9 +3218,105 @@ export default function HomePage() {
             <Card>
               <CardHeader>
                 <CardTitle>项目时间线</CardTitle>
-                <CardDescription>查看所有项目的时间节点和工作流程</CardDescription>
+                <CardDescription>查看所有项目的时间节点、关键路径和瓶颈任务</CardDescription>
               </CardHeader>
               <CardContent>
+                {/* 关键路径统计卡片 */}
+                {criticalPathData && (
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-6">
+                    <Card className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="text-[11px] font-medium text-muted-foreground">总项目数</div>
+                          <div className="text-lg font-bold">{criticalPathData.summary.totalProjects}</div>
+                          <div className="text-[10px] text-muted-foreground">进行中</div>
+                        </div>
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                    </Card>
+
+                    <Card className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="text-[11px] font-medium text-muted-foreground">正常进行</div>
+                          <div className="text-lg font-bold text-green-600">{criticalPathData.summary.onTrackProjects}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            占比 {criticalPathData.summary.totalProjects > 0 ? Math.round((criticalPathData.summary.onTrackProjects / criticalPathData.summary.totalProjects) * 100) : 0}%
+                          </div>
+                        </div>
+                        <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                      </div>
+                    </Card>
+
+                    <Card className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="text-[11px] font-medium text-muted-foreground">有风险</div>
+                          <div className="text-lg font-bold text-orange-600">{criticalPathData.summary.atRiskProjects}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            占比 {criticalPathData.summary.totalProjects > 0 ? Math.round((criticalPathData.summary.atRiskProjects / criticalPathData.summary.totalProjects) * 100) : 0}%
+                          </div>
+                        </div>
+                        <AlertCircle className="h-3.5 w-3.5 text-orange-500" />
+                      </div>
+                    </Card>
+
+                    <Card className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="text-[11px] font-medium text-muted-foreground">已延期</div>
+                          <div className="text-lg font-bold text-destructive">{criticalPathData.summary.delayedProjects}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            占比 {criticalPathData.summary.totalProjects > 0 ? Math.round((criticalPathData.summary.delayedProjects / criticalPathData.summary.totalProjects) * 100) : 0}%
+                          </div>
+                        </div>
+                        <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                      </div>
+                    </Card>
+                  </div>
+                )}
+
+                {/* 瓶颈任务列表 */}
+                {criticalPathData && criticalPathData.bottleneckTasks && criticalPathData.bottleneckTasks.length > 0 && (
+                  <Card className="border-destructive p-3 mb-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                      <div className="text-sm font-medium">关键瓶颈任务</div>
+                      <Badge variant="destructive" className="text-xs ml-auto">
+                        {criticalPathData.bottleneckTasks.length}个
+                      </Badge>
+                    </div>
+                    <div className="space-y-1.5">
+                      {criticalPathData.bottleneckTasks.slice(0, 5).map((task: any) => (
+                        <div key={task.taskId} className="flex items-center justify-between p-2 bg-destructive/10 rounded">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium truncate">{task.taskTitle}</div>
+                            <div className="text-[10px] text-muted-foreground truncate">
+                              {getPositionName(task.position)} · {task.assignee || '未分配'}
+                            </div>
+                            {task.deadline && (
+                              <div className="text-[10px] text-destructive mt-0.5">
+                                {new Date(task.deadline).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 ml-2">
+                            {task.riskLevel === 'critical' && <Badge variant="destructive" className="text-xs">严重</Badge>}
+                            {task.riskLevel === 'high' && <Badge className="bg-orange-500 hover:bg-orange-600 text-xs">高</Badge>}
+                            {task.riskLevel === 'medium' && <Badge variant="outline" className="text-xs">中</Badge>}
+                            {task.riskLevel === 'low' && <Badge variant="secondary" className="text-xs">低</Badge>}
+                          </div>
+                        </div>
+                      ))}
+                      {criticalPathData.bottleneckTasks.length > 5 && (
+                        <div className="text-center text-[10px] text-muted-foreground py-1">
+                          还有 {criticalPathData.bottleneckTasks.length - 5} 个未显示
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                )}
+
                 {projects.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -3314,13 +3434,30 @@ export default function HomePage() {
                                 const estimatedDate = new Date(t.estimatedCompletionDate);
                                 return new Date() > estimatedDate;
                               }).length;
-                              
+
+                              // 检查关键路径中的瓶颈任务
+                              const projectCriticalPath = criticalPathData?.projectCriticalPath?.find(
+                                (cp: any) => cp.projectId === parseInt(project.id)
+                              );
+                              const bottleneckTasksForRole = projectCriticalPath?.bottleneckTasks?.filter(
+                                (bt: any) => bt.position === role
+                              ) || [];
+                              const hasBottleneck = bottleneckTasksForRole.length > 0;
+
                               return (
                                 <div key={role} className={`bg-slate-50 dark:bg-slate-800 rounded-lg p-3 border-2 hover:shadow-md transition-shadow cursor-pointer ${
+                                  hasBottleneck ? 'border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/10' :
                                   delayedTasks > 0 ? 'border-red-300 dark:border-red-700' : 'border-transparent'
                                 }`}>
                                   <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium text-sm">{ROLE_NAMES[role]}</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium text-sm">{ROLE_NAMES[role]}</span>
+                                      {hasBottleneck && (
+                                        <Badge variant="outline" className="text-[10px] h-5 px-1 border-orange-400 dark:border-orange-600 text-orange-700 dark:text-orange-400">
+                                          瓶颈{bottleneckTasksForRole.length}
+                                        </Badge>
+                                      )}
+                                    </div>
                                     <div className="flex items-center gap-2">
                                       <span className="text-xs font-medium">{avgProgress}%</span>
                                       {delayedTasks > 0 && (
@@ -3336,6 +3473,19 @@ export default function HomePage() {
                                     <span className="text-green-600">✓ {completedTasks}</span>
                                     <span className="text-blue-600">● {inProgressTasks}</span>
                                   </div>
+                                  {hasBottleneck && bottleneckTasksForRole.length > 0 && (
+                                    <div className="mt-2 pt-2 border-t border-orange-300 dark:border-orange-700">
+                                      <div className="text-[10px] font-medium text-orange-700 dark:text-orange-400 mb-1">瓶颈任务</div>
+                                      {bottleneckTasksForRole.slice(0, 2).map((bt: any) => (
+                                        <div key={bt.taskId} className="text-[9px] text-orange-700 dark:text-orange-400 truncate">
+                                          • {bt.taskTitle} {bt.slack !== null && `(松弛:${bt.slack}天)`}
+                                        </div>
+                                      ))}
+                                      {bottleneckTasksForRole.length > 2 && (
+                                        <div className="text-[9px] text-muted-foreground">还有{bottleneckTasksForRole.length - 2}个...</div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
@@ -3356,13 +3506,30 @@ export default function HomePage() {
                                 const estimatedDate = new Date(t.estimatedCompletionDate);
                                 return new Date() > estimatedDate;
                               }).length;
-                              
+
+                              // 检查关键路径中的瓶颈任务
+                              const projectCriticalPath = criticalPathData?.projectCriticalPath?.find(
+                                (cp: any) => cp.projectId === parseInt(project.id)
+                              );
+                              const bottleneckTasksForRole = projectCriticalPath?.bottleneckTasks?.filter(
+                                (bt: any) => bt.position === role
+                              ) || [];
+                              const hasBottleneck = bottleneckTasksForRole.length > 0;
+
                               return (
                                 <div key={role} className={`bg-slate-50 dark:bg-slate-800 rounded-lg p-3 border-2 hover:shadow-md transition-shadow cursor-pointer ${
+                                  hasBottleneck ? 'border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/10' :
                                   delayedTasks > 0 ? 'border-red-300 dark:border-red-700' : 'border-transparent'
                                 }`}>
                                   <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium text-sm">{ROLE_NAMES[role]}</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium text-sm">{ROLE_NAMES[role]}</span>
+                                      {hasBottleneck && (
+                                        <Badge variant="outline" className="text-[10px] h-5 px-1 border-orange-400 dark:border-orange-600 text-orange-700 dark:text-orange-400">
+                                          瓶颈{bottleneckTasksForRole.length}
+                                        </Badge>
+                                      )}
+                                    </div>
                                     <div className="flex items-center gap-2">
                                       <span className="text-xs font-medium">{avgProgress}%</span>
                                       {delayedTasks > 0 && (
@@ -3378,6 +3545,19 @@ export default function HomePage() {
                                     <span className="text-green-600">✓ {completedTasks}</span>
                                     <span className="text-blue-600">● {inProgressTasks}</span>
                                   </div>
+                                  {hasBottleneck && bottleneckTasksForRole.length > 0 && (
+                                    <div className="mt-2 pt-2 border-t border-orange-300 dark:border-orange-700">
+                                      <div className="text-[10px] font-medium text-orange-700 dark:text-orange-400 mb-1">瓶颈任务</div>
+                                      {bottleneckTasksForRole.slice(0, 2).map((bt: any) => (
+                                        <div key={bt.taskId} className="text-[9px] text-orange-700 dark:text-orange-400 truncate">
+                                          • {bt.taskTitle} {bt.slack !== null && `(松弛:${bt.slack}天)`}
+                                        </div>
+                                      ))}
+                                      {bottleneckTasksForRole.length > 2 && (
+                                        <div className="text-[9px] text-muted-foreground">还有{bottleneckTasksForRole.length - 2}个...</div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
@@ -3398,13 +3578,30 @@ export default function HomePage() {
                                 const estimatedDate = new Date(t.estimatedCompletionDate);
                                 return new Date() > estimatedDate;
                               }).length;
-                              
+
+                              // 检查关键路径中的瓶颈任务
+                              const projectCriticalPath = criticalPathData?.projectCriticalPath?.find(
+                                (cp: any) => cp.projectId === parseInt(project.id)
+                              );
+                              const bottleneckTasksForRole = projectCriticalPath?.bottleneckTasks?.filter(
+                                (bt: any) => bt.position === role
+                              ) || [];
+                              const hasBottleneck = bottleneckTasksForRole.length > 0;
+
                               return (
                                 <div key={role} className={`bg-slate-50 dark:bg-slate-800 rounded-lg p-3 border-2 hover:shadow-md transition-shadow cursor-pointer ${
+                                  hasBottleneck ? 'border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/10' :
                                   delayedTasks > 0 ? 'border-red-300 dark:border-red-700' : 'border-transparent'
                                 }`}>
                                   <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium text-sm">{ROLE_NAMES[role]}</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium text-sm">{ROLE_NAMES[role]}</span>
+                                      {hasBottleneck && (
+                                        <Badge variant="outline" className="text-[10px] h-5 px-1 border-orange-400 dark:border-orange-600 text-orange-700 dark:text-orange-400">
+                                          瓶颈{bottleneckTasksForRole.length}
+                                        </Badge>
+                                      )}
+                                    </div>
                                     <div className="flex items-center gap-2">
                                       <span className="text-xs font-medium">{avgProgress}%</span>
                                       {delayedTasks > 0 && (
@@ -3420,6 +3617,19 @@ export default function HomePage() {
                                     <span className="text-green-600">✓ {completedTasks}</span>
                                     <span className="text-blue-600">● {inProgressTasks}</span>
                                   </div>
+                                  {hasBottleneck && bottleneckTasksForRole.length > 0 && (
+                                    <div className="mt-2 pt-2 border-t border-orange-300 dark:border-orange-700">
+                                      <div className="text-[10px] font-medium text-orange-700 dark:text-orange-400 mb-1">瓶颈任务</div>
+                                      {bottleneckTasksForRole.slice(0, 2).map((bt: any) => (
+                                        <div key={bt.taskId} className="text-[9px] text-orange-700 dark:text-orange-400 truncate">
+                                          • {bt.taskTitle} {bt.slack !== null && `(松弛:${bt.slack}天)`}
+                                        </div>
+                                      ))}
+                                      {bottleneckTasksForRole.length > 2 && (
+                                        <div className="text-[9px] text-muted-foreground">还有{bottleneckTasksForRole.length - 2}个...</div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
@@ -3665,10 +3875,6 @@ export default function HomePage() {
           </TabsContent>
 
           {/* 关键路径分析 */}
-          <TabsContent value="critical-path" className="space-y-6">
-            <CriticalPathAnalyzer />
-          </TabsContent>
-
           {/* 员工反馈 */}
           <TabsContent value="feedback" className="space-y-6">
             <div className="flex items-center justify-between">

@@ -28,8 +28,9 @@ interface SalesStat {
 export function SalesStats() {
   const [stats, setStats] = useState<SalesStat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState('');
 
   useEffect(() => {
@@ -38,10 +39,11 @@ export function SalesStats() {
 
   const loadStats = async () => {
     setLoading(true);
+    setError('');
     try {
       const params = new URLSearchParams({
         year: selectedYear.toString(),
-        ...(selectedMonth && { month: selectedMonth }),
+        ...(selectedMonth !== 'all' && { month: selectedMonth }),
         ...(selectedProduct && { product_id: selectedProduct }),
       });
 
@@ -50,9 +52,12 @@ export function SalesStats() {
 
       if (data.success) {
         setStats(data.data || []);
+      } else {
+        setError(data.error || '加载数据失败');
       }
     } catch (error) {
       console.error('加载销售统计失败:', error);
+      setError('网络错误，请稍后重试');
     } finally {
       setLoading(false);
     }
@@ -99,7 +104,7 @@ export function SalesStats() {
             <SelectValue placeholder="月份" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">全部月份</SelectItem>
+            <SelectItem value="all">全部月份</SelectItem>
             {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
               <SelectItem key={month} value={month.toString()}>{month}月</SelectItem>
             ))}
@@ -174,6 +179,13 @@ export function SalesStats() {
             <div className="text-center py-8 text-muted-foreground flex items-center justify-center">
               <Loader2 className="h-5 w-5 animate-spin mr-2" />
               加载中...
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-600">
+              <p>{error}</p>
+              <Button variant="outline" size="sm" onClick={loadStats} className="mt-4">
+                重试
+              </Button>
             </div>
           ) : stats.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">

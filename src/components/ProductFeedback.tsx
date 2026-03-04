@@ -33,6 +33,7 @@ export function ProductFeedback() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string>('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     product_id: '',
@@ -40,7 +41,7 @@ export function ProductFeedback() {
     rating: 5,
     comment: '',
   });
-  const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('all');
 
   useEffect(() => {
     loadFeedbacks();
@@ -48,18 +49,22 @@ export function ProductFeedback() {
 
   const loadFeedbacks = async () => {
     setLoading(true);
+    setError('');
     try {
       const params = new URLSearchParams();
-      if (selectedStatus) params.append('status', selectedStatus);
+      if (selectedStatus !== 'all') params.append('status', selectedStatus);
 
       const response = await fetch(`/api/product-center/product-feedback${params.toString() ? `?${params}` : ''}`);
       const data = await response.json();
 
       if (data.success) {
         setFeedbacks(data.data || []);
+      } else {
+        setError(data.error || '加载数据失败');
       }
     } catch (error) {
       console.error('加载商品反馈失败:', error);
+      setError('网络错误，请稍后重试');
     } finally {
       setLoading(false);
     }
@@ -96,7 +101,7 @@ export function ProductFeedback() {
       }
     } catch (error) {
       console.error('提交反馈失败:', error);
-      alert('提交失败，请重试');
+      alert('网络错误，请稍后重试');
     } finally {
       setSubmitting(false);
     }
@@ -137,9 +142,9 @@ export function ProductFeedback() {
       <div className="flex justify-between items-center">
         <div className="flex gap-2">
           <Button
-            variant={selectedStatus === '' ? 'default' : 'outline'}
+            variant={selectedStatus === 'all' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setSelectedStatus('')}
+            onClick={() => setSelectedStatus('all')}
           >
             全部
           </Button>
@@ -301,6 +306,13 @@ export function ProductFeedback() {
             <div className="text-center py-8 text-muted-foreground flex items-center justify-center">
               <Loader2 className="h-5 w-5 animate-spin mr-2" />
               加载中...
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-600">
+              <p>{error}</p>
+              <Button variant="outline" size="sm" onClick={loadFeedbacks} className="mt-4">
+                重试
+              </Button>
             </div>
           ) : feedbacks.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">

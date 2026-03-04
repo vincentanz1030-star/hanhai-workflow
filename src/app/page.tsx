@@ -24,6 +24,15 @@ import { NotificationCenter } from '@/components/NotificationCenter';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { getPositionName } from '@/lib/config';
 import ProductScheduleCalendar from '@/components/calendar/ProductScheduleCalendar';
+import { ProductList } from '@/components/ProductList';
+import { SupplierList } from '@/components/SupplierList';
+import { PurchaseOrderList } from '@/components/PurchaseOrderList';
+import { CampaignList } from '@/components/CampaignList';
+import { KnowledgeArticles } from '@/components/KnowledgeArticles';
+import { ProjectCollaboration } from '@/components/ProjectCollaboration';
+import { ScheduleManagement } from '@/components/ScheduleManagement';
+import { ApprovalWorkflow } from '@/components/ApprovalWorkflow';
+import { InternalMessages } from '@/components/InternalMessages';
 
 // 类型定义
 interface Project {
@@ -4118,51 +4127,15 @@ export default function HomePage() {
               </TabsList>
 
               <TabsContent value="products" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>商品列表</CardTitle>
-                    <CardDescription>管理所有商品信息</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>商品管理功能正在开发中...</p>
-                      <p className="text-sm mt-2">API接口已就绪：/api/product-center/products</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ProductList />
               </TabsContent>
 
               <TabsContent value="suppliers" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>供应商管理</CardTitle>
-                    <CardDescription>管理供应商档案和评级</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>供应商管理功能正在开发中...</p>
-                      <p className="text-sm mt-2">API接口已就绪：/api/product-center/suppliers</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <SupplierList />
               </TabsContent>
 
               <TabsContent value="purchase" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>采购订单</CardTitle>
-                    <CardDescription>管理采购订单和到货追踪</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>采购订单功能正在开发中...</p>
-                      <p className="text-sm mt-2">API接口已就绪：/api/product-center/purchase-orders</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <PurchaseOrderList />
               </TabsContent>
 
               <TabsContent value="sales" className="space-y-4">
@@ -4299,83 +4272,23 @@ export default function HomePage() {
               </TabsList>
 
               <TabsContent value="knowledge" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>知识库</CardTitle>
-                    <CardDescription>管理企业知识和文档</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>知识库功能正在开发中...</p>
-                      <p className="text-sm mt-2">API接口已就绪：/api/collaboration/knowledge</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <KnowledgeArticles />
               </TabsContent>
 
               <TabsContent value="projects" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>项目协同</CardTitle>
-                    <CardDescription>管理项目任务和协作</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <FolderKanban className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>项目协同功能正在开发中...</p>
-                      <p className="text-sm mt-2">API接口已就绪：/api/collaboration/projects</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ProjectCollaboration />
               </TabsContent>
 
               <TabsContent value="schedule" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>日程管理</CardTitle>
-                    <CardDescription>管理日程和会议安排</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <CalendarDays className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>日程管理功能正在开发中...</p>
-                      <p className="text-sm mt-2">API接口已就绪：/api/collaboration/schedule</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ScheduleManagement />
               </TabsContent>
 
               <TabsContent value="approval" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>审批流程</CardTitle>
-                    <CardDescription>管理审批流程和实例</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <ClipboardCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>审批流程功能正在开发中...</p>
-                      <p className="text-sm mt-2">API接口已就绪：/api/collaboration/approvals</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ApprovalWorkflow />
               </TabsContent>
 
               <TabsContent value="messages" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>内部沟通</CardTitle>
-                    <CardDescription>内部消息和群聊</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>内部沟通功能正在开发中...</p>
-                      <p className="text-sm mt-2">API接口已就绪：/api/collaboration/messages</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <InternalMessages />
               </TabsContent>
             </Tabs>
           </TabsContent>

@@ -38,11 +38,19 @@ export function PurchaseOrderList() {
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [reviewingOrder, setReviewingOrder] = useState<PurchaseOrder | null>(null);
+  const [reviewData, setReviewData] = useState({
+    reviewer_id: '',
+    review_notes: '',
+    action: 'approve' as 'approve' | 'reject',
+  });
   const [formData, setFormData] = useState({
     order_code: '',
     supplier_id: '',
@@ -56,7 +64,20 @@ export function PurchaseOrderList() {
     loadOrders();
     loadSuppliers();
     loadProducts();
+    loadUsers();
   }, [selectedStatus]);
+
+  const loadUsers = async () => {
+    try {
+      const response = await fetch('/api/admin/users');
+      const data = await response.json();
+      if (data.success) {
+        setUsers(data.users || []);
+      }
+    } catch (error) {
+      console.error('加载用户列表失败:', error);
+    }
+  };
 
   const loadSuppliers = async () => {
     try {
@@ -176,6 +197,48 @@ export function PurchaseOrderList() {
     order.supplier_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.product_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const openReviewDialog = (order: PurchaseOrder) => {
+    setReviewingOrder(order);
+    setReviewData({
+      reviewer_id: '',
+      review_notes: '',
+      action: 'approve',
+    });
+    setIsReviewDialogOpen(true);
+  };
+
+  const handleReview = async () => {
+    if (!reviewingOrder || !reviewData.reviewer_id) {
+      alert('请选择审核人');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/product-center/purchase-orders/${reviewingOrder.id}/review`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reviewData),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setIsReviewDialogOpen(false);
+        loadOrders();
+        alert(reviewData.action === 'approve' ? '订单已批准' : '订单已拒绝');
+      } else {
+        alert(`审核失败: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('审核订单失败:', error);
+      alert('审核订单失败');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -326,6 +389,7 @@ export function PurchaseOrderList() {
                   <TableHead>采购日期</TableHead>
                   <TableHead>预计到货</TableHead>
                   <TableHead>状态</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -349,6 +413,19 @@ export function PurchaseOrderList() {
                       {order.expected_date && format(new Date(order.expected_date), 'yyyy-MM-dd', { locale: zhCN })}
                     </TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center gap-1 justify-end">
+                        {order.status === 'pending' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openReviewDialog(order)}
+                          >
+                            审核
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -356,6 +433,110 @@ export function PurchaseOrderList() {
           )}
         </CardContent>
       </Card>
+
+      {/* 审核对话框 */}
+      <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>审核采购订单</DialogTitle>
+            <DialogDescription>审核订单并记录审核意见</DialogDescription>
+          </DialogHeader>
+          {reviewingOrder && (
+            <div className="space-y-4 py-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">订单编号：</span>
+                      <span className="font-mono">{reviewingOrder.order_code}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">供应商：</span>
+                      <span>{reviewingOrder.supplier_name || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">商品：</span>
+                      <span>{reviewingOrder.product_name || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">数量：</span>
+                      <span>{reviewingOrder.quantity}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">采购日期：</span>
+                      <span>{reviewingOrder.order_date}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">预计到货：</span>
+                      <span>{reviewingOrder.expected_date}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reviewer">审核人 *</Label>
+                  <Select
+                    value={reviewData.reviewer_id}
+                    onValueChange={(value) => setReviewData({ ...reviewData, reviewer_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择审核人" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name} ({user.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notes">审核意见</Label>
+                  <Input
+                    id="notes"
+                    placeholder="请输入审核意见（可选）"
+                    value={reviewData.review_notes}
+                    onChange={(e) => setReviewData({ ...reviewData, review_notes: e.target.value })}
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    variant="default"
+                    className="flex-1"
+                    onClick={() => setReviewData({ ...reviewData, action: 'approve' })}
+                    disabled={submitting}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    批准
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => setReviewData({ ...reviewData, action: 'reject' })}
+                    disabled={submitting}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    拒绝
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsReviewDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleReview} disabled={submitting}>
+              {submitting ? '提交中...' : '确认审核'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

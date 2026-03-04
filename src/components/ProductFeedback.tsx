@@ -61,6 +61,20 @@ export function ProductFeedback() {
     trial_date: new Date().toISOString().split('T')[0],
   });
 
+  // 编辑试用对话框状态
+  const [isEditTrialDialogOpen, setIsEditTrialDialogOpen] = useState(false);
+  const [editingTrial, setEditingTrial] = useState<ProductTrial | null>(null);
+  const [editTrialData, setEditTrialData] = useState({
+    brand: 'hezhe',
+    product_name: '',
+    trial_date: new Date().toISOString().split('T')[0],
+  });
+
+  // 删除试用确认对话框状态
+  const [isDeleteTrialDialogOpen, setIsDeleteTrialDialogOpen] = useState(false);
+  const [deletingTrial, setDeletingTrial] = useState<ProductTrial | null>(null);
+  const [deletingTrialState, setDeletingTrialState] = useState(false);
+
   // 添加反馈对话框状态
   const [isAddFeedbackDialogOpen, setIsAddFeedbackDialogOpen] = useState(false);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
@@ -182,6 +196,78 @@ export function ProductFeedback() {
       alert('网络错误，请稍后重试');
     } finally {
       setSubmittingFeedback(false);
+    }
+  };
+
+  const openEditTrialDialog = (trial: ProductTrial) => {
+    setEditingTrial(trial);
+    setEditTrialData({
+      brand: trial.brand,
+      product_name: trial.product_name,
+      trial_date: trial.trial_date,
+    });
+    setIsEditTrialDialogOpen(true);
+  };
+
+  const handleEditTrial = async () => {
+    if (!editingTrial || !editTrialData.product_name || !editTrialData.trial_date) {
+      alert('请填写完整信息');
+      return;
+    }
+
+    setSubmittingTrial(true);
+    try {
+      const response = await fetch(`/api/product-center/product-trials/${editingTrial.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editTrialData),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('商品试用更新成功');
+        setIsEditTrialDialogOpen(false);
+        setEditingTrial(null);
+        await loadTrials();
+      } else {
+        alert('更新失败：' + data.error);
+      }
+    } catch (error) {
+      console.error('更新商品试用失败:', error);
+      alert('网络错误，请稍后重试');
+    } finally {
+      setSubmittingTrial(false);
+    }
+  };
+
+  const openDeleteTrialDialog = (trial: ProductTrial) => {
+    setDeletingTrial(trial);
+    setIsDeleteTrialDialogOpen(true);
+  };
+
+  const handleDeleteTrial = async () => {
+    if (!deletingTrial) return;
+
+    setDeletingTrialState(true);
+    try {
+      const response = await fetch(`/api/product-center/product-trials/${deletingTrial.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('商品试用删除成功');
+        setIsDeleteTrialDialogOpen(false);
+        setDeletingTrial(null);
+        await loadTrials();
+      } else {
+        alert('删除失败：' + data.error);
+      }
+    } catch (error) {
+      console.error('删除商品试用失败:', error);
+      alert('网络错误，请稍后重试');
+    } finally {
+      setDeletingTrialState(false);
     }
   };
 
@@ -463,10 +549,27 @@ export function ProductFeedback() {
                     </div>
                     <CardDescription>试用日期：{formatDate(trial.trial_date)}</CardDescription>
                   </div>
-                  <Button size="sm" onClick={() => openFeedbackDialog(trial.id)}>
-                    <Plus className="mr-1 h-4 w-4" />
-                    添加反馈
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={() => openFeedbackDialog(trial.id)}>
+                      <Plus className="mr-1 h-4 w-4" />
+                      添加反馈
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEditTrialDialog(trial)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openDeleteTrialDialog(trial)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -623,6 +726,82 @@ export function ProductFeedback() {
             </Button>
             <Button variant="destructive" onClick={handleDeleteFeedback} disabled={deletingFeedbackState}>
               {deletingFeedbackState ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 编辑商品试用对话框 */}
+      <Dialog open={isEditTrialDialogOpen} onOpenChange={setIsEditTrialDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>编辑商品试用</DialogTitle>
+            <DialogDescription>修改商品试用记录信息</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-sm font-medium">品牌</label>
+              <Select 
+                value={editTrialData.brand} 
+                onValueChange={(v) => setEditTrialData({ ...editTrialData, brand: v })}
+              >
+                <SelectTrigger className="w-full mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(BRAND_NAMES).filter(([k]) => k !== 'all').map(([key, name]) => (
+                    <SelectItem key={key} value={key}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">产品名称</label>
+              <Input
+                className="mt-1"
+                placeholder="输入产品名称"
+                value={editTrialData.product_name}
+                onChange={(e) => setEditTrialData({ ...editTrialData, product_name: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">试用日期</label>
+              <Input
+                type="date"
+                className="mt-1"
+                value={editTrialData.trial_date}
+                onChange={(e) => setEditTrialData({ ...editTrialData, trial_date: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditTrialDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleEditTrial} disabled={submittingTrial}>
+              {submittingTrial ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 删除商品试用确认对话框 */}
+      <Dialog open={isDeleteTrialDialogOpen} onOpenChange={setIsDeleteTrialDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+            <DialogDescription>
+              确定要删除这条商品试用记录吗？删除后将无法恢复，所有相关反馈也会被删除。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteTrialDialogOpen(false)}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteTrial} disabled={deletingTrialState}>
+              {deletingTrialState ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               删除
             </Button>
           </DialogFooter>

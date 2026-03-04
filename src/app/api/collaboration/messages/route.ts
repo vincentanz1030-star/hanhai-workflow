@@ -31,11 +31,7 @@ export async function GET(request: NextRequest) {
     if (receiver) {
       // 获取私聊消息
       const { data, error } = await query
-        .select(`
-          *,
-          sender_users:users!internal_messages_sender_fkey(email, name),
-          receiver_users:users!internal_messages_receiver_fkey(email, name)
-        `)
+        .select('*')
         .or(`and(sender.eq.${receiver}),and(receiver.eq.${receiver})`)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -49,10 +45,7 @@ export async function GET(request: NextRequest) {
     } else if (group_id) {
       // 获取群聊消息
       const { data, error } = await query
-        .select(`
-          *,
-          sender_users:users!internal_messages_sender_fkey(email, name)
-        `)
+        .select('*')
         .eq('group_id', group_id)
         .order('created_at', { ascending: false })
         .limit(limit);

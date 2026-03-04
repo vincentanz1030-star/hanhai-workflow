@@ -1,5 +1,5 @@
 /**
- * 获取用户列表API
+ * 获取审批工作流列表API
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,14 +16,15 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseKey);
 }
 
-// GET - 获取用户列表
+// GET - 获取审批工作流列表
 export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabaseClient();
 
     const { data, error } = await supabase
-      .from('users')
-      .select('id, email, name, avatar')
+      .from('approval_workflows')
+      .select('id, workflow_code, name, description, category, steps')
+      .eq('is_active', true)
       .order('name', { ascending: true });
 
     if (error) throw error;
@@ -33,9 +34,9 @@ export async function GET(request: NextRequest) {
       data: data || [],
     });
   } catch (error) {
-    console.error('[Users API] Error:', error);
+    console.error('[Approval Workflows API] Error:', error);
     return NextResponse.json(
-      { success: false, error: '获取用户列表失败' },
+      { success: false, error: '获取审批工作流列表失败' },
       { status: 500 }
     );
   }

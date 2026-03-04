@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Search, Plus, ClipboardCheck, Clock, CheckCircle2, XCircle, User, FileText, Eye, Edit, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -52,16 +53,23 @@ export function ApprovalWorkflow() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // 用户和审批人状态
+  const [users, setUsers] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [selectedApprovers, setSelectedApprovers] = useState<string[]>([]);
+  const [currentWorkflowSteps, setCurrentWorkflowSteps] = useState<any[]>([]);
+
   // 表单状态
   const [formData, setFormData] = useState({
     workflow_id: '',
     title: '',
     content: '',
     status: 'pending',
+    initiator: '00000000-0000-0000-0000-000000000000',
   });
 
   useEffect(() => {
     loadApprovals();
+    loadUsers();
   }, [selectedStatus]);
 
   const loadApprovals = async () => {
@@ -86,6 +94,18 @@ export function ApprovalWorkflow() {
     }
   };
 
+  const loadUsers = async () => {
+    try {
+      const response = await fetch('/api/users');
+      const data = await response.json();
+      if (data.success) {
+        setUsers(data.data || []);
+      }
+    } catch (error) {
+      console.error('加载用户列表失败:', error);
+    }
+  };
+
   const handleCreateApproval = async () => {
     if (!formData.workflow_id || !formData.title) {
       alert('请填写必填项：审批流程、标题');
@@ -99,7 +119,10 @@ export function ApprovalWorkflow() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          approvers: selectedApprovers,
+        }),
       });
 
       const data = await response.json();
@@ -112,7 +135,9 @@ export function ApprovalWorkflow() {
           title: '',
           content: '',
           status: 'pending',
+          initiator: '00000000-0000-0000-0000-000000000000',
         });
+        setSelectedApprovers([]);
         loadApprovals(); // 刷新列表
       } else {
         alert(`提交失败: ${data.error || '未知错误'}`);
@@ -236,6 +261,45 @@ export function ApprovalWorkflow() {
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>选择审批人</Label>
+                {users.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">加载中...</div>
+                ) : (
+                  <div className="border rounded-md p-3 max-h-40 overflow-y-auto">
+                    <div className="space-y-2">
+                      {users.map((user) => (
+                        <div key={user.id} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`user-${user.id}`}
+                            checked={selectedApprovers.includes(user.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedApprovers([...selectedApprovers, user.id]);
+                              } else {
+                                setSelectedApprovers(selectedApprovers.filter(id => id !== user.id));
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <Label
+                            htmlFor={`user-${user.id}`}
+                            className="flex-1 cursor-pointer text-sm font-normal"
+                          >
+                            {user.name || user.email}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {selectedApprovers.length > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    已选择 {selectedApprovers.length} 人
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="attachments">附件</Label>

@@ -43,9 +43,25 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
+    // 映射字段名以匹配前端期望
+    const mappedData = (data || []).map(group => ({
+      id: group.id,
+      name: group.group_name,
+      description: group.description,
+      type: group.group_type,
+      member_count: group.member_count,
+      members: group.members,
+      owner: group.owner,
+      last_message: group.last_message || '',
+      last_message_time: group.last_message_time || group.updated_at,
+      unread_count: 0, // 默认为0，需要从消息表计算
+      created_at: group.created_at,
+      updated_at: group.updated_at,
+    }));
+
     return NextResponse.json({
       success: true,
-      data: data || [],
+      data: mappedData,
       pagination: {
         page,
         limit,

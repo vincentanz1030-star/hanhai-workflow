@@ -14,6 +14,7 @@ import {
   ChevronRight,
   MessageSquare
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface Notification {
   id: string;
@@ -39,6 +40,31 @@ export function NotificationCenter({
   weeklyPlans = [],
   projectNotifications = [],
 }: NotificationCenterProps) {
+  const router = useRouter();
+
+  const handleNotificationClick = (notification: Notification) => {
+    // 根据通知类型跳转到对应板块
+    switch (notification.type) {
+      case 'collaboration':
+        // 跳转到协同合作板块
+        router.push('/collaboration');
+        break;
+      case 'reminder':
+        // 跳转到项目列表
+        router.push('/projects');
+        break;
+      case 'weekly':
+        // 跳转到本周工作安排
+        router.push('/weekly');
+        break;
+      case 'project':
+        // 跳转到项目列表
+        router.push('/projects');
+        break;
+      default:
+        break;
+    }
+  };
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
@@ -99,6 +125,7 @@ export function NotificationCenter({
           isOverdue ? 'border-orange-300 bg-orange-50 dark:bg-orange-900/10' :
           'border-transparent bg-muted/30'
         }`}
+        onClick={() => handleNotificationClick(notification)}
       >
         <div className="flex items-start gap-3">
           <div className={`mt-0.5 ${priority === 'high' ? 'text-red-600' : isOverdue ? 'text-orange-600' : 'text-muted-foreground'}`}>

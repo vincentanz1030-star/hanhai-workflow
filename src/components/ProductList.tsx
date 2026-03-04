@@ -199,14 +199,14 @@ export function ProductList() {
   const openEditDialog = (product: Product) => {
     setCurrentProduct(product);
     setFormData({
-      sku_code: product.sku_code,
-      name: product.name,
-      description: product.description,
-      brand: product.brand,
+      sku_code: product.sku_code || '',
+      name: product.name || '',
+      description: product.description || '',
+      brand: product.brand || '',
       supplier_id: (product as any).supplier_id || '',
-      status: product.status,
-      lifecycle_stage: product.lifecycle_stage,
-      main_image: product.main_image,
+      status: product.status || 'active',
+      lifecycle_stage: product.lifecycle_stage || 'new',
+      main_image: product.main_image || '',
     });
     setIsEditDialogOpen(true);
   };
@@ -321,7 +321,7 @@ export function ProductList() {
                   <Input
                     id="sku"
                     placeholder="例如：HZ-001"
-                    value={formData.sku_code}
+                    value={formData.sku_code || ''}
                     onChange={(e) => setFormData({ ...formData, sku_code: e.target.value })}
                   />
                 </div>
@@ -345,7 +345,7 @@ export function ProductList() {
                 <Input
                   id="name"
                   placeholder="输入商品名称"
-                  value={formData.name}
+                  value={formData.name || ''}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
               </div>
@@ -370,8 +370,9 @@ export function ProductList() {
                   id="description"
                   placeholder="输入商品描述"
                   rows={3}
-                  value={formData.description}
+                  value={formData.description || ''}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="min-h-[120px] max-h-64 overflow-y-auto"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -408,7 +409,7 @@ export function ProductList() {
                 <Input
                   id="image"
                   placeholder="输入图片URL"
-                  value={formData.main_image}
+                  value={formData.main_image || ''}
                   onChange={(e) => setFormData({ ...formData, main_image: e.target.value })}
                 />
               </div>
@@ -518,7 +519,7 @@ export function ProductList() {
                 <Label htmlFor="edit-sku">SKU编码 *</Label>
                 <Input
                   id="edit-sku"
-                  value={formData.sku_code}
+                  value={formData.sku_code || ''}
                   onChange={(e) => setFormData({ ...formData, sku_code: e.target.value })}
                 />
               </div>
@@ -541,7 +542,7 @@ export function ProductList() {
               <Label htmlFor="edit-name">商品名称 *</Label>
               <Input
                 id="edit-name"
-                value={formData.name}
+                value={formData.name || ''}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
@@ -565,8 +566,9 @@ export function ProductList() {
               <Textarea
                 id="edit-description"
                 rows={3}
-                value={formData.description}
+                value={formData.description || ''}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="min-h-[120px] max-h-64 overflow-y-auto"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -602,7 +604,7 @@ export function ProductList() {
               <Label htmlFor="edit-image">主图URL</Label>
               <Input
                 id="edit-image"
-                value={formData.main_image}
+                value={formData.main_image || ''}
                 onChange={(e) => setFormData({ ...formData, main_image: e.target.value })}
               />
             </div>

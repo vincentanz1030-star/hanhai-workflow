@@ -2417,7 +2417,7 @@ export default function HomePage() {
             loadCriticalPath();
           }
         }} className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-12 gap-1 h-auto">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-12 gap-1 h-auto justify-items-center">
             <TabsTrigger value="dashboard" className="text-xs sm:text-sm py-2 px-2">数据看板</TabsTrigger>
             <TabsTrigger value="projects" className="text-xs sm:text-sm py-2 px-2">项目列表</TabsTrigger>
             <TabsTrigger value="timeline" className="text-xs sm:text-sm py-2 px-2">时间线</TabsTrigger>

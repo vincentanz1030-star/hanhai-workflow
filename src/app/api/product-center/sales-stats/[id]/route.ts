@@ -57,7 +57,16 @@ export async function PATCH(
 
     // 更新产品信息（如果需要）
     let productId = existingStat.product_id;
-    if (product_sku !== existingStat.product_id) {
+    
+    // 获取当前产品的 SKU
+    const { data: currentProduct } = await supabase
+      .from('products')
+      .select('sku_code')
+      .eq('id', existingStat.product_id)
+      .single();
+
+    // 如果 SKU 改变了，需要查找或创建新产品
+    if (currentProduct && currentProduct.sku_code !== product_sku) {
       const { data: existingProduct } = await supabase
         .from('products')
         .select('id')
@@ -80,7 +89,7 @@ export async function PATCH(
         productId = newProduct.id;
       }
     } else {
-      // 更新产品名称
+      // 更新产品名称和品牌
       await supabase
         .from('products')
         .update({ name: product_name, brand: brand })

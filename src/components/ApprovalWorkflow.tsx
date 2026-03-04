@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Plus, ClipboardCheck, Clock, CheckCircle2, XCircle, User, FileText, Eye, Edit, Loader2 } from 'lucide-react';
+import { Search, Plus, ClipboardCheck, Clock, CheckCircle2, XCircle, User, FileText, Eye, Edit, Loader2, Check, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -66,6 +66,12 @@ export function ApprovalWorkflow() {
     status: 'pending',
     initiator: '00000000-0000-0000-0000-000000000000',
   });
+
+  // 审批操作状态
+  const [isApprovalActionOpen, setIsApprovalActionOpen] = useState(false);
+  const [selectedApprovalId, setSelectedApprovalId] = useState<string | null>(null);
+  const [approvalComment, setApprovalComment] = useState('');
+  const [isApproving, setIsApproving] = useState(false);
 
   useEffect(() => {
     loadApprovals();
@@ -147,6 +153,47 @@ export function ApprovalWorkflow() {
       alert('提交失败，请稍后重试');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // 打开审批操作对话框
+  const openApprovalAction = (approvalId: string) => {
+    setSelectedApprovalId(approvalId);
+    setApprovalComment('');
+    setIsApprovalActionOpen(true);
+  };
+
+  // 执行审批操作
+  const handleApprovalAction = async (action: 'approve' | 'reject') => {
+    if (!selectedApprovalId) return;
+
+    setIsApproving(true);
+    try {
+      const response = await fetch(`/api/collaboration/approvals/${selectedApprovalId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          comment: approvalComment,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(action === 'approve' ? '已通过审批' : '已拒绝审批');
+        setIsApprovalActionOpen(false);
+        loadApprovals(); // 刷新列表
+      } else {
+        alert(`${action === 'approve' ? '通过' : '拒绝'}失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('审批操作失败:', error);
+      alert('操作失败，请稍后重试');
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -446,9 +493,24 @@ export function ApprovalWorkflow() {
                             <Eye className="h-4 w-4" />
                           </Button>
                           {approval.status === 'pending' && (
-                            <Button variant="ghost" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-green-600 hover:text-green-700"
+                                onClick={() => openApprovalAction(approval.id)}
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700"
+                                onClick={() => openApprovalAction(approval.id)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
                         </div>
                       </TableCell>
@@ -460,6 +522,64 @@ export function ApprovalWorkflow() {
           )}
         </CardContent>
       </Card>
+
+      {/* 审批操作对话框 */}
+      <Dialog open={isApprovalActionOpen} onOpenChange={setIsApprovalActionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>审批操作</DialogTitle>
+            <DialogDescription>请确认您的审批决定</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="comment">审批意见</Label>
+              <Textarea
+                id="comment"
+                placeholder="请输入审批意见（可选）"
+                rows={3}
+                value={approvalComment}
+                onChange={(e) => setApprovalComment(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsApprovalActionOpen(false)}>取消</Button>
+            <Button
+              variant="destructive"
+              onClick={() => handleApprovalAction('reject')}
+              disabled={isApproving}
+            >
+              {isApproving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  处理中...
+                </>
+              ) : (
+                <>
+                  <X className="h-4 w-4 mr-2" />
+                  拒绝
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={() => handleApprovalAction('approve')}
+              disabled={isApproving}
+            >
+              {isApproving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  处理中...
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  通过
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

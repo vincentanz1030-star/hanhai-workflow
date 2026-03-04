@@ -12,13 +12,14 @@ import {
   TrendingUp,
   CheckCircle,
   ChevronRight,
-  MessageSquare
+  MessageSquare,
+  ClipboardCheck
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface Notification {
   id: string;
-  type: 'collaboration' | 'reminder' | 'weekly' | 'project';
+  type: 'collaboration' | 'reminder' | 'weekly' | 'project' | 'approval';
   title: string;
   content: string;
   priority: 'high' | 'medium' | 'low';
@@ -32,6 +33,7 @@ interface NotificationCenterProps {
   reminders?: Notification[];
   weeklyPlans?: Notification[];
   projectNotifications?: Notification[];
+  approvalNotifications?: Notification[];
 }
 
 export function NotificationCenter({
@@ -39,6 +41,7 @@ export function NotificationCenter({
   reminders = [],
   weeklyPlans = [],
   projectNotifications = [],
+  approvalNotifications = [],
 }: NotificationCenterProps) {
   const router = useRouter();
 
@@ -47,7 +50,7 @@ export function NotificationCenter({
     switch (notification.type) {
       case 'collaboration':
         // 跳转到协同合作板块
-        router.push('/?tab=feedback');
+        router.push('/?tab=collaboration');
         break;
       case 'reminder':
         // 跳转到项目列表
@@ -60,6 +63,10 @@ export function NotificationCenter({
       case 'project':
         // 跳转到项目列表
         router.push('/?tab=projects');
+        break;
+      case 'approval':
+        // 跳转到协同平台审批流程
+        router.push('/?tab=collaboration&subtab=approval');
         break;
       default:
         break;
@@ -88,6 +95,8 @@ export function NotificationCenter({
         return <Calendar className="h-4 w-4" />;
       case 'project':
         return <TrendingUp className="h-4 w-4" />;
+      case 'approval':
+        return <ClipboardCheck className="h-4 w-4" />;
       default:
         return <Bell className="h-4 w-4" />;
     }
@@ -108,8 +117,8 @@ export function NotificationCenter({
     return date.toLocaleDateString('zh-CN');
   };
 
-  const totalNotifications = collaborations.length + reminders.length + weeklyPlans.length + projectNotifications.length;
-  const highPriorityCount = [...collaborations, ...reminders, ...weeklyPlans, ...projectNotifications].filter(n => n.priority === 'high').length;
+  const totalNotifications = collaborations.length + reminders.length + weeklyPlans.length + projectNotifications.length + approvalNotifications.length;
+  const highPriorityCount = [...collaborations, ...reminders, ...weeklyPlans, ...projectNotifications, ...approvalNotifications].filter(n => n.priority === 'high').length;
 
   const renderNotificationItem = (notification: Notification) => {
     const { type, priority } = notification;
@@ -200,7 +209,7 @@ export function NotificationCenter({
           </div>
         ) : (
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-5 mb-4">
+            <TabsList className="grid w-full grid-cols-6 mb-4">
               <TabsTrigger value="all" className="text-xs">
                 全部
                 <Badge variant="secondary" className="ml-1 text-xs">
@@ -229,6 +238,12 @@ export function NotificationCenter({
                 项目
                 <Badge variant="secondary" className="ml-1 text-xs">
                   {projectNotifications.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="approval" className="text-xs">
+                审批
+                <Badge variant="secondary" className="ml-1 text-xs">
+                  {approvalNotifications.length}
                 </Badge>
               </TabsTrigger>
             </TabsList>
@@ -278,6 +293,18 @@ export function NotificationCenter({
                   </h4>
                   <div className="space-y-2">
                     {projectNotifications.map(renderNotificationItem)}
+                  </div>
+                </div>
+              )}
+
+              {approvalNotifications.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+                    <ClipboardCheck className="h-3 w-3" />
+                    审批通知 ({approvalNotifications.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {approvalNotifications.map(renderNotificationItem)}
                   </div>
                 </div>
               )}
@@ -331,6 +358,19 @@ export function NotificationCenter({
               ) : (
                 <div className="space-y-2">
                   {projectNotifications.map(renderNotificationItem)}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="approval" className="max-h-[400px] overflow-y-auto">
+              {approvalNotifications.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <ClipboardCheck className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">暂无审批通知</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {approvalNotifications.map(renderNotificationItem)}
                 </div>
               )}
             </TabsContent>

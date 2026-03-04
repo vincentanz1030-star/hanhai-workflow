@@ -2420,9 +2420,7 @@ export default function HomePage() {
             <TabsTrigger value="projects" className="text-xs sm:text-sm py-2 px-2">项目列表</TabsTrigger>
             <TabsTrigger value="timeline" className="text-xs sm:text-sm py-2 px-2">时间线</TabsTrigger>
             <TabsTrigger value="roles" className="text-xs sm:text-sm py-2 px-2">岗位进度</TabsTrigger>
-            <TabsTrigger value="product-framework" className="text-xs sm:text-sm py-2 px-2">产品框架</TabsTrigger>
             <TabsTrigger value="workload" className="text-xs sm:text-sm py-2 px-2">工作负载</TabsTrigger>
-            <TabsTrigger value="feedback" className="text-xs sm:text-sm py-2 px-2">支持协助</TabsTrigger>
             <TabsTrigger value="product-center" className="text-xs sm:text-sm py-2 px-2 text-blue-600 dark:text-blue-400">商品中心</TabsTrigger>
             <TabsTrigger value="marketing" className="text-xs sm:text-sm py-2 px-2 text-purple-600 dark:text-purple-400">营销中台</TabsTrigger>
             <TabsTrigger value="collaboration" className="text-xs sm:text-sm py-2 px-2 text-green-600 dark:text-green-400">协同平台</TabsTrigger>
@@ -4120,6 +4118,7 @@ export default function HomePage() {
             <Tabs defaultValue="products" className="space-y-4">
               <TabsList>
                 <TabsTrigger value="products">商品管理</TabsTrigger>
+                <TabsTrigger value="framework">产品框架</TabsTrigger>
                 <TabsTrigger value="suppliers">供应商管理</TabsTrigger>
                 <TabsTrigger value="purchase">采购订单</TabsTrigger>
                 <TabsTrigger value="sales">销售统计</TabsTrigger>
@@ -4128,6 +4127,67 @@ export default function HomePage() {
 
               <TabsContent value="products" className="space-y-4">
                 <ProductList />
+              </TabsContent>
+
+              <TabsContent value="framework" className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Card className="flex-1 mr-4">
+                    <CardHeader>
+                      <CardTitle>产品开发框架</CardTitle>
+                      <CardDescription>管理各品牌的产品分类体系（一级到四级品类）</CardDescription>
+                    </CardHeader>
+                  </Card>
+                  <Button onClick={handleCreateNewCategory} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    新增品类
+                  </Button>
+                </div>
+
+                {/* 按品牌展示思维导图 */}
+                {Object.keys(BRAND_NAMES).filter(k => k !== 'all').map((brandKey) => {
+                  const brandCategories = productCategories.filter(c => c.brand === brandKey);
+                  const categoryTree = buildCategoryTree(brandCategories);
+
+                  if (categoryTree.length === 0) {
+                    return null;
+                  }
+
+                  return (
+                    <Card key={brandKey}>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <FolderOpen className="h-5 w-5" />
+                          {BRAND_NAMES[brandKey]} - 产品开发框架
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="p-6 bg-muted/30 rounded-lg min-h-[300px]">
+                          {categoryTree.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                              暂无品类数据，请点击上方"新增品类"按钮添加
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-start gap-6">
+                              {categoryTree.map(category => (
+                                <OrgTreeNode
+                                  key={category.id}
+                                  category={category}
+                                  level={1}
+                                  onEdit={handleEditCategory}
+                                  onDelete={handleDeleteProductCategory}
+                                  onAddChild={setEditingChildId}
+                                  editingChildId={editingChildId}
+                                  onCreateChild={handleCreateChildCategory}
+                                  brand={brandKey as any}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </TabsContent>
 
               <TabsContent value="suppliers" className="space-y-4">
@@ -4263,12 +4323,13 @@ export default function HomePage() {
             </div>
 
             <Tabs defaultValue="knowledge" className="space-y-4">
-              <TabsList className="grid grid-cols-3 sm:grid-cols-5 gap-1">
+              <TabsList className="grid grid-cols-3 sm:grid-cols-6 gap-1">
                 <TabsTrigger value="knowledge">知识库</TabsTrigger>
                 <TabsTrigger value="projects">项目协同</TabsTrigger>
                 <TabsTrigger value="schedule">日程管理</TabsTrigger>
                 <TabsTrigger value="approval">审批流程</TabsTrigger>
                 <TabsTrigger value="messages">内部沟通</TabsTrigger>
+                <TabsTrigger value="support">支持协助</TabsTrigger>
               </TabsList>
 
               <TabsContent value="knowledge" className="space-y-4">
@@ -4289,6 +4350,209 @@ export default function HomePage() {
 
               <TabsContent value="messages" className="space-y-4">
                 <InternalMessages />
+              </TabsContent>
+
+              <TabsContent value="support" className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Card className="flex-1 mr-4">
+                    <CardHeader>
+                      <CardTitle>支持与协助</CardTitle>
+                      <CardDescription>收集和管理团队的支持需求和建议</CardDescription>
+                    </CardHeader>
+                  </Card>
+                  <Dialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        提交反馈
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>提交反馈</DialogTitle>
+                        <DialogDescription>请填写您的反馈或需求</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="type">反馈类型 *</Label>
+                          <select
+                            id="type"
+                            value={newFeedback.type}
+                            onChange={(e) => setNewFeedback({ ...newFeedback, type: e.target.value as any })}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          >
+                            {Object.keys(FEEDBACK_TYPES).map(key => (
+                              <option key={key} value={key}>{FEEDBACK_TYPES[key]}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="brand">选择品牌 *</Label>
+                          <select
+                            id="brand"
+                            value={newFeedback.brand}
+                            onChange={(e) => setNewFeedback({ ...newFeedback, brand: e.target.value as any })}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          >
+                            <option value="">请选择品牌...</option>
+                            {Object.keys(BRAND_NAMES).map(key => {
+                              if (key === 'all') return null;
+                              return (
+                                <option key={key} value={key}>{BRAND_NAMES[key]}</option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="role">关联岗位 (可选)</Label>
+                          <select
+                            id="role"
+                            value={newFeedback.role}
+                            onChange={(e) => setNewFeedback({ ...newFeedback, role: e.target.value })}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          >
+                            <option value="">选择岗位...</option>
+                            {Object.keys(ROLE_NAMES).map(key => (
+                              <option key={key} value={key}>{ROLE_NAMES[key]}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="project">关联项目 (可选)</Label>
+                          <select
+                            id="project"
+                            value={newFeedback.projectId}
+                            onChange={(e) => setNewFeedback({ ...newFeedback, projectId: e.target.value })}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          >
+                            <option value="">选择项目...</option>
+                            {projects.map(project => (
+                              <option key={project.id} value={project.id}>{project.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="title">标题 *</Label>
+                          <Input
+                            id="title"
+                            value={newFeedback.title}
+                            onChange={(e) => setNewFeedback({ ...newFeedback, title: e.target.value })}
+                            placeholder="简要描述反馈内容"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="content">详细内容 *</Label>
+                          <Textarea
+                            id="content"
+                            value={newFeedback.content}
+                            onChange={(e) => setNewFeedback({ ...newFeedback, content: e.target.value })}
+                            placeholder="请详细描述您的反馈或需求"
+                            rows={5}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="priority">优先级</Label>
+                          <select
+                            id="priority"
+                            value={newFeedback.priority}
+                            onChange={(e) => setNewFeedback({ ...newFeedback, priority: e.target.value as any })}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          >
+                            {Object.keys(PRIORITY_NAMES).map(key => (
+                              <option key={key} value={key}>{PRIORITY_NAMES[key]}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={handleCreateFeedback} disabled={!newFeedback.title || !newFeedback.content || !newFeedback.brand}>
+                          提交反馈
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                {/* 反馈列表 */}
+                <div className="grid gap-4">
+                  {feedbackList.length === 0 ? (
+                    <Card>
+                      <CardContent className="py-16 text-center">
+                        <AlertCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                        <h3 className="text-lg font-medium mb-2">暂无反馈</h3>
+                        <p className="text-muted-foreground mb-4">还没有员工提交反馈或需求</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    feedbackList
+                      .filter(feedback => brandFilter === 'all' || feedback.brand === brandFilter)
+                      .map((feedback) => (
+                      <Card key={feedback.id} className="hover:shadow-lg transition-shadow">
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge>{FEEDBACK_TYPES[feedback.type]}</Badge>
+                                <Badge className={PRIORITY_COLORS[feedback.priority]}>{PRIORITY_NAMES[feedback.priority]}优先级</Badge>
+                                <Badge className={feedback.status === 'resolved' ? 'bg-green-500' : feedback.status === 'in_review' ? 'bg-blue-500' : 'bg-gray-500'}>
+                                  {FEEDBACK_STATUS[feedback.status]}
+                                </Badge>
+                              </div>
+                              <CardTitle className="text-lg">{feedback.title}</CardTitle>
+                            </div>
+                            {feedback.status !== 'resolved' && (
+                              <div className="flex gap-2 ml-4">
+                                {feedback.status === 'pending' && (
+                                  <Button size="sm" variant="outline" onClick={() => handleUpdateFeedback(feedback.id, 'in_review')}>
+                                    开始审核
+                                  </Button>
+                                )}
+                                {feedback.status === 'in_review' && (
+                                  <Button size="sm" onClick={() => handleUpdateFeedback(feedback.id, 'resolved')}>
+                                    标记已解决
+                                  </Button>
+                                )}
+                                <Button size="sm" variant="destructive" onClick={() => handleDeleteFeedback(feedback.id)}>
+                                  删除
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <p className="text-sm whitespace-pre-wrap">{feedback.content}</p>
+                            
+                            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-3 border-t">
+                              {feedback.role && (
+                                <div className="flex items-center gap-1">
+                                  <Users className="h-3 w-3" />
+                                  <span>{ROLE_NAMES[feedback.role]}</span>
+                                </div>
+                              )}
+                              {feedback.projectId && (
+                                <div className="flex items-center gap-1">
+                                  <FolderOpen className="h-3 w-3" />
+                                  <span>{projects.find(p => p.id === feedback.projectId)?.name || '未知项目'}</span>
+                                </div>
+                              )}
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                <span>{formatDateSafely(feedback.createdAt, 'yyyy-MM-dd HH:mm')}</span>
+                              </div>
+                              {feedback.resolvedAt && (
+                                <div className="flex items-center gap-1">
+                                  <CheckCircle className="h-3 w-3" />
+                                  <span>解决于: {formatDateSafely(feedback.resolvedAt, 'yyyy-MM-dd HH:mm')}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
               </TabsContent>
             </Tabs>
           </TabsContent>

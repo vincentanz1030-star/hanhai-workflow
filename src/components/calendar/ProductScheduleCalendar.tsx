@@ -202,8 +202,10 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
   const { daysInMonth, brandGroups, totalLaunches } = data;
   const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
 
-  // 获取所有品牌，确保所有品牌都显示
-  const allBrands = Object.keys(BRAND_CONFIG).filter(key => key !== 'all');
+  // 只显示有排期的品牌
+  const brandsWithLaunches = Object.keys(brandGroups).filter(brand => 
+    brandGroups[brand] && brandGroups[brand].length > 0
+  );
 
   return (
     <>
@@ -239,7 +241,22 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
           {/* 图例 */}
           <div className="flex items-center gap-4 mb-4 text-xs">
             <div className="flex items-center gap-1">
-              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <div className="w-4 h-4 bg-white border border-gray-300 rounded-sm flex items-center justify-center">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="12" 
+                  height="12" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="3" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  className="text-black"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
               <span>有排期（鼠标悬停查看详情）</span>
             </div>
             <div className="flex items-center gap-1 ml-auto text-muted-foreground">
@@ -275,7 +292,7 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                 </div>
 
                 {/* 品牌行 */}
-                {allBrands.map((brand) => {
+                {brandsWithLaunches.map((brand) => {
                   const launches = brandGroups[brand] || [];
                   return (
                     <div key={brand} className="grid grid-cols-[120px_repeat(31,1fr)] gap-0.5 border-b border-border last:border-b-0 hover:bg-muted/10">
@@ -305,12 +322,26 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                             {launch ? (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <div className="w-full h-8 bg-blue-500 rounded-sm hover:bg-blue-600 transition-colors relative group">
+                                  <div className="w-full h-8 bg-white border border-gray-300 rounded-sm hover:bg-gray-50 transition-colors relative group flex items-center justify-center">
+                                    <svg 
+                                      xmlns="http://www.w3.org/2000/svg" 
+                                      width="20" 
+                                      height="20" 
+                                      viewBox="0 0 24 24" 
+                                      fill="none" 
+                                      stroke="currentColor" 
+                                      strokeWidth="3" 
+                                      strokeLinecap="round" 
+                                      strokeLinejoin="round" 
+                                      className="text-black"
+                                    >
+                                      <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
                                     {/* 编辑按钮 - 鼠标悬停时显示 */}
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-5 w-5 p-0 absolute top-0 right-0 bg-white text-blue-600 opacity-0 group-hover:opacity-100 rounded-sm"
+                                      className="h-5 w-5 p-0 absolute top-0 right-0 bg-white text-blue-600 opacity-0 group-hover:opacity-100 rounded-sm shadow-sm"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleLaunchEdit(launch, e);

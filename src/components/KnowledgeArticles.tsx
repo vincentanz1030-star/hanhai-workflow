@@ -44,6 +44,14 @@ export function KnowledgeArticles() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentArticle, setCurrentArticle] = useState<Article | null>(null);
 
+  // 知识分类映射
+  const categories = [
+    { id: '026ffb77-5045-417f-b3a1-f36b65d88e4b', name: '制度规范' },
+    { id: '9f4f1f52-57a5-4fb2-8937-7787dc177e29', name: '操作手册' },
+    { id: '382e8da3-63c9-4054-aecb-6d7a199d4847', name: '常见问题' },
+    { id: '9f12c5d6-6b66-4f77-8900-941e6ab7a972', name: '培训资料' },
+  ];
+
   // 表单状态
   const [formData, setFormData] = useState({
     title: '',
@@ -243,10 +251,9 @@ export function KnowledgeArticles() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">全部分类</SelectItem>
-            <SelectItem value="1">制度规范</SelectItem>
-            <SelectItem value="2">操作手册</SelectItem>
-            <SelectItem value="3">常见问题</SelectItem>
-            <SelectItem value="4">培训资料</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
@@ -289,10 +296,9 @@ export function KnowledgeArticles() {
                     <SelectValue placeholder="选择分类" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">制度规范</SelectItem>
-                    <SelectItem value="2">操作手册</SelectItem>
-                    <SelectItem value="3">常见问题</SelectItem>
-                    <SelectItem value="4">培训资料</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -463,10 +469,9 @@ export function KnowledgeArticles() {
                   <SelectValue placeholder="选择分类" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">制度规范</SelectItem>
-                  <SelectItem value="2">操作手册</SelectItem>
-                  <SelectItem value="3">常见问题</SelectItem>
-                  <SelectItem value="4">培训资料</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

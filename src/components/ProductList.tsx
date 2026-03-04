@@ -26,6 +26,9 @@ interface Product {
   lifecycle_stage: string;
   main_image: string;
   images: string[];
+  supplier_id?: string;
+  supplier_name?: string;
+  suppliers?: { id: string; name: string };
   created_at: string;
 }
 
@@ -59,7 +62,7 @@ export function ProductList() {
   useEffect(() => {
     loadProducts();
     loadSuppliers();
-  }, [selectedBrand, selectedStatus]);
+  }, [selectedBrand, selectedStatus, selectedSupplier]);
 
   const loadSuppliers = async () => {
     try {
@@ -81,6 +84,7 @@ export function ProductList() {
         limit: '50',
         ...(selectedBrand !== 'all' && { brand: selectedBrand }),
         ...(selectedStatus !== 'all' && { status: selectedStatus }),
+        ...(selectedSupplier !== 'all' && { supplier_id: selectedSupplier }),
         ...(searchTerm && { search: searchTerm }),
       });
 
@@ -443,6 +447,7 @@ export function ProductList() {
                   <TableHead>SKU</TableHead>
                   <TableHead>商品名称</TableHead>
                   <TableHead>品牌</TableHead>
+                  <TableHead>供应商</TableHead>
                   <TableHead>状态</TableHead>
                   <TableHead>生命周期</TableHead>
                   <TableHead>创建时间</TableHead>
@@ -466,6 +471,9 @@ export function ProductList() {
                       </div>
                     </TableCell>
                     <TableCell>{product.brand}</TableCell>
+                    <TableCell>
+                      {product.suppliers && (product.suppliers as any).name ? (product.suppliers as any).name : '-'}
+                    </TableCell>
                     <TableCell>{getStatusBadge(product.status)}</TableCell>
                     <TableCell>{getLifecycleBadge(product.lifecycle_stage)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">

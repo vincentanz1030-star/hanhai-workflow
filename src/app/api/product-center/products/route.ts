@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const search = searchParams.get('search');
     const category = searchParams.get('category');
+    const supplier_id = searchParams.get('supplier_id');
 
     const offset = (page - 1) * limit;
 
@@ -38,7 +39,8 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         product_prices(*),
-        product_inventory(*)
+        product_inventory(*),
+        suppliers(id, name)
       `, { count: 'exact' });
 
     // 添加过滤条件
@@ -50,6 +52,9 @@ export async function GET(request: NextRequest) {
     }
     if (category && category !== 'all') {
       query = query.eq('category_id', category);
+    }
+    if (supplier_id && supplier_id !== 'all') {
+      query = query.eq('supplier_id', supplier_id);
     }
     if (search) {
       query = query.or(`name.ilike.%${search}%,sku_code.ilike.%${search}%`);

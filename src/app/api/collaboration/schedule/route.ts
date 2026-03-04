@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const end_date = searchParams.get('end_date');
     const created_by = searchParams.get('created_by');
 
-    let query = supabase.from('schedule_events');
+    let query = supabase.from('schedule_events').select('*');
 
     if (created_by) {
       query = query.eq('created_by', created_by);

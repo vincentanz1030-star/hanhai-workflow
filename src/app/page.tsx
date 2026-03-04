@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, Users, CheckCircle, AlertCircle, AlertTriangle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil, LogOut, User, Shield, Loader2, Settings, Search } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, AlertCircle, AlertTriangle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil, LogOut, User, Shield, Loader2, Settings, Search, Package, Building, ShoppingCart, MessageSquare, CheckSquare, Activity, FileText, BookOpen, FolderKanban, CalendarDays, ClipboardCheck, MessageCircle } from 'lucide-react';
 import { format, differenceInDays, isBefore, isAfter, isToday } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Slider } from '@/components/ui/slider';
@@ -2406,7 +2406,7 @@ export default function HomePage() {
             loadCriticalPath();
           }
         }} className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-8 gap-1 h-auto">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-12 gap-1 h-auto">
             <TabsTrigger value="dashboard" className="text-xs sm:text-sm py-2 px-2">数据看板</TabsTrigger>
             <TabsTrigger value="projects" className="text-xs sm:text-sm py-2 px-2">项目列表</TabsTrigger>
             <TabsTrigger value="timeline" className="text-xs sm:text-sm py-2 px-2">时间线</TabsTrigger>
@@ -2414,9 +2414,13 @@ export default function HomePage() {
             <TabsTrigger value="product-framework" className="text-xs sm:text-sm py-2 px-2">产品框架</TabsTrigger>
             <TabsTrigger value="workload" className="text-xs sm:text-sm py-2 px-2">工作负载</TabsTrigger>
             <TabsTrigger value="feedback" className="text-xs sm:text-sm py-2 px-2">支持协助</TabsTrigger>
+            <TabsTrigger value="product-center" className="text-xs sm:text-sm py-2 px-2 text-blue-600 dark:text-blue-400">商品中心</TabsTrigger>
+            <TabsTrigger value="marketing" className="text-xs sm:text-sm py-2 px-2 text-purple-600 dark:text-purple-400">营销中台</TabsTrigger>
+            <TabsTrigger value="collaboration" className="text-xs sm:text-sm py-2 px-2 text-green-600 dark:text-green-400">协同平台</TabsTrigger>
             <TabsTrigger value="analytics" className="text-xs sm:text-sm py-2 px-2" asChild>
               <a href="/analytics">数据分析</a>
             </TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs sm:text-sm py-2 px-2">系统设置</TabsTrigger>
           </TabsList>
 
           {/* 品牌过滤器已禁用 - 总是显示所有品牌的项目 */}
@@ -4093,6 +4097,310 @@ export default function HomePage() {
                 ))
               )}
             </div>
+          </TabsContent>
+
+          {/* 商品中心 */}
+          <TabsContent value="product-center" className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold">商品中心</h2>
+                <p className="text-muted-foreground">管理商品信息、供应商、采购订单和销售统计</p>
+              </div>
+            </div>
+
+            <Tabs defaultValue="products" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="products">商品管理</TabsTrigger>
+                <TabsTrigger value="suppliers">供应商管理</TabsTrigger>
+                <TabsTrigger value="purchase">采购订单</TabsTrigger>
+                <TabsTrigger value="sales">销售统计</TabsTrigger>
+                <TabsTrigger value="feedback">商品反馈</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="products" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>商品列表</CardTitle>
+                    <CardDescription>管理所有商品信息</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>商品管理功能正在开发中...</p>
+                      <p className="text-sm mt-2">API接口已就绪：/api/product-center/products</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="suppliers" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>供应商管理</CardTitle>
+                    <CardDescription>管理供应商档案和评级</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>供应商管理功能正在开发中...</p>
+                      <p className="text-sm mt-2">API接口已就绪：/api/product-center/suppliers</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="purchase" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>采购订单</CardTitle>
+                    <CardDescription>管理采购订单和到货追踪</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>采购订单功能正在开发中...</p>
+                      <p className="text-sm mt-2">API接口已就绪：/api/product-center/purchase-orders</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="sales" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>销售统计</CardTitle>
+                    <CardDescription>查看商品月度销售数据</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>销售统计功能正在开发中...</p>
+                      <p className="text-sm mt-2">API接口已就绪：/api/product-center/sales-stats</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="feedback" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>商品反馈</CardTitle>
+                    <CardDescription>查看和管理商品用户反馈</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>商品反馈功能正在开发中...</p>
+                      <p className="text-sm mt-2">API接口已就绪：/api/product-center/feedbacks</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+
+          {/* 营销中台 */}
+          <TabsContent value="marketing" className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold">营销中台</h2>
+                <p className="text-muted-foreground">管理营销活动策划和执行</p>
+              </div>
+            </div>
+
+            <Tabs defaultValue="campaigns" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="campaigns">活动策划</TabsTrigger>
+                <TabsTrigger value="tasks">活动任务</TabsTrigger>
+                <TabsTrigger value="execution">执行监控</TabsTrigger>
+                <TabsTrigger value="review">活动复盘</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="campaigns" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>活动策划</CardTitle>
+                    <CardDescription>创建和管理营销活动</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>活动策划功能正在开发中...</p>
+                      <p className="text-sm mt-2">API接口已就绪：/api/marketing/campaigns</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="tasks" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>活动任务</CardTitle>
+                    <CardDescription>管理活动相关任务</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <CheckSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>活动任务功能正在开发中...</p>
+                      <p className="text-sm mt-2">API接口已就绪：/api/marketing/campaign-tasks</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="execution" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>执行监控</CardTitle>
+                    <CardDescription>监控活动执行效果</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>执行监控功能正在开发中...</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="review" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>活动复盘</CardTitle>
+                    <CardDescription>活动总结和经验积累</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>活动复盘功能正在开发中...</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+
+          {/* 企业协同平台 */}
+          <TabsContent value="collaboration" className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold">企业协同平台</h2>
+                <p className="text-muted-foreground">知识库、项目管理、日程审批、内部沟通</p>
+              </div>
+            </div>
+
+            <Tabs defaultValue="knowledge" className="space-y-4">
+              <TabsList className="grid grid-cols-3 sm:grid-cols-5 gap-1">
+                <TabsTrigger value="knowledge">知识库</TabsTrigger>
+                <TabsTrigger value="projects">项目协同</TabsTrigger>
+                <TabsTrigger value="schedule">日程管理</TabsTrigger>
+                <TabsTrigger value="approval">审批流程</TabsTrigger>
+                <TabsTrigger value="messages">内部沟通</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="knowledge" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>知识库</CardTitle>
+                    <CardDescription>管理企业知识和文档</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>知识库功能正在开发中...</p>
+                      <p className="text-sm mt-2">API接口已就绪：/api/collaboration/knowledge</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="projects" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>项目协同</CardTitle>
+                    <CardDescription>管理项目任务和协作</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <FolderKanban className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>项目协同功能正在开发中...</p>
+                      <p className="text-sm mt-2">API接口已就绪：/api/collaboration/projects</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="schedule" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>日程管理</CardTitle>
+                    <CardDescription>管理日程和会议安排</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <CalendarDays className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>日程管理功能正在开发中...</p>
+                      <p className="text-sm mt-2">API接口已就绪：/api/collaboration/schedule</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="approval" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>审批流程</CardTitle>
+                    <CardDescription>管理审批流程和实例</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <ClipboardCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>审批流程功能正在开发中...</p>
+                      <p className="text-sm mt-2">API接口已就绪：/api/collaboration/approvals</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="messages" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>内部沟通</CardTitle>
+                    <CardDescription>内部消息和群聊</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12 text-muted-foreground">
+                      <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>内部沟通功能正在开发中...</p>
+                      <p className="text-sm mt-2">API接口已就绪：/api/collaboration/messages</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+
+          {/* 系统设置 */}
+          <TabsContent value="settings" className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold">系统设置</h2>
+                <p className="text-muted-foreground">系统配置和管理</p>
+              </div>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>系统设置</CardTitle>
+                <CardDescription>配置系统参数和偏好</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-12 text-muted-foreground">
+                  <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>系统设置功能正在开发中...</p>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 

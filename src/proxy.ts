@@ -7,7 +7,7 @@ const protectedRoutes = ['/'];
 // 公开路由（不需要认证）
 const publicRoutes = ['/login', '/register', '/diagnostic', '/test-'];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 检查是否是公开路由

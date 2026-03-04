@@ -49,10 +49,20 @@ export function InternalMessages() {
   const [searchTerm, setSearchTerm] = useState('');
   const [messageInput, setMessageInput] = useState('');
   const [isCreateGroupDialogOpen, setIsCreateGroupDialogOpen] = useState(false);
+  const [isEditGroupDialogOpen, setIsEditGroupDialogOpen] = useState(false);
   const [isSubmittingGroup, setIsSubmittingGroup] = useState(false);
+  const [notificationEnabled, setNotificationEnabled] = useState(true);
 
   // 新建群组表单状态
   const [groupFormData, setGroupFormData] = useState({
+    name: '',
+    description: '',
+    type: 'general',
+  });
+
+  // 编辑群组表单状态
+  const [editGroupData, setEditGroupData] = useState({
+    id: '',
     name: '',
     description: '',
     type: 'general',
@@ -155,6 +165,98 @@ export function InternalMessages() {
     }
   };
 
+  const handleEditGroup = (group: MessageGroup) => {
+    setEditGroupData({
+      id: group.id,
+      name: group.name,
+      description: group.description || '',
+      type: group.type,
+    });
+    setIsEditGroupDialogOpen(true);
+  };
+
+  const handleUpdateGroup = async () => {
+    if (!editGroupData.name) {
+      alert('请填写必填项：群组名称');
+      return;
+    }
+
+    setIsSubmittingGroup(true);
+    try {
+      const response = await fetch(`/api/collaboration/message-groups/${editGroupData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: editGroupData.name,
+          description: editGroupData.description,
+          type: editGroupData.type,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('群组更新成功！');
+        setIsEditGroupDialogOpen(false);
+        loadGroups(); // 刷新群组列表
+      } else {
+        alert(`更新失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('更新群组失败:', error);
+      alert('更新失败，请稍后重试');
+    } finally {
+      setIsSubmittingGroup(false);
+    }
+  };
+
+  // 播放提醒声音
+  const playNotificationSound = () => {
+    if (!notificationEnabled) return;
+
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    } catch (error) {
+      console.error('播放通知声音失败:', error);
+    }
+  };
+
+  // 标记消息为已读
+  const markAsRead = async (messageId: string) => {
+    try {
+      await fetch(`/api/collaboration/messages/${messageId}/read`, {
+        method: 'PUT',
+      });
+    } catch (error) {
+      console.error('标记消息已读失败:', error);
+    }
+  };
+
+  // 切换消息提醒
+  const toggleNotification = () => {
+    setNotificationEnabled(!notificationEnabled);
+    if (notificationEnabled) {
+      alert('消息提醒已关闭');
+    } else {
+      alert('消息提醒已开启');
+    }
+  };
+
   const handleSendMessage = () => {
     if (!messageInput.trim() || !selectedGroup) return;
 
@@ -171,11 +273,58 @@ export function InternalMessages() {
 
     setMessages([...messages, newMessage]);
     setMessageInput('');
+
+    // 模拟其他人接收到消息（实际应该通过WebSocket）
+    setTimeout(() => {
+      const replyMessage: Message = {
+        id: `msg-${Date.now()}`,
+        content: '收到消息',
+        sender_id: 'other-user',
+        sender_name: '其他用户',
+        sender_avatar: '',
+        group_id: selectedGroup.id,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      };
+
+      setMessages(prev => [...prev, replyMessage]);
+      playNotificationSound();
+
+      // 更新群组的最后消息和未读计数
+      setGroups(prev => prev.map(g => {
+        if (g.id === selectedGroup.id) {
+          return {
+            ...g,
+            last_message: replyMessage.content,
+            last_message_time: replyMessage.created_at,
+            unread_count: g.unread_count + 1,
+          };
+        }
+        return g;
+      }));
+    }, 1000);
   };
 
   const handleGroupSelect = (group: MessageGroup) => {
     setSelectedGroup(group);
     loadMessages(group.id);
+
+    // 清除该群组的未读计数
+    if (group.unread_count > 0) {
+      setGroups(prev => prev.map(g => {
+        if (g.id === group.id) {
+          return { ...g, unread_count: 0 };
+        }
+        return g;
+      }));
+
+      // 标记该群组的所有消息为已读
+      messages.forEach(msg => {
+        if (!msg.is_read && msg.group_id === group.id) {
+          markAsRead(msg.id);
+        }
+      });
+    }
   };
 
   const filteredGroups = groups.filter(group =>
@@ -302,6 +451,64 @@ export function InternalMessages() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            {/* 编辑群组对话框 */}
+            <Dialog open={isEditGroupDialogOpen} onOpenChange={setIsEditGroupDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>编辑群组</DialogTitle>
+                  <DialogDescription>修改群组信息</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="editGroupName">群组名称 *</Label>
+                    <Input
+                      id="editGroupName"
+                      placeholder="输入群组名称"
+                      value={editGroupData.name}
+                      onChange={(e) => setEditGroupData({ ...editGroupData, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editGroupType">类型</Label>
+                    <Select value={editGroupData.type} onValueChange={(value) => setEditGroupData({ ...editGroupData, type: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="选择类型" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="project">项目讨论</SelectItem>
+                        <SelectItem value="department">部门沟通</SelectItem>
+                        <SelectItem value="task">任务讨论</SelectItem>
+                        <SelectItem value="general">综合讨论</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editDescription">描述</Label>
+                    <Textarea
+                      id="editDescription"
+                      placeholder="输入群组描述"
+                      rows={3}
+                      value={editGroupData.description}
+                      onChange={(e) => setEditGroupData({ ...editGroupData, description: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsEditGroupDialogOpen(false)}>取消</Button>
+                  <Button onClick={handleUpdateGroup} disabled={isSubmittingGroup}>
+                    {isSubmittingGroup ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        更新中...
+                      </>
+                    ) : (
+                      '更新群组'
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-hidden flex gap-4">
@@ -352,9 +559,22 @@ export function InternalMessages() {
                           {group.last_message || '暂无消息'}
                         </p>
                       </div>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {group.last_message_time && format(new Date(group.last_message_time), 'HH:mm', { locale: zhCN })}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditGroup(group);
+                          }}
+                        >
+                          <MoreVertical className="h-3 w-3" />
+                        </Button>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {group.last_message_time && format(new Date(group.last_message_time), 'HH:mm', { locale: zhCN })}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -375,9 +595,23 @@ export function InternalMessages() {
                         {selectedGroup.member_count} 成员
                       </p>
                     </div>
-                    <Button variant="ghost" size="sm">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={toggleNotification}
+                        title={notificationEnabled ? '关闭消息提醒' : '开启消息提醒'}
+                      >
+                        {notificationEnabled ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <Check className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 

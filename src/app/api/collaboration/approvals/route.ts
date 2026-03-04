@@ -89,9 +89,9 @@ export async function POST(request: NextRequest) {
       const { data: workflow } = await supabase
         .from('approval_workflows')
         .select('id, name')
-        .eq('code', workflow_id)
+        .eq('workflow_code', workflow_id)
         .single();
-      
+
       if (workflow) {
         actualWorkflowId = workflow.id;
       } else {

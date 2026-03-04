@@ -37,9 +37,18 @@ interface PurchaseOrder {
 export function PurchaseOrderList() {
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    order_code: '',
+    supplier_id: '',
+    product_id: '',
+    quantity: '',
+    order_date: '',
+    expected_date: '',
+  });
 
   useEffect(() => {
     loadOrders();
@@ -64,6 +73,55 @@ export function PurchaseOrderList() {
       console.error('加载采购订单失败:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.order_code || !formData.supplier_id || !formData.product_id ||
+        !formData.quantity || !formData.order_date || !formData.expected_date) {
+      alert('请填写所有必填字段');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch('/api/product-center/purchase-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          order_code: formData.order_code,
+          supplier_id: formData.supplier_id,
+          product_id: formData.product_id,
+          quantity: parseInt(formData.quantity),
+          order_date: formData.order_date,
+          expected_date: formData.expected_date,
+          status: 'pending',
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setIsCreateDialogOpen(false);
+        setFormData({
+          order_code: '',
+          supplier_id: '',
+          product_id: '',
+          quantity: '',
+          order_date: '',
+          expected_date: '',
+        });
+        loadOrders();
+        alert('采购订单创建成功');
+      } else {
+        alert(`创建失败: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('创建采购订单失败:', error);
+      alert('创建采购订单失败');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -133,11 +191,16 @@ export function PurchaseOrderList() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="orderCode">订单编号 *</Label>
-                  <Input id="orderCode" placeholder="例如：PO-2024-001" />
+                  <Input
+                    id="orderCode"
+                    placeholder="例如：PO-2024-001"
+                    value={formData.order_code}
+                    onChange={(e) => setFormData({ ...formData, order_code: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="supplier">供应商 *</Label>
-                  <Select>
+                  <Select value={formData.supplier_id} onValueChange={(value) => setFormData({ ...formData, supplier_id: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="选择供应商" />
                     </SelectTrigger>
@@ -150,7 +213,7 @@ export function PurchaseOrderList() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="product">商品 *</Label>
-                <Select>
+                <Select value={formData.product_id} onValueChange={(value) => setFormData({ ...formData, product_id: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="选择商品" />
                   </SelectTrigger>
@@ -163,27 +226,41 @@ export function PurchaseOrderList() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="quantity">数量 *</Label>
-                  <Input id="quantity" type="number" placeholder="输入数量" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="unitPrice">单价 *</Label>
-                  <Input id="unitPrice" type="number" step="0.01" placeholder="输入单价" />
+                  <Input
+                    id="quantity"
+                    type="number"
+                    placeholder="输入数量"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="orderDate">采购日期 *</Label>
-                  <Input id="orderDate" type="date" />
+                  <Input
+                    id="orderDate"
+                    type="date"
+                    value={formData.order_date}
+                    onChange={(e) => setFormData({ ...formData, order_date: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="expectedDate">预计到货日期 *</Label>
-                  <Input id="expectedDate" type="date" />
+                  <Input
+                    id="expectedDate"
+                    type="date"
+                    value={formData.expected_date}
+                    onChange={(e) => setFormData({ ...formData, expected_date: e.target.value })}
+                  />
                 </div>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>取消</Button>
-              <Button onClick={() => setIsCreateDialogOpen(false)}>创建订单</Button>
+              <Button onClick={handleSubmit} disabled={submitting}>
+                {submitting ? '提交中...' : '创建订单'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -212,8 +289,6 @@ export function PurchaseOrderList() {
                   <TableHead>供应商</TableHead>
                   <TableHead>商品</TableHead>
                   <TableHead>数量</TableHead>
-                  <TableHead>单价</TableHead>
-                  <TableHead>总价</TableHead>
                   <TableHead>采购日期</TableHead>
                   <TableHead>预计到货</TableHead>
                   <TableHead>状态</TableHead>
@@ -233,8 +308,6 @@ export function PurchaseOrderList() {
                       </div>
                     </TableCell>
                     <TableCell>{order.quantity}</TableCell>
-                    <TableCell>¥{order.unit_price?.toFixed(2) || '0.00'}</TableCell>
-                    <TableCell className="font-medium">¥{order.total_price?.toFixed(2) || '0.00'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {order.order_date && format(new Date(order.order_date), 'yyyy-MM-dd', { locale: zhCN })}
                     </TableCell>

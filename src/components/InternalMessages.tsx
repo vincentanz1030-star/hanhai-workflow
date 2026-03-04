@@ -10,11 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, MessageCircle, Send, MoreVertical, Clock, Check, CheckCheck, Loader2 } from 'lucide-react';
+import { Search, Plus, MessageCircle, Send, MoreVertical, Clock, Check, CheckCheck, Loader2, Users, FolderOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -57,8 +58,13 @@ export function InternalMessages() {
     type: 'general',
   });
 
+  // 岗位列表和选中状态
+  const [roles, setRoles] = useState<string[]>([]);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+
   useEffect(() => {
     loadGroups();
+    loadRoles();
   }, []);
 
   const loadGroups = async () => {
@@ -78,6 +84,19 @@ export function InternalMessages() {
       console.error('加载消息群组失败:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRoles = async () => {
+    try {
+      const response = await fetch('/api/users/roles');
+      const data = await response.json();
+
+      if (data.success) {
+        setRoles(data.data || []);
+      }
+    } catch (error) {
+      console.error('加载岗位失败:', error);
     }
   };
 
@@ -107,7 +126,10 @@ export function InternalMessages() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(groupFormData),
+        body: JSON.stringify({
+          ...groupFormData,
+          members: selectedRoles,
+        }),
       });
 
       const data = await response.json();
@@ -120,6 +142,7 @@ export function InternalMessages() {
           description: '',
           type: 'general',
         });
+        setSelectedRoles([]);
         loadGroups(); // 刷新群组列表
       } else {
         alert(`创建失败: ${data.error || '未知错误'}`);
@@ -159,6 +182,16 @@ export function InternalMessages() {
     group.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     group.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const getGroupTypeLabel = (type: string) => {
+    const typeMap: Record<string, string> = {
+      project: '项目讨论',
+      department: '部门沟通',
+      task: '任务讨论',
+      general: '综合讨论',
+    };
+    return typeMap[type] || type;
+  };
 
   return (
     <div className="space-y-4">
@@ -216,6 +249,43 @@ export function InternalMessages() {
                       onChange={(e) => setGroupFormData({ ...groupFormData, description: e.target.value })}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label>选择岗位</Label>
+                    <div className="border rounded-md p-3 max-h-40 overflow-y-auto">
+                      {roles.length === 0 ? (
+                        <div className="text-sm text-muted-foreground text-center py-2">无可用岗位</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {roles.map((role) => (
+                            <div key={role} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`role-${role}`}
+                                checked={selectedRoles.includes(role)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedRoles([...selectedRoles, role]);
+                                  } else {
+                                    setSelectedRoles(selectedRoles.filter(r => r !== role));
+                                  }
+                                }}
+                              />
+                              <Label
+                                htmlFor={`role-${role}`}
+                                className="flex-1 cursor-pointer text-sm font-normal"
+                              >
+                                {role}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {selectedRoles.length > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        已选择: {selectedRoles.join(', ')}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsCreateGroupDialogOpen(false)}>取消</Button>
@@ -267,8 +337,11 @@ export function InternalMessages() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="font-medium text-sm">{group.name}</h4>
+                          <Badge variant="outline" className="text-xs">
+                            {getGroupTypeLabel(group.type)}
+                          </Badge>
                           {group.unread_count > 0 && (
                             <Badge variant="destructive" className="text-xs">
                               {group.unread_count}

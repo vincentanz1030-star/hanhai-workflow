@@ -42,6 +42,7 @@ export function ProjectCollaboration() {
   const [selectedPriority, setSelectedPriority] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
@@ -202,6 +203,11 @@ export function ProjectCollaboration() {
       end_date: project.end_date,
     });
     setIsEditDialogOpen(true);
+  };
+
+  const openViewDialog = (project: Project) => {
+    setCurrentProject(project);
+    setIsViewDialogOpen(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -495,7 +501,7 @@ export function ProjectCollaboration() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => openViewDialog(project)}>
                             <View className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => openEditDialog(project)}>
@@ -600,6 +606,100 @@ export function ProjectCollaboration() {
                 '保存修改'
               )}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 预览项目 */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>项目详情</DialogTitle>
+            <DialogDescription>查看项目详细信息</DialogDescription>
+          </DialogHeader>
+          {currentProject && (
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label>项目名称</Label>
+                <div className="font-medium text-lg">{currentProject.name}</div>
+              </div>
+              <div className="space-y-2">
+                <Label>项目描述</Label>
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap">{currentProject.description || '暂无描述'}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>项目负责人</Label>
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Users className="h-4 w-4 text-primary" />
+                    </div>
+                    <span className="text-sm">{currentProject.owner_name || '未指定'}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>项目状态</Label>
+                  <div>{getStatusBadge(currentProject.status)}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>优先级</Label>
+                  <div>{getPriorityBadge(currentProject.priority)}</div>
+                </div>
+                <div className="space-y-2">
+                  <Label>项目进度</Label>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-secondary rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all"
+                          style={{ width: `${currentProject.progress}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium">{currentProject.progress}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>开始日期</Label>
+                  <div className="text-sm">
+                    {currentProject.start_date
+                      ? format(new Date(currentProject.start_date), 'yyyy-MM-dd', { locale: zhCN })
+                      : '未设置'}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>结束日期</Label>
+                  <div className="text-sm">
+                    {currentProject.end_date
+                      ? format(new Date(currentProject.end_date), 'yyyy-MM-dd', { locale: zhCN })
+                      : '未设置'}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>任务进度</Label>
+                  <div className="text-sm">
+                    {currentProject.completed_tasks}/{currentProject.task_count} 已完成
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>创建时间</Label>
+                  <div className="text-sm">
+                    {currentProject.created_at
+                      ? format(new Date(currentProject.created_at), 'yyyy-MM-dd HH:mm', { locale: zhCN })
+                      : '未知'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsViewDialogOpen(false)}>关闭</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

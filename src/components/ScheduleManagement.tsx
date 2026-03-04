@@ -40,7 +40,9 @@ export function ScheduleManagement() {
   const [selectedType, setSelectedType] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentEvent, setCurrentEvent] = useState<ScheduleEvent | null>(null);
 
   // 表单状态
   const [formData, setFormData] = useState({
@@ -122,6 +124,87 @@ export function ScheduleManagement() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleEditEvent = async () => {
+    if (!formData.title || !formData.start_time) {
+      alert('请填写必填项：标题、开始时间');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/collaboration/schedule/${currentEvent?.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('日程更新成功！');
+        setIsEditDialogOpen(false);
+        setFormData({
+          title: '',
+          description: '',
+          event_type: 'meeting',
+          start_time: '',
+          end_time: '',
+          location: '',
+          is_virtual: false,
+          status: 'upcoming',
+        });
+        setCurrentEvent(null);
+        loadEvents(); // 刷新列表
+      } else {
+        alert(`更新失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('更新日程失败:', error);
+      alert('更新失败，请稍后重试');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    if (!confirm('确定要删除这个日程吗？')) return;
+
+    try {
+      const response = await fetch(`/api/collaboration/schedule/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('日程删除成功！');
+        loadEvents();
+      } else {
+        alert(`删除失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('删除日程失败:', error);
+      alert('删除失败，请稍后重试');
+    }
+  };
+
+  const openEditDialog = (event: ScheduleEvent) => {
+    setCurrentEvent(event);
+    setFormData({
+      title: event.title,
+      description: event.description,
+      event_type: event.event_type,
+      start_time: event.start_time,
+      end_time: event.end_time,
+      location: event.location,
+      is_virtual: event.is_virtual,
+      status: event.status,
+    });
+    setIsEditDialogOpen(true);
   };
 
   const getTypeBadge = (type: string) => {
@@ -303,6 +386,118 @@ export function ScheduleManagement() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* 编辑日程 */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>编辑日程</DialogTitle>
+              <DialogDescription>修改日程信息</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-title">标题 *</Label>
+                <Input
+                  id="edit-title"
+                  placeholder="输入日程标题"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">描述</Label>
+                <Textarea
+                  id="edit-description"
+                  placeholder="输入日程描述"
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-eventType">类型</Label>
+                  <Select value={formData.event_type} onValueChange={(value) => setFormData({ ...formData, event_type: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择类型" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="meeting">会议</SelectItem>
+                      <SelectItem value="task">任务</SelectItem>
+                      <SelectItem value="deadline">截止日期</SelectItem>
+                      <SelectItem value="appointment">预约</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-status">状态</Label>
+                  <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择状态" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="upcoming">即将开始</SelectItem>
+                      <SelectItem value="ongoing">进行中</SelectItem>
+                      <SelectItem value="completed">已完成</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-startTime">开始时间 *</Label>
+                  <Input
+                    id="edit-startTime"
+                    type="datetime-local"
+                    value={formData.start_time}
+                    onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-endTime">结束时间</Label>
+                  <Input
+                    id="edit-endTime"
+                    type="datetime-local"
+                    value={formData.end_time}
+                    onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-location">地点</Label>
+                <Input
+                  id="edit-location"
+                  placeholder="输入地点"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="edit-isVirtual"
+                  checked={formData.is_virtual}
+                  onChange={(e) => setFormData({ ...formData, is_virtual: e.target.checked })}
+                  className="rounded"
+                />
+                <Label htmlFor="edit-isVirtual" className="cursor-pointer">线上会议</Label>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>取消</Button>
+              <Button onClick={handleEditEvent} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    更新中...
+                  </>
+                ) : (
+                  '保存修改'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* 日程统计 */}
@@ -428,10 +623,10 @@ export function ScheduleManagement() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(event)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteEvent(event.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>

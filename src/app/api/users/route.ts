@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, name, avatar')
+      .select('id, email, name')
       .order('name', { ascending: true });
 
     if (error) throw error;

@@ -31,11 +31,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('purchase_orders')
-      .select(`
-        *,
-        suppliers(name),
-        products(name, sku_code)
-      `, { count: 'exact' });
+      .select('*', { count: 'exact' });
 
     if (status && status !== 'all') {
       query = query.eq('status', status);

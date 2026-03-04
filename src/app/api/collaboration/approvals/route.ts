@@ -103,6 +103,17 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+    } else {
+      // 如果是UUID，查询workflow_name
+      const { data: workflow } = await supabase
+        .from('approval_workflows')
+        .select('name')
+        .eq('id', workflow_id)
+        .single();
+
+      if (workflow) {
+        actualWorkflowCode = workflow_id;
+      }
     }
 
     if (!actualWorkflowId) {
@@ -122,10 +133,12 @@ export async function POST(request: NextRequest) {
     const insertData: any = {
       workflow_id: actualWorkflowId,
       workflow_code: actualWorkflowCode,
+      workflow_name: body.workflow_name || '',  // 添加workflow_name字段
       instance_code,
       title,
       current_step: 0,
       status: 'pending',
+      started_at: new Date().toISOString(),
       created_by: body.initiator || '00000000-0000-0000-0000-000000000000',
       initiator: body.initiator || '00000000-0000-0000-0000-000000000000',
     };
@@ -138,11 +151,6 @@ export async function POST(request: NextRequest) {
     // 如果有comments，添加到insertData
     if (comments) {
       insertData.comments = comments;
-    }
-
-    // 如果有审批人，添加到insertData
-    if (body.approvers && Array.isArray(body.approvers)) {
-      insertData.approvers = body.approvers;
     }
 
     const { data, error } = await supabase

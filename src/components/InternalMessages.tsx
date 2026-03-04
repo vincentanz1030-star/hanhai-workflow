@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, MessageCircle, Send, MoreVertical, Clock, Check, CheckCheck, Loader2, Users, FolderOpen } from 'lucide-react';
+import { Search, Plus, MessageCircle, Send, MoreVertical, Clock, Check, CheckCheck, Loader2, Users, FolderOpen, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -52,6 +52,9 @@ export function InternalMessages() {
   const [isEditGroupDialogOpen, setIsEditGroupDialogOpen] = useState(false);
   const [isSubmittingGroup, setIsSubmittingGroup] = useState(false);
   const [notificationEnabled, setNotificationEnabled] = useState(true);
+
+  // 消息缓存
+  const [messageCache, setMessageCache] = useState<Map<string, Message[]>>(new Map());
 
   // 新建群组表单状态
   const [groupFormData, setGroupFormData] = useState({
@@ -110,13 +113,26 @@ export function InternalMessages() {
     }
   };
 
-  const loadMessages = async (groupId: string) => {
+  const loadMessages = async (groupId: string, forceReload = false) => {
     try {
+      // 如果缓存中有数据且不是强制刷新，直接使用缓存
+      if (!forceReload && messageCache.has(groupId)) {
+        setMessages(messageCache.get(groupId)!);
+        return;
+      }
+
       const response = await fetch(`/api/collaboration/messages?group_id=${groupId}&page=1&limit=100`);
       const data = await response.json();
 
       if (data.success) {
-        setMessages(data.data);
+        const messages = data.data || [];
+        setMessages(messages);
+        // 更新缓存
+        setMessageCache(prev => {
+          const newCache = new Map(prev);
+          newCache.set(groupId, messages);
+          return newCache;
+        });
       }
     } catch (error) {
       console.error('加载消息失败:', error);
@@ -257,6 +273,44 @@ export function InternalMessages() {
     }
   };
 
+  // 删除群组
+  const handleDeleteGroup = async (groupId: string, groupName: string) => {
+    if (!confirm(`确定要删除群组"${groupName}"吗？此操作不可恢复。`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/collaboration/message-groups/${groupId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('群组删除成功！');
+
+        // 如果删除的是当前选中的群组，切换到第一个群组或清空选中
+        if (selectedGroup?.id === groupId) {
+          const remainingGroups = groups.filter(g => g.id !== groupId);
+          if (remainingGroups.length > 0) {
+            setSelectedGroup(remainingGroups[0]);
+            loadMessages(remainingGroups[0].id);
+          } else {
+            setSelectedGroup(null);
+            setMessages([]);
+          }
+        }
+
+        loadGroups(); // 刷新群组列表
+      } else {
+        alert(`删除失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('删除群组失败:', error);
+      alert('删除失败，请稍后重试');
+    }
+  };
+
   const handleSendMessage = () => {
     if (!messageInput.trim() || !selectedGroup) return;
 
@@ -271,8 +325,16 @@ export function InternalMessages() {
       created_at: new Date().toISOString(),
     };
 
-    setMessages([...messages, newMessage]);
+    const updatedMessages = [...messages, newMessage];
+    setMessages(updatedMessages);
     setMessageInput('');
+
+    // 更新缓存
+    setMessageCache(prev => {
+      const newCache = new Map(prev);
+      newCache.set(selectedGroup!.id, updatedMessages);
+      return newCache;
+    });
 
     // 模拟其他人接收到消息（实际应该通过WebSocket）
     setTimeout(() => {
@@ -287,7 +349,16 @@ export function InternalMessages() {
         created_at: new Date().toISOString(),
       };
 
-      setMessages(prev => [...prev, replyMessage]);
+      setMessages(prev => {
+        const updated = [...prev, replyMessage];
+        // 更新缓存
+        setMessageCache(cache => {
+          const newCache = new Map(cache);
+          newCache.set(selectedGroup!.id, updated);
+          return newCache;
+        });
+        return updated;
+      });
       playNotificationSound();
 
       // 更新群组的最后消息和未读计数
@@ -559,7 +630,7 @@ export function InternalMessages() {
                           {group.last_message || '暂无消息'}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -568,8 +639,21 @@ export function InternalMessages() {
                             e.stopPropagation();
                             handleEditGroup(group);
                           }}
+                          title="编辑群组"
                         >
                           <MoreVertical className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteGroup(group.id, group.name);
+                          }}
+                          title="删除群组"
+                        >
+                          <XCircle className="h-3 w-3" />
                         </Button>
                         <span className="text-xs text-muted-foreground whitespace-nowrap">
                           {group.last_message_time && format(new Date(group.last_message_time), 'HH:mm', { locale: zhCN })}

@@ -26,7 +26,7 @@ export async function PUT(
     const { id } = await params;
 
     const { error } = await supabase
-      .from('messages')
+      .from('internal_messages')
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('id', id);
 

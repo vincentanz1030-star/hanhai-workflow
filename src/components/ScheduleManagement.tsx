@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar as CalendarIcon, Search, Plus, Clock, MapPin, Users, Video, Edit, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Search, Plus, Clock, MapPin, Users, Video, Edit, Trash2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -40,6 +40,19 @@ export function ScheduleManagement() {
   const [selectedType, setSelectedType] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 表单状态
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    event_type: 'meeting',
+    start_time: '',
+    end_time: '',
+    location: '',
+    is_virtual: false,
+    status: 'upcoming',
+  });
 
   useEffect(() => {
     loadEvents();
@@ -65,6 +78,49 @@ export function ScheduleManagement() {
       console.error('加载日程失败:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateEvent = async () => {
+    if (!formData.title || !formData.start_time) {
+      alert('请填写必填项：标题、开始时间');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/collaboration/schedule', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('日程创建成功！');
+        setIsCreateDialogOpen(false);
+        setFormData({
+          title: '',
+          description: '',
+          event_type: 'meeting',
+          start_time: '',
+          end_time: '',
+          location: '',
+          is_virtual: false,
+          status: 'upcoming',
+        });
+        loadEvents(); // 刷新列表
+      } else {
+        alert(`创建失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('创建日程失败:', error);
+      alert('创建失败，请稍后重试');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -146,16 +202,27 @@ export function ScheduleManagement() {
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="title">标题 *</Label>
-                <Input id="title" placeholder="输入日程标题" />
+                <Input
+                  id="title"
+                  placeholder="输入日程标题"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">描述</Label>
-                <Textarea id="description" placeholder="输入日程描述" rows={3} />
+                <Textarea
+                  id="description"
+                  placeholder="输入日程描述"
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="eventType">类型</Label>
-                  <Select>
+                  <Select value={formData.event_type} onValueChange={(value) => setFormData({ ...formData, event_type: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="选择类型" />
                     </SelectTrigger>
@@ -168,16 +235,15 @@ export function ScheduleManagement() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="priority">优先级</Label>
-                  <Select>
+                  <Label htmlFor="status">状态</Label>
+                  <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
                     <SelectTrigger>
-                      <SelectValue placeholder="选择优先级" />
+                      <SelectValue placeholder="选择状态" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">低</SelectItem>
-                      <SelectItem value="medium">中</SelectItem>
-                      <SelectItem value="high">高</SelectItem>
-                      <SelectItem value="urgent">紧急</SelectItem>
+                      <SelectItem value="upcoming">即将开始</SelectItem>
+                      <SelectItem value="ongoing">进行中</SelectItem>
+                      <SelectItem value="completed">已完成</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -185,25 +251,55 @@ export function ScheduleManagement() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="startTime">开始时间 *</Label>
-                  <Input id="startTime" type="datetime-local" />
+                  <Input
+                    id="startTime"
+                    type="datetime-local"
+                    value={formData.start_time}
+                    onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="endTime">结束时间</Label>
-                  <Input id="endTime" type="datetime-local" />
+                  <Input
+                    id="endTime"
+                    type="datetime-local"
+                    value={formData.end_time}
+                    onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="location">地点</Label>
-                <Input id="location" placeholder="输入地点" />
+                <Input
+                  id="location"
+                  placeholder="输入地点"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                />
               </div>
               <div className="flex items-center gap-2">
-                <input type="checkbox" id="isVirtual" className="rounded" />
+                <input
+                  type="checkbox"
+                  id="isVirtual"
+                  checked={formData.is_virtual}
+                  onChange={(e) => setFormData({ ...formData, is_virtual: e.target.checked })}
+                  className="rounded"
+                />
                 <Label htmlFor="isVirtual" className="cursor-pointer">线上会议</Label>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>取消</Button>
-              <Button onClick={() => setIsCreateDialogOpen(false)}>创建日程</Button>
+              <Button onClick={handleCreateEvent} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    创建中...
+                  </>
+                ) : (
+                  '创建日程'
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, ClipboardCheck, Clock, CheckCircle2, XCircle, User, FileText, Eye, Edit } from 'lucide-react';
+import { Search, Plus, ClipboardCheck, Clock, CheckCircle2, XCircle, User, FileText, Eye, Edit, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -35,6 +35,15 @@ export function ApprovalWorkflow() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 表单状态
+  const [formData, setFormData] = useState({
+    workflow_id: '',
+    title: '',
+    content: '',
+    status: 'pending',
+  });
 
   useEffect(() => {
     loadApprovals();
@@ -59,6 +68,45 @@ export function ApprovalWorkflow() {
       console.error('加载审批失败:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateApproval = async () => {
+    if (!formData.workflow_id || !formData.title) {
+      alert('请填写必填项：审批流程、标题');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/collaboration/approvals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('审批提交成功！');
+        setIsCreateDialogOpen(false);
+        setFormData({
+          workflow_id: '',
+          title: '',
+          content: '',
+          status: 'pending',
+        });
+        loadApprovals(); // 刷新列表
+      } else {
+        alert(`提交失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('提交审批失败:', error);
+      alert('提交失败，请稍后重试');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -118,7 +166,7 @@ export function ApprovalWorkflow() {
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="workflow">审批流程 *</Label>
-                <Select>
+                <Select value={formData.workflow_id} onValueChange={(value) => setFormData({ ...formData, workflow_id: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="选择审批流程" />
                   </SelectTrigger>
@@ -132,11 +180,22 @@ export function ApprovalWorkflow() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="title">标题 *</Label>
-                <Input id="title" placeholder="输入审批标题" />
+                <Input
+                  id="title"
+                  placeholder="输入审批标题"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="content">审批内容 *</Label>
-                <Textarea id="content" placeholder="输入审批详情" rows={5} />
+                <Textarea
+                  id="content"
+                  placeholder="输入审批详情"
+                  rows={5}
+                  value={formData.content}
+                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="attachments">附件</Label>
@@ -145,7 +204,16 @@ export function ApprovalWorkflow() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>取消</Button>
-              <Button onClick={() => setIsCreateDialogOpen(false)}>提交审批</Button>
+              <Button onClick={handleCreateApproval} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    提交中...
+                  </>
+                ) : (
+                  '提交审批'
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

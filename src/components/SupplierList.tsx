@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Star, Search, Plus, Building, Phone, Mail, MapPin } from 'lucide-react';
+import { Star, Search, Plus, Building, Phone, Mail, MapPin, Loader2 } from 'lucide-react';
 
 interface Supplier {
   id: string;
@@ -37,6 +37,19 @@ export function SupplierList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 表单状态
+  const [formData, setFormData] = useState({
+    supplier_code: '',
+    name: '',
+    contact_person: '',
+    contact_phone: '',
+    contact_email: '',
+    category: 'raw_material',
+    address: '',
+    status: 'active',
+  });
 
   useEffect(() => {
     loadSuppliers();
@@ -62,6 +75,49 @@ export function SupplierList() {
       console.error('加载供应商失败:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateSupplier = async () => {
+    if (!formData.supplier_code || !formData.name) {
+      alert('请填写必填项：供应商编码、供应商名称');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/product-center/suppliers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('供应商创建成功！');
+        setIsCreateDialogOpen(false);
+        setFormData({
+          supplier_code: '',
+          name: '',
+          contact_person: '',
+          contact_phone: '',
+          contact_email: '',
+          category: 'raw_material',
+          address: '',
+          status: 'active',
+        });
+        loadSuppliers(); // 刷新列表
+      } else {
+        alert(`创建失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('创建供应商失败:', error);
+      alert('创建失败，请稍后重试');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -105,6 +161,7 @@ export function SupplierList() {
             placeholder="搜索供应商名称或编码..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && loadSuppliers()}
             className="pl-10"
           />
         </div>
@@ -135,30 +192,56 @@ export function SupplierList() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="supplierCode">供应商编码 *</Label>
-                  <Input id="supplierCode" placeholder="例如：SUP-001" />
+                  <Input
+                    id="supplierCode"
+                    placeholder="例如：SUP-001"
+                    value={formData.supplier_code}
+                    onChange={(e) => setFormData({ ...formData, supplier_code: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="supplierName">供应商名称 *</Label>
-                  <Input id="supplierName" placeholder="输入供应商名称" />
+                  <Input
+                    id="supplierName"
+                    placeholder="输入供应商名称"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="contactPerson">联系人</Label>
-                  <Input id="contactPerson" placeholder="输入联系人姓名" />
+                  <Input
+                    id="contactPerson"
+                    placeholder="输入联系人姓名"
+                    value={formData.contact_person}
+                    onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="contactPhone">联系电话</Label>
-                  <Input id="contactPhone" placeholder="输入联系电话" />
+                  <Input
+                    id="contactPhone"
+                    placeholder="输入联系电话"
+                    value={formData.contact_phone}
+                    onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="contactEmail">联系邮箱</Label>
-                <Input id="contactEmail" type="email" placeholder="输入联系邮箱" />
+                <Input
+                  id="contactEmail"
+                  type="email"
+                  placeholder="输入联系邮箱"
+                  value={formData.contact_email}
+                  onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">供应商类别</Label>
-                <Select>
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="选择类别" />
                   </SelectTrigger>
@@ -172,12 +255,27 @@ export function SupplierList() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address">地址</Label>
-                <Textarea id="address" placeholder="输入供应商地址" rows={2} />
+                <Textarea
+                  id="address"
+                  placeholder="输入供应商地址"
+                  rows={2}
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                />
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>取消</Button>
-              <Button onClick={() => setIsCreateDialogOpen(false)}>创建供应商</Button>
+              <Button onClick={handleCreateSupplier} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    创建中...
+                  </>
+                ) : (
+                  '创建供应商'
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -199,60 +297,75 @@ export function SupplierList() {
               <p className="text-sm text-muted-foreground mt-2">点击"新建供应商"开始添加</p>
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredSuppliers.map((supplier) => (
-                <Card key={supplier.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-base">{supplier.name}</CardTitle>
-                        <CardDescription className="text-xs font-mono">
-                          {supplier.supplier_code}
-                        </CardDescription>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>供应商编码</TableHead>
+                  <TableHead>供应商名称</TableHead>
+                  <TableHead>联系人</TableHead>
+                  <TableHead>类别</TableHead>
+                  <TableHead>评级</TableHead>
+                  <TableHead>状态</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredSuppliers.map((supplier) => (
+                  <TableRow key={supplier.id}>
+                    <TableCell className="font-mono">{supplier.supplier_code}</TableCell>
+                    <TableCell>
+                      <div className="font-medium">{supplier.name}</div>
+                      {supplier.address && (
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {supplier.address}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        {supplier.contact_person && (
+                          <div className="text-sm flex items-center gap-1">
+                            <Building className="h-3 w-3" />
+                            {supplier.contact_person}
+                          </div>
+                        )}
+                        {supplier.contact_phone && (
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {supplier.contact_phone}
+                          </div>
+                        )}
+                        {supplier.contact_email && (
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {supplier.contact_email}
+                          </div>
+                        )}
                       </div>
-                      {getStatusBadge(supplier.status)}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center gap-1">
-                      {getRatingStars(supplier.rating)}
-                      <span className="text-xs text-muted-foreground ml-1">
-                        ({supplier.rating_count})
-                      </span>
-                    </div>
-                    {supplier.contact_person && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Building className="h-4 w-4 text-muted-foreground" />
-                        <span>{supplier.contact_person}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{supplier.category}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {getRatingStars(supplier.rating)}
+                        <span className="text-xs text-muted-foreground ml-1">
+                          ({supplier.rating_count})
+                        </span>
                       </div>
-                    )}
-                    {supplier.contact_phone && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Phone className="h-4 w-4 text-muted-foreground" />
-                        <span>{supplier.contact_phone}</span>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(supplier.status)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center gap-1 justify-end">
+                        <Button variant="ghost" size="sm">编辑</Button>
+                        <Button variant="ghost" size="sm">删除</Button>
                       </div>
-                    )}
-                    {supplier.contact_email && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span className="truncate">{supplier.contact_email}</span>
-                      </div>
-                    )}
-                    {supplier.address && (
-                      <div className="flex items-start gap-2 text-sm">
-                        <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                        <span className="line-clamp-2">{supplier.address}</span>
-                      </div>
-                    )}
-                    {supplier.category && (
-                      <Badge variant="outline" className="w-fit">
-                        {supplier.category}
-                      </Badge>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

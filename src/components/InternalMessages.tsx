@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, MessageCircle, Send, MoreVertical, Clock, Check, CheckCheck } from 'lucide-react';
+import { Search, Plus, MessageCircle, Send, MoreVertical, Clock, Check, CheckCheck, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -48,6 +48,14 @@ export function InternalMessages() {
   const [searchTerm, setSearchTerm] = useState('');
   const [messageInput, setMessageInput] = useState('');
   const [isCreateGroupDialogOpen, setIsCreateGroupDialogOpen] = useState(false);
+  const [isSubmittingGroup, setIsSubmittingGroup] = useState(false);
+
+  // 新建群组表单状态
+  const [groupFormData, setGroupFormData] = useState({
+    name: '',
+    description: '',
+    type: 'general',
+  });
 
   useEffect(() => {
     loadGroups();
@@ -83,6 +91,44 @@ export function InternalMessages() {
       }
     } catch (error) {
       console.error('加载消息失败:', error);
+    }
+  };
+
+  const handleCreateGroup = async () => {
+    if (!groupFormData.name) {
+      alert('请填写必填项：群组名称');
+      return;
+    }
+
+    setIsSubmittingGroup(true);
+    try {
+      const response = await fetch('/api/collaboration/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(groupFormData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('群组创建成功！');
+        setIsCreateGroupDialogOpen(false);
+        setGroupFormData({
+          name: '',
+          description: '',
+          type: 'general',
+        });
+        loadGroups(); // 刷新群组列表
+      } else {
+        alert(`创建失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('创建群组失败:', error);
+      alert('创建失败，请稍后重试');
+    } finally {
+      setIsSubmittingGroup(false);
     }
   };
 
@@ -139,11 +185,16 @@ export function InternalMessages() {
                 <div className="grid gap-4 py-4">
                   <div className="space-y-2">
                     <Label htmlFor="groupName">群组名称 *</Label>
-                    <Input id="groupName" placeholder="输入群组名称" />
+                    <Input
+                      id="groupName"
+                      placeholder="输入群组名称"
+                      value={groupFormData.name}
+                      onChange={(e) => setGroupFormData({ ...groupFormData, name: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="groupType">类型</Label>
-                    <Select>
+                    <Select value={groupFormData.type} onValueChange={(value) => setGroupFormData({ ...groupFormData, type: value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="选择类型" />
                       </SelectTrigger>
@@ -157,12 +208,27 @@ export function InternalMessages() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="description">描述</Label>
-                    <Textarea id="description" placeholder="输入群组描述" rows={3} />
+                    <Textarea
+                      id="description"
+                      placeholder="输入群组描述"
+                      rows={3}
+                      value={groupFormData.description}
+                      onChange={(e) => setGroupFormData({ ...groupFormData, description: e.target.value })}
+                    />
                   </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsCreateGroupDialogOpen(false)}>取消</Button>
-                  <Button onClick={() => setIsCreateGroupDialogOpen(false)}>创建群组</Button>
+                  <Button onClick={handleCreateGroup} disabled={isSubmittingGroup}>
+                    {isSubmittingGroup ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        创建中...
+                      </>
+                    ) : (
+                      '创建群组'
+                    )}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>

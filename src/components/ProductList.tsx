@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Plus, Edit, Package, TrendingUp, Eye, Trash2 } from 'lucide-react';
+import { Search, Plus, Edit, Package, TrendingUp, Eye, Trash2, Loader2 } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -48,6 +48,18 @@ export function ProductList() {
   const [selectedBrand, setSelectedBrand] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 表单状态
+  const [formData, setFormData] = useState({
+    sku_code: '',
+    name: '',
+    description: '',
+    brand: '',
+    status: 'active',
+    lifecycle_stage: 'new',
+    main_image: '',
+  });
 
   // 加载商品列表
   useEffect(() => {
@@ -78,6 +90,48 @@ export function ProductList() {
     }
   };
 
+  const handleCreateProduct = async () => {
+    if (!formData.sku_code || !formData.name || !formData.brand) {
+      alert('请填写必填项：SKU编码、商品名称、品牌');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/product-center/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('商品创建成功！');
+        setIsCreateDialogOpen(false);
+        setFormData({
+          sku_code: '',
+          name: '',
+          description: '',
+          brand: '',
+          status: 'active',
+          lifecycle_stage: 'new',
+          main_image: '',
+        });
+        loadProducts(); // 刷新列表
+      } else {
+        alert(`创建失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('创建商品失败:', error);
+      alert('创建失败，请稍后重试');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.sku_code.toLowerCase().includes(searchTerm.toLowerCase())
@@ -98,12 +152,11 @@ export function ProductList() {
     const stageMap: Record<string, { label: string; color: string }> = {
       new: { label: '新品', color: 'text-blue-600' },
       hot: { label: '热卖', color: 'text-red-600' },
-      sale: { label: '促销', color: 'text-orange-600' },
-      clearance: { label: '清仓', color: 'text-yellow-600' },
-      offline: { label: '下架', color: 'text-gray-600' },
+      clearance: { label: '清仓', color: 'text-orange-600' },
+      discontinued: { label: '停产', color: 'text-gray-600' },
     };
     const config = stageMap[stage] || { label: stage, color: 'text-gray-600' };
-    return <span className={`text-xs font-medium ${config.color}`}>{config.label}</span>;
+    return <span className={`text-sm font-medium ${config.color}`}>{config.label}</span>;
   };
 
   return (
@@ -116,6 +169,7 @@ export function ProductList() {
             placeholder="搜索商品名称或SKU..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && loadProducts()}
             className="pl-10"
           />
         </div>
@@ -158,11 +212,16 @@ export function ProductList() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="sku">SKU编码 *</Label>
-                  <Input id="sku" placeholder="例如：HZ-001" />
+                  <Input
+                    id="sku"
+                    placeholder="例如：HZ-001"
+                    value={formData.sku_code}
+                    onChange={(e) => setFormData({ ...formData, sku_code: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="brand">品牌 *</Label>
-                  <Select>
+                  <Select value={formData.brand} onValueChange={(value) => setFormData({ ...formData, brand: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="选择品牌" />
                     </SelectTrigger>
@@ -177,16 +236,74 @@ export function ProductList() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="name">商品名称 *</Label>
-                <Input id="name" placeholder="输入商品名称" />
+                <Input
+                  id="name"
+                  placeholder="输入商品名称"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">商品描述</Label>
-                <Textarea id="description" placeholder="输入商品描述" rows={3} />
+                <Textarea
+                  id="description"
+                  placeholder="输入商品描述"
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="status">状态</Label>
+                  <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择状态" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">上架</SelectItem>
+                      <SelectItem value="inactive">下架</SelectItem>
+                      <SelectItem value="draft">草稿</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lifecycle">生命周期</Label>
+                  <Select value={formData.lifecycle_stage} onValueChange={(value) => setFormData({ ...formData, lifecycle_stage: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择生命周期" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">新品</SelectItem>
+                      <SelectItem value="hot">热卖</SelectItem>
+                      <SelectItem value="clearance">清仓</SelectItem>
+                      <SelectItem value="discontinued">停产</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="image">主图URL</Label>
+                <Input
+                  id="image"
+                  placeholder="输入图片URL"
+                  value={formData.main_image}
+                  onChange={(e) => setFormData({ ...formData, main_image: e.target.value })}
+                />
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>取消</Button>
-              <Button onClick={() => setIsCreateDialogOpen(false)}>创建商品</Button>
+              <Button onClick={handleCreateProduct} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    创建中...
+                  </>
+                ) : (
+                  '创建商品'
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -248,14 +365,14 @@ export function ProductList() {
                       {new Date(product.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center gap-1 justify-end">
                         <Button variant="ghost" size="sm">
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="sm">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive">
+                        <Button variant="ghost" size="sm">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>

@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, BookOpen, Eye, Heart, Pin, Edit, Trash2 } from 'lucide-react';
+import { Search, Plus, BookOpen, Eye, Heart, Pin, Edit, Trash2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -40,6 +40,17 @@ export function KnowledgeArticles() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 表单状态
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    category_id: '',
+    tags: '',
+    status: 'published',
+    is_pinned: false,
+  });
 
   useEffect(() => {
     loadArticles();
@@ -65,6 +76,52 @@ export function KnowledgeArticles() {
       console.error('加载知识文章失败:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateArticle = async () => {
+    if (!formData.title || !formData.content) {
+      alert('请填写必填项：标题、内容');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(t => t);
+
+      const response = await fetch('/api/collaboration/knowledge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          tags: tagsArray,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('文章创建成功！');
+        setIsCreateDialogOpen(false);
+        setFormData({
+          title: '',
+          content: '',
+          category_id: '',
+          tags: '',
+          status: 'published',
+          is_pinned: false,
+        });
+        loadArticles(); // 刷新列表
+      } else {
+        alert(`创建失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('创建文章失败:', error);
+      alert('创建失败，请稍后重试');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -134,11 +191,16 @@ export function KnowledgeArticles() {
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
               <div className="space-y-2">
                 <Label htmlFor="title">标题 *</Label>
-                <Input id="title" placeholder="输入文章标题" />
+                <Input
+                  id="title"
+                  placeholder="输入文章标题"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">分类</Label>
-                <Select>
+                <Select value={formData.category_id} onValueChange={(value) => setFormData({ ...formData, category_id: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="选择分类" />
                   </SelectTrigger>
@@ -152,20 +214,61 @@ export function KnowledgeArticles() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="content">内容 *</Label>
-                <Textarea id="content" placeholder="输入文章内容" rows={10} />
+                <Textarea
+                  id="content"
+                  placeholder="输入文章内容"
+                  rows={10}
+                  value={formData.content}
+                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tags">标签（用逗号分隔）</Label>
-                <Input id="tags" placeholder="例如：规范,流程,指南" />
+                <Input
+                  id="tags"
+                  placeholder="例如：规范,流程,指南"
+                  value={formData.tags}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                />
               </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="pinned" className="rounded" />
-                <Label htmlFor="pinned" className="cursor-pointer">置顶文章</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="status">状态</Label>
+                  <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择状态" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="published">已发布</SelectItem>
+                      <SelectItem value="draft">草稿</SelectItem>
+                      <SelectItem value="archived">已归档</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2 pt-6">
+                  <input
+                    type="checkbox"
+                    id="pinned"
+                    checked={formData.is_pinned}
+                    onChange={(e) => setFormData({ ...formData, is_pinned: e.target.checked })}
+                    className="rounded"
+                  />
+                  <Label htmlFor="pinned" className="cursor-pointer">置顶文章</Label>
+                </div>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>取消</Button>
-              <Button onClick={() => setIsCreateDialogOpen(false)}>创建文章</Button>
+              <Button onClick={handleCreateArticle} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    创建中...
+                  </>
+                ) : (
+                  '创建文章'
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

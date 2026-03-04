@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, FolderKanban, Users, Calendar, CheckCircle2, Clock, AlertCircle, Edit, Trash2, View } from 'lucide-react';
+import { Search, Plus, FolderKanban, Users, Calendar, CheckCircle2, Clock, AlertCircle, Edit, Trash2, View, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -41,6 +41,18 @@ export function ProjectCollaboration() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedPriority, setSelectedPriority] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 表单状态
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    owner_id: '',
+    priority: 'medium',
+    status: 'planning',
+    start_date: '',
+    end_date: '',
+  });
 
   useEffect(() => {
     loadProjects();
@@ -66,6 +78,48 @@ export function ProjectCollaboration() {
       console.error('加载项目失败:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateProject = async () => {
+    if (!formData.name) {
+      alert('请填写必填项：项目名称');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/collaboration/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('项目创建成功！');
+        setIsCreateDialogOpen(false);
+        setFormData({
+          name: '',
+          description: '',
+          owner_id: '',
+          priority: 'medium',
+          status: 'planning',
+          start_date: '',
+          end_date: '',
+        });
+        loadProjects(); // 刷新列表
+      } else {
+        alert(`创建失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('创建项目失败:', error);
+      alert('创建失败，请稍后重试');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -149,26 +203,47 @@ export function ProjectCollaboration() {
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="projectName">项目名称 *</Label>
-                <Input id="projectName" placeholder="输入项目名称" />
+                <Input
+                  id="projectName"
+                  placeholder="输入项目名称"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">项目描述</Label>
-                <Textarea id="description" placeholder="输入项目描述" rows={3} />
+                <Textarea
+                  id="description"
+                  placeholder="输入项目描述"
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="startDate">开始日期</Label>
-                  <Input id="startDate" type="date" />
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="endDate">结束日期</Label>
-                  <Input id="endDate" type="date" />
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="priority">优先级</Label>
-                  <Select>
+                  <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="选择优先级" />
                     </SelectTrigger>
@@ -182,13 +257,27 @@ export function ProjectCollaboration() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="owner">项目负责人</Label>
-                  <Input id="owner" placeholder="选择负责人" />
+                  <Input
+                    id="owner"
+                    placeholder="选择负责人"
+                    value={formData.owner_id}
+                    onChange={(e) => setFormData({ ...formData, owner_id: e.target.value })}
+                  />
                 </div>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>取消</Button>
-              <Button onClick={() => setIsCreateDialogOpen(false)}>创建项目</Button>
+              <Button onClick={handleCreateProject} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    创建中...
+                  </>
+                ) : (
+                  '创建项目'
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

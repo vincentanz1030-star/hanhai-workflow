@@ -14,7 +14,7 @@ function getSupabaseClient() {
 
 const supabase = getSupabaseClient();
 
-// GET /api/product-center/product-feedback - 获取商品反馈列表
+// GET /api/product-center/product-trials - 获取商品试用列表
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -23,44 +23,46 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
 
+    // 获取试用记录
     let query = supabase
-      .from('product_feedbacks')
+      .from('product_trials')
       .select(`
         *,
-        product_trials (
+        product_feedbacks (
           id,
-          brand,
-          product_name,
-          trial_date
+          product_sku,
+          rating,
+          comment,
+          is_positive,
+          created_at,
+          status
         )
       `, { count: 'exact' })
-      .order('created_at', { ascending: false })
+      .order('trial_date', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    const { data, error, count } = await query;
+    const { data: trials, error, count } = await query;
 
     if (error) throw error;
 
-    // 格式化数据
-    const formattedData = (data || []).map((item: any) => ({
-      ...item,
-      product_name: item.product_trials?.product_name,
-      brand: item.product_trials?.brand,
-    }));
+    // 如果有状态筛选，过滤反馈
+    let filteredTrials = trials || [];
+    if (status && status !== 'all') {
+      filteredTrials = filteredTrials.map((trial: any) => ({
+        ...trial,
+        product_feedbacks: trial.product_feedbacks?.filter((f: any) => f.status === status) || [],
+      })).filter((trial: any) => trial.product_feedbacks.length > 0);
+    }
 
     return NextResponse.json({
       success: true,
-      data: formattedData,
+      data: filteredTrials,
       total: count,
       page,
       limit,
     });
   } catch (error: any) {
-    console.error('获取商品反馈失败:', error);
+    console.error('获取商品试用失败:', error);
     return NextResponse.json({
       success: false,
       error: error.message,
@@ -68,46 +70,28 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/product-center/product-feedback - 创建商品反馈
+// POST /api/product-center/product-trials - 创建商品试用
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { trial_id, product_sku, rating, comment, is_positive } = body;
+    const { brand, product_name, trial_date } = body;
 
     // 验证必填字段
-    if (!trial_id || !product_sku || !rating || !comment) {
+    if (!brand || !product_name || !trial_date) {
       return NextResponse.json({
         success: false,
-        error: '缺少必填字段：trial_id, product_sku, rating, comment',
+        error: '缺少必填字段：brand, product_name, trial_date',
       }, { status: 400 });
     }
 
-    // 获取试用记录信息
-    const { data: trial } = await supabase
-      .from('product_trials')
-      .select('product_id, brand, product_name')
-      .eq('id', trial_id)
-      .single();
-
-    if (!trial) {
-      return NextResponse.json({
-        success: false,
-        error: '试用记录不存在',
-      }, { status: 404 });
-    }
-
-    // 插入反馈数据
+    // 插入试用记录
     const { data, error } = await supabase
-      .from('product_feedbacks')
+      .from('product_trials')
       .insert({
-        trial_id,
-        product_id: trial.product_id || trial_id,
-        product_sku,
-        rating,
-        comment,
-        is_positive: is_positive !== undefined ? is_positive : rating >= 4,
+        brand,
+        product_name,
+        trial_date,
         user_id: '00000000-0000-0000-0000-000000000000',
-        status: 'pending',
       })
       .select()
       .single();
@@ -116,11 +100,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data,
-      message: '商品反馈添加成功',
+      data: { ...data, feedbacks: [] },
+      message: '商品试用添加成功',
     });
   } catch (error: any) {
-    console.error('创建商品反馈失败:', error);
+    console.error('创建商品试用失败:', error);
     return NextResponse.json({
       success: false,
       error: error.message,

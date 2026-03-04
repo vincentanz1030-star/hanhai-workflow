@@ -7,17 +7,30 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Calendar, Package, Loader2 } from 'lucide-react';
+import { TrendingUp, Calendar, Package, Loader2, Plus } from 'lucide-react';
+
+const BRAND_NAMES: Record<string, string> = {
+  all: '全部品牌',
+  heidax: '海大牌',
+  haichuan: '海川牌',
+  haiyan: '海燕牌',
+  haiding: '海鼎牌',
+};
 
 interface SalesStat {
   id: string;
   product_id: string;
   product_name?: string;
   product_sku?: string;
+  brand?: string;
+  launch_date?: string;
   year: number;
   month: number;
   sales_quantity: number;
@@ -31,11 +44,25 @@ export function SalesStats() {
   const [error, setError] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState('all');
-  const [selectedProduct, setSelectedProduct] = useState('');
+  const [selectedBrand, setSelectedBrand] = useState('all');
+  
+  // 新增商品对话框状态
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [newProduct, setNewProduct] = useState({
+    product_name: '',
+    product_sku: '',
+    brand: 'heidax',
+    launch_date: '',
+    sales_quantity: 0,
+    sales_amount: 0,
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+  });
 
   useEffect(() => {
     loadStats();
-  }, [selectedYear, selectedMonth, selectedProduct]);
+  }, [selectedYear, selectedMonth, selectedBrand]);
 
   const loadStats = async () => {
     setLoading(true);
@@ -44,7 +71,7 @@ export function SalesStats() {
       const params = new URLSearchParams({
         year: selectedYear.toString(),
         ...(selectedMonth !== 'all' && { month: selectedMonth }),
-        ...(selectedProduct && { product_id: selectedProduct }),
+        ...(selectedBrand !== 'all' && { brand: selectedBrand }),
       });
 
       const response = await fetch(`/api/product-center/sales-stats?${params}`);
@@ -60,6 +87,46 @@ export function SalesStats() {
       setError('网络错误，请稍后重试');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddProduct = async () => {
+    if (!newProduct.product_name || !newProduct.product_sku || !newProduct.launch_date) {
+      alert('请填写完整信息');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch('/api/product-center/sales-stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProduct),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('商品销售数据添加成功');
+        setIsAddDialogOpen(false);
+        setNewProduct({
+          product_name: '',
+          product_sku: '',
+          brand: 'heidax',
+          launch_date: '',
+          sales_quantity: 0,
+          sales_amount: 0,
+          year: new Date().getFullYear(),
+          month: new Date().getMonth() + 1,
+        });
+        await loadStats();
+      } else {
+        alert('添加失败：' + data.error);
+      }
+    } catch (error) {
+      console.error('添加商品销售数据失败:', error);
+      alert('网络错误，请稍后重试');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -85,31 +152,169 @@ export function SalesStats() {
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('zh-CN');
+  };
+
   return (
     <div className="space-y-4">
       {/* 搜索和筛选 */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
-          <SelectTrigger className="w-full sm:w-[150px]">
-            <SelectValue placeholder="年份" />
-          </SelectTrigger>
-          <SelectContent>
-            {yearOptions.map(year => (
-              <SelectItem key={year} value={year.toString()}>{year}年</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="w-full sm:w-[150px]">
-            <SelectValue placeholder="月份" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部月份</SelectItem>
-            {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
-              <SelectItem key={month} value={month.toString()}>{month}月</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-col sm:flex-row gap-4 justify-between">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectValue placeholder="年份" />
+            </SelectTrigger>
+            <SelectContent>
+              {yearOptions.map(year => (
+                <SelectItem key={year} value={year.toString()}>{year}年</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectValue placeholder="月份" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部月份</SelectItem>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                <SelectItem key={month} value={month.toString()}>{month}月</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectValue placeholder="品牌" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(BRAND_NAMES).map(([key, name]) => (
+                <SelectItem key={key} value={key}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              新增商品
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>新增商品销售数据</DialogTitle>
+              <DialogDescription>录入商品的销售统计信息</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label className="text-sm font-medium">品牌</Label>
+                <Select 
+                  value={newProduct.brand} 
+                  onValueChange={(v) => setNewProduct({ ...newProduct, brand: v })}
+                >
+                  <SelectTrigger className="w-full mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(BRAND_NAMES).filter(([k]) => k !== 'all').map(([key, name]) => (
+                      <SelectItem key={key} value={key}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">产品名称</Label>
+                <Input
+                  className="mt-1"
+                  placeholder="输入产品名称"
+                  value={newProduct.product_name}
+                  onChange={(e) => setNewProduct({ ...newProduct, product_name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium">产品SKU</Label>
+                <Input
+                  className="mt-1"
+                  placeholder="输入产品SKU"
+                  value={newProduct.product_sku}
+                  onChange={(e) => setNewProduct({ ...newProduct, product_sku: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium">上市日期</Label>
+                <Input
+                  type="date"
+                  className="mt-1"
+                  value={newProduct.launch_date}
+                  onChange={(e) => setNewProduct({ ...newProduct, launch_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium">销售年份</Label>
+                <Select 
+                  value={newProduct.year.toString()} 
+                  onValueChange={(v) => setNewProduct({ ...newProduct, year: parseInt(v) })}
+                >
+                  <SelectTrigger className="w-full mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map(year => (
+                      <SelectItem key={year} value={year.toString()}>{year}年</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">销售月份</Label>
+                <Select 
+                  value={newProduct.month.toString()} 
+                  onValueChange={(v) => setNewProduct({ ...newProduct, month: parseInt(v) })}
+                >
+                  <SelectTrigger className="w-full mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                      <SelectItem key={month} value={month.toString()}>{month}月</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">月销量</Label>
+                <Input
+                  type="number"
+                  className="mt-1"
+                  placeholder="输入月销量"
+                  value={newProduct.sales_quantity}
+                  onChange={(e) => setNewProduct({ ...newProduct, sales_quantity: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium">销售额（元）</Label>
+                <Input
+                  type="number"
+                  className="mt-1"
+                  placeholder="输入销售额"
+                  value={newProduct.sales_amount}
+                  onChange={(e) => setNewProduct({ ...newProduct, sales_amount: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                取消
+              </Button>
+              <Button onClick={handleAddProduct} disabled={submitting}>
+                {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                提交
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* 统计卡片 */}
@@ -191,18 +396,20 @@ export function SalesStats() {
             <div className="text-center py-12 text-muted-foreground">
               <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>暂无销售统计数据</p>
-              <p className="text-sm mt-2">API接口已就绪：/api/product-center/sales-stats</p>
+              <p className="text-sm mt-2">点击"新增商品"按钮添加数据</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>品牌</TableHead>
                     <TableHead>产品名称</TableHead>
                     <TableHead>产品SKU</TableHead>
+                    <TableHead>上市日期</TableHead>
                     <TableHead>年份</TableHead>
                     <TableHead>月份</TableHead>
-                    <TableHead>销量</TableHead>
+                    <TableHead>月销量</TableHead>
                     <TableHead>销售额</TableHead>
                     <TableHead>订单数</TableHead>
                   </TableRow>
@@ -210,10 +417,14 @@ export function SalesStats() {
                 <TableBody>
                   {stats.map((stat) => (
                     <TableRow key={stat.id}>
+                      <TableCell>
+                        <Badge variant="secondary">{BRAND_NAMES[stat.brand || 'all'] || '-'}</Badge>
+                      </TableCell>
                       <TableCell className="font-medium">{stat.product_name || '-'}</TableCell>
                       <TableCell className="text-sm">{stat.product_sku || '-'}</TableCell>
+                      <TableCell>{formatDate(stat.launch_date || '')}</TableCell>
                       <TableCell>{stat.year}</TableCell>
-                      <TableCell>{stat.month}</TableCell>
+                      <TableCell>{stat.month}月</TableCell>
                       <TableCell>{stat.sales_quantity.toLocaleString()}</TableCell>
                       <TableCell className="font-medium">¥{stat.sales_amount.toLocaleString()}</TableCell>
                       <TableCell>{stat.order_count}</TableCell>

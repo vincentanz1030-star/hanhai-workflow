@@ -1,7 +1,3 @@
-/**
- * 商品中心 - 商品销售统计API
- */
-
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -16,124 +12,153 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseKey);
 }
 
-// GET - 获取商品销售统计
+const supabase = getSupabaseClient();
+
+// GET /api/product-center/sales-stats - 获取销售统计数据
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseClient();
     const searchParams = request.nextUrl.searchParams;
-
-    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
-    const month = parseInt(searchParams.get('month') || '');
+    const year = searchParams.get('year');
+    const month = searchParams.get('month');
+    const brand = searchParams.get('brand');
     const product_id = searchParams.get('product_id');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = (page - 1) * limit;
 
-    let query = supabase.from('product_sales_stats');
+    let query = supabase
+      .from('sales_statistics')
+      .select(`
+        *,
+        products (
+          id,
+          name,
+          sku,
+          brand
+        )
+      `, { count: 'exact' })
+      .order('year', { ascending: false })
+      .order('month', { ascending: false })
+      .range(offset, offset + limit - 1);
 
-    if (product_id) {
-      // 获取单个商品的销售统计
-      const { data, error } = await query
-        .select('*')
-        .eq('product_id', product_id)
-        .eq('year', year)
-        .order('month', { ascending: true });
-
-      if (error) throw error;
-
-      return NextResponse.json({
-        success: true,
-        data: data || [],
-      });
-    } else {
-      // 获取所有商品的销售统计（按月）
-      const monthFilter = month ? `and(month.eq.${month})` : '';
-      const { data, error } = await query
-        .select(`
-          *,
-          products(name, sku_code, brand)
-        `)
-        .eq('year', year)
-        .order('month', { ascending: true });
-
-      if (error) throw error;
-
-      return NextResponse.json({
-        success: true,
-        data: data || [],
-      });
+    if (year) {
+      query = query.eq('year', parseInt(year));
     }
-  } catch (error) {
-    console.error('[Sales Stats API] Error:', error);
-    return NextResponse.json(
-      { success: false, error: '获取销售统计失败' },
-      { status: 500 }
-    );
+    if (month && month !== 'all') {
+      query = query.eq('month', parseInt(month));
+    }
+    if (brand && brand !== 'all') {
+      query = query.eq('brand', brand);
+    }
+    if (product_id) {
+      query = query.eq('product_id', product_id);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) throw error;
+
+    // 格式化数据
+    const formattedData = (data || []).map((item: any) => ({
+      ...item,
+      product_name: item.products?.name,
+      product_sku: item.products?.sku,
+    }));
+
+    return NextResponse.json({
+      success: true,
+      data: formattedData,
+      total: count,
+      page,
+      limit,
+    });
+  } catch (error: any) {
+    console.error('获取销售统计失败:', error);
+    return NextResponse.json({
+      success: false,
+      error: error.message,
+    }, { status: 500 });
   }
 }
 
-// POST - 更新销售统计
+// POST /api/product-center/sales-stats - 创建销售统计数据
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseClient();
     const body = await request.json();
+    const { 
+      product_name, 
+      product_sku, 
+      brand, 
+      launch_date,
+      year, 
+      month, 
+      sales_quantity, 
+      sales_amount 
+    } = body;
 
-    const { product_id, year, month, sales_quantity, sales_amount, order_count } = body;
+    // 验证必填字段
+    if (!product_name || !product_sku || !brand || !year || !month) {
+      return NextResponse.json({
+        success: false,
+        error: '缺少必填字段：product_name, product_sku, brand, year, month',
+      }, { status: 400 });
+    }
 
-    // 检查是否已存在该月份的记录
-    const { data: existing } = await supabase
-      .from('product_sales_stats')
-      .select('*')
-      .eq('product_id', product_id)
-      .eq('year', year)
-      .eq('month', month)
+    // 首先检查产品是否存在，如果不存在则创建
+    let productId;
+    const { data: existingProduct } = await supabase
+      .from('products')
+      .select('id')
+      .eq('sku', product_sku)
       .single();
 
-    if (existing) {
-      // 更新现有记录
-      const { data, error } = await supabase
-        .from('product_sales_stats')
-        .update({
-          sales_quantity: existing.sales_quantity + sales_quantity,
-          sales_amount: parseFloat(existing.sales_amount) + sales_amount,
-          order_count: existing.order_count + order_count,
-        })
-        .eq('id', existing.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return NextResponse.json({
-        success: true,
-        data,
-        message: '销售统计更新成功',
-      });
+    if (existingProduct) {
+      productId = existingProduct.id;
     } else {
-      // 创建新记录
-      const { data, error } = await supabase
-        .from('product_sales_stats')
+      // 创建新产品
+      const { data: newProduct, error: createError } = await supabase
+        .from('products')
         .insert({
-          product_id,
-          year,
-          month,
-          sales_quantity,
-          sales_amount,
-          order_count,
+          name: product_name,
+          sku: product_sku,
+          brand: brand,
+          status: 'active',
         })
         .select()
         .single();
 
-      if (error) throw error;
-
-      return NextResponse.json({
-        success: true,
-        data,
-        message: '销售统计创建成功',
-      });
+      if (createError) throw createError;
+      productId = newProduct.id;
     }
-  } catch (error) {
-    console.error('[Sales Stats API] Error:', error);
-    return NextResponse.json(
-      { success: false, error: '更新销售统计失败' },
-      { status: 500 }
-    );
+
+    // 插入销售统计数据
+    const { data, error } = await supabase
+      .from('sales_statistics')
+      .insert({
+        product_id: productId,
+        brand: brand,
+        year: parseInt(year),
+        month: parseInt(month),
+        sales_quantity: parseInt(sales_quantity) || 0,
+        sales_amount: parseFloat(sales_amount) || 0,
+        order_count: 0,
+        launch_date: launch_date,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({
+      success: true,
+      data,
+      message: '销售统计数据添加成功',
+    });
+  } catch (error: any) {
+    console.error('创建销售统计数据失败:', error);
+    return NextResponse.json({
+      success: false,
+      error: error.message,
+    }, { status: 500 });
   }
 }

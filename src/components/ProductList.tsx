@@ -31,9 +31,11 @@ interface Product {
 
 export function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('all');
+  const [selectedSupplier, setSelectedSupplier] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -47,15 +49,29 @@ export function ProductList() {
     name: '',
     description: '',
     brand: '',
+    supplier_id: '',
     status: 'active',
     lifecycle_stage: 'new',
     main_image: '',
   });
 
-  // 加载商品列表
+  // 加载商品列表和供应商列表
   useEffect(() => {
     loadProducts();
+    loadSuppliers();
   }, [selectedBrand, selectedStatus]);
+
+  const loadSuppliers = async () => {
+    try {
+      const response = await fetch('/api/product-center/suppliers?page=1&limit=100');
+      const data = await response.json();
+      if (data.success) {
+        setSuppliers(data.data);
+      }
+    } catch (error) {
+      console.error('加载供应商失败:', error);
+    }
+  };
 
   const loadProducts = async () => {
     setLoading(true);
@@ -178,6 +194,7 @@ export function ProductList() {
       name: product.name,
       description: product.description,
       brand: product.brand,
+      supplier_id: (product as any).supplier_id || '',
       status: product.status,
       lifecycle_stage: product.lifecycle_stage,
       main_image: product.main_image,
@@ -196,6 +213,7 @@ export function ProductList() {
       name: '',
       description: '',
       brand: '',
+      supplier_id: '',
       status: 'active',
       lifecycle_stage: 'new',
       main_image: '',
@@ -249,6 +267,19 @@ export function ProductList() {
             <SelectItem value="baobao">BAOBAO</SelectItem>
             <SelectItem value="ai_he">爱禾</SelectItem>
             <SelectItem value="bao_deng_yuan">宝登远</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+          <SelectTrigger className="w-full sm:w-[150px]">
+            <SelectValue placeholder="供应商" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部供应商</SelectItem>
+            {suppliers.map((supplier) => (
+              <SelectItem key={supplier.id} value={supplier.id}>
+                {supplier.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
@@ -308,6 +339,21 @@ export function ProductList() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="supplier">供应商</Label>
+                <Select value={formData.supplier_id} onValueChange={(value) => setFormData({ ...formData, supplier_id: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择供应商" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suppliers.map((supplier) => (
+                      <SelectItem key={supplier.id} value={supplier.id}>
+                        {supplier.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">商品描述</Label>
@@ -487,6 +533,21 @@ export function ProductList() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="edit-supplier">供应商</Label>
+              <Select value={formData.supplier_id} onValueChange={(value) => setFormData({ ...formData, supplier_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择供应商" />
+                </SelectTrigger>
+                <SelectContent>
+                  {suppliers.map((supplier) => (
+                    <SelectItem key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="edit-description">商品描述</Label>
               <Textarea
                 id="edit-description"
@@ -609,7 +670,7 @@ export function ProductList() {
               <div className="space-y-2">
                 <Label>商品描述</Label>
                 <Card>
-                  <CardContent className="p-4">
+                  <CardContent className="p-4 max-h-48 overflow-y-auto">
                     <div className="whitespace-pre-wrap">{currentProduct.description || '暂无描述'}</div>
                   </CardContent>
                 </Card>

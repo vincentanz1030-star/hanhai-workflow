@@ -71,6 +71,16 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseClient();
     const body = await request.json();
 
+    // 添加默认的created_by字段（如果没有提供）
+    if (!body.created_by) {
+      body.created_by = '00000000-0000-0000-0000-000000000000'; // 默认用户ID
+    }
+
+    // 初始化默认值
+    if (!body.progress) body.progress = 0;
+    if (!body.task_count) body.task_count = 0;
+    if (!body.completed_tasks) body.completed_tasks = 0;
+
     const { data, error } = await supabase
       .from('collaboration_projects')
       .insert(body)
@@ -87,7 +97,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Collaboration Projects API] Error:', error);
     return NextResponse.json(
-      { success: false, error: '创建项目失败' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : '创建项目失败',
+      },
       { status: 500 }
     );
   }

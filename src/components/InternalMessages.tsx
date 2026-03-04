@@ -64,14 +64,14 @@ export function InternalMessages() {
   const loadGroups = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/collaboration/messages?page=1&limit=50');
+      const response = await fetch('/api/collaboration/message-groups?page=1&limit=50');
       const data = await response.json();
 
       if (data.success) {
-        setGroups(data.data.groups);
-        if (data.data.groups.length > 0 && !selectedGroup) {
-          setSelectedGroup(data.data.groups[0]);
-          loadMessages(data.data.groups[0].id);
+        setGroups(data.data);
+        if (data.data.length > 0 && !selectedGroup) {
+          setSelectedGroup(data.data[0]);
+          loadMessages(data.data[0].id);
         }
       }
     } catch (error) {
@@ -102,7 +102,7 @@ export function InternalMessages() {
 
     setIsSubmittingGroup(true);
     try {
-      const response = await fetch('/api/collaboration/messages', {
+      const response = await fetch('/api/collaboration/message-groups', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

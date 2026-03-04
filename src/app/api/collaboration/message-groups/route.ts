@@ -1,5 +1,5 @@
 /**
- * 企业协同平台 - 审批流程API
+ * 企业协同平台 - 消息群组API
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,7 +16,7 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseKey);
 }
 
-// GET - 获取审批实例列表
+// GET - 获取消息群组列表
 export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabaseClient();
@@ -24,29 +24,22 @@ export async function GET(request: NextRequest) {
 
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
-    const status = searchParams.get('status');
-    const initiator = searchParams.get('initiator');
+    const type = searchParams.get('type');
 
     const offset = (page - 1) * limit;
 
     let query = supabase
-      .from('approval_instances')
-      .select(`
-        *,
-        approval_workflows(name, category),
-        initiator_users:users!approval_instances_initiator_fkey(email, name)
-      `, { count: 'exact' });
+      .from('message_groups')
+      .select('*', { count: 'exact' })
+      .eq('is_active', true);
 
-    if (status && status !== 'all') {
-      query = query.eq('status', status);
-    }
-    if (initiator) {
-      query = query.eq('initiator', initiator);
+    if (type && type !== 'all') {
+      query = query.eq('group_type', type);
     }
 
     const { data, error, count } = await query
       .range(offset, offset + limit - 1)
-      .order('started_at', { ascending: false });
+      .order('updated_at', { ascending: false });
 
     if (error) throw error;
 
@@ -61,37 +54,30 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Approvals API] Error:', error);
+    console.error('[Message Groups API] Error:', error);
     return NextResponse.json(
-      { success: false, error: '获取审批实例列表失败' },
+      { success: false, error: '获取消息群组列表失败' },
       { status: 500 }
     );
   }
 }
 
-// POST - 创建审批实例
+// POST - 创建消息群组
 export async function POST(request: NextRequest) {
   try {
     const supabase = getSupabaseClient();
     const body = await request.json();
 
-    const { workflow_id, title, form_data, initiator, comments } = body;
-
-    // 生成实例编号
-    const instance_code = `APR-${Date.now()}`;
-
     const { data, error } = await supabase
-      .from('approval_instances')
+      .from('message_groups')
       .insert({
-        workflow_id,
-        instance_code,
-        title,
-        form_data,
-        initiator,
-        comments,
-        current_step: 0,
-        status: 'pending',
-        created_by: initiator || '00000000-0000-0000-0000-000000000000',
+        group_name: body.name,
+        description: body.description,
+        group_type: body.type || 'general',
+        members: body.members || [],
+        member_count: (body.members || []).length,
+        is_active: true,
+        created_by: body.created_by || '00000000-0000-0000-0000-000000000000',
       })
       .select()
       .single();
@@ -101,14 +87,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data,
-      message: '审批实例创建成功',
+      message: '消息群组创建成功',
     });
   } catch (error) {
-    console.error('[Approvals API] Error:', error);
+    console.error('[Message Groups API] Error:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : '创建审批实例失败',
+        error: error instanceof Error ? error.message : '创建消息群组失败',
       },
       { status: 500 }
     );

@@ -16,6 +16,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Search, Plus, Edit, Package, TrendingUp, Eye, Trash2, Loader2, X } from 'lucide-react';
 
+const BRAND_NAMES: Record<string, string> = {
+  all: '全部品牌',
+  he_zhe: '禾哲',
+  baobao: 'BAOBAO',
+  ai_he: '爱禾',
+  bao_deng_yuan: '宝登远',
+  hezhe: '禾哲',
+  aihe: '爱禾',
+  baodengyuan: '宝登远',
+};
+
 interface Product {
   id: string;
   sku_code: string;
@@ -79,6 +90,11 @@ export function ProductList() {
     if (!supplierId) return '-';
     const supplier = suppliers.find(s => s.id === supplierId);
     return supplier ? supplier.name : supplierId.substring(0, 8);
+  };
+
+  const getBrandName = (brand: string | undefined): string => {
+    if (!brand) return '-';
+    return BRAND_NAMES[brand] || brand;
   };
 
   const loadProducts = async () => {
@@ -476,7 +492,7 @@ export function ProductList() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{product.brand}</TableCell>
+                    <TableCell>{getBrandName(product.brand)}</TableCell>
                     <TableCell>
                       {getSupplierName(product.supplier_id)}
                     </TableCell>
@@ -662,7 +678,7 @@ export function ProductList() {
                   </div>
                   <div>
                     <Label className="text-muted-foreground">品牌</Label>
-                    <div>{currentProduct.brand}</div>
+                    <div>{getBrandName(currentProduct.brand)}</div>
                   </div>
                   <div className="flex gap-2">
                     <div>

@@ -28,7 +28,6 @@ interface Product {
   images: string[];
   supplier_id?: string;
   supplier_name?: string;
-  suppliers?: { id: string; name: string };
   created_at: string;
 }
 
@@ -74,6 +73,12 @@ export function ProductList() {
     } catch (error) {
       console.error('加载供应商失败:', error);
     }
+  };
+
+  const getSupplierName = (supplierId: string | undefined): string => {
+    if (!supplierId) return '-';
+    const supplier = suppliers.find(s => s.id === supplierId);
+    return supplier ? supplier.name : supplierId.substring(0, 8);
   };
 
   const loadProducts = async () => {
@@ -472,7 +477,7 @@ export function ProductList() {
                     </TableCell>
                     <TableCell>{product.brand}</TableCell>
                     <TableCell>
-                      {product.suppliers && (product.suppliers as any).name ? (product.suppliers as any).name : '-'}
+                      {getSupplierName(product.supplier_id)}
                     </TableCell>
                     <TableCell>{getStatusBadge(product.status)}</TableCell>
                     <TableCell>{getLifecycleBadge(product.lifecycle_stage)}</TableCell>

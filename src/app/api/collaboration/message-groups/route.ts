@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
         group_type: body.type || 'general',
         members: body.members || [],
         member_count: (body.members || []).length,
+        owner: body.created_by || '00000000-0000-0000-0000-000000000000',
         is_active: true,
         created_by: body.created_by || '00000000-0000-0000-0000-000000000000',
       })

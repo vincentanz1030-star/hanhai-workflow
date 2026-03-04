@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, BookOpen, Eye, Heart, Pin, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Search, Plus, BookOpen, Eye, Heart, Pin, Edit, Trash2, Loader2, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -41,6 +41,7 @@ export function KnowledgeArticles() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentArticle, setCurrentArticle] = useState<Article | null>(null);
 
@@ -202,6 +203,11 @@ export function KnowledgeArticles() {
       console.error('删除文章失败:', error);
       alert('删除失败，请稍后重试');
     }
+  };
+
+  const openViewDialog = (article: Article) => {
+    setCurrentArticle(article);
+    setIsViewDialogOpen(true);
   };
 
   const openEditDialog = (article: Article) => {
@@ -382,7 +388,7 @@ export function KnowledgeArticles() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredArticles.map((article) => (
-                <Card key={article.id} className="hover:shadow-md transition-shadow">
+                <Card key={article.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => openViewDialog(article)}>
                   <CardHeader>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
@@ -428,11 +434,11 @@ export function KnowledgeArticles() {
                       </span>
                     </div>
                     <div className="flex gap-2 pt-2">
-                      <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditDialog(article)}>
+                      <Button variant="outline" size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); openEditDialog(article); }}>
                         <Edit className="h-3 w-3 mr-1" />
                         编辑
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1" onClick={() => handleDeleteArticle(article.id)}>
+                      <Button variant="outline" size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); handleDeleteArticle(article.id); }}>
                         <Trash2 className="h-3 w-3 mr-1" />
                         删除
                       </Button>
@@ -533,6 +539,84 @@ export function KnowledgeArticles() {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 文章预览对话框 */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle>文章预览</DialogTitle>
+                <DialogDescription>查看文章完整内容</DialogDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setIsViewDialogOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+          {currentArticle && (
+            <div className="space-y-6">
+              <div>
+                {currentArticle.is_pinned && (
+                  <Pin className="h-4 w-4 text-blue-600 mb-2" />
+                )}
+                <h2 className="text-2xl font-bold">{currentArticle.title}</h2>
+                {currentArticle.category_name && (
+                  <Badge variant="outline" className="mt-2">
+                    {currentArticle.category_name}
+                  </Badge>
+                )}
+              </div>
+
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  <span>{currentArticle.view_count} 次浏览</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Heart className="h-4 w-4" />
+                  <span>{currentArticle.like_count} 次点赞</span>
+                </div>
+                <div>
+                  {currentArticle.updated_at && format(new Date(currentArticle.updated_at), 'yyyy年MM月dd日 HH:mm', { locale: zhCN })}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>文章标签</Label>
+                <div className="flex flex-wrap gap-2">
+                  {currentArticle.tags && currentArticle.tags.length > 0 ? (
+                    currentArticle.tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary">
+                        {tag}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">无标签</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>文章内容</Label>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="whitespace-pre-wrap">{currentArticle.content}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>关闭</Button>
+                <Button onClick={() => { setIsViewDialogOpen(false); openEditDialog(currentArticle); }}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  编辑文章
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -75,7 +75,39 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseClient();
     const body = await request.json();
 
-    const { workflow_id, title, form_data, initiator, comments } = body;
+    const { workflow_id, workflow_code, title, form_data, initiator, comments, approvers } = body;
+
+    // 如果传入的是workflow_code，需要查找对应的workflow_id
+    let actualWorkflowId = workflow_id;
+    if (workflow_code && !workflow_id) {
+      const { data: workflow } = await supabase
+        .from('approval_workflows')
+        .select('id')
+        .eq('code', workflow_code)
+        .single();
+      
+      if (workflow) {
+        actualWorkflowId = workflow.id;
+      } else {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `未找到审批流程：${workflow_code}`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (!actualWorkflowId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '缺少审批流程ID',
+        },
+        { status: 400 }
+      );
+    }
 
     // 生成实例编号
     const instance_code = `APR-${Date.now()}`;
@@ -83,7 +115,8 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from('approval_instances')
       .insert({
-        workflow_id,
+        workflow_id: actualWorkflowId,
+        workflow_code: workflow_code || '',
         instance_code,
         title,
         form_data,

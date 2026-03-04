@@ -39,8 +39,7 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         product_prices(*),
-        product_inventory(*),
-        suppliers(id, name)
+        product_inventory(*)
       `, { count: 'exact' });
 
     // 添加过滤条件
@@ -121,6 +120,26 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: '缺少必填字段：sku_code、name、brand',
+        },
+        { status: 400 }
+      );
+    }
+
+    // 构建查询
+    let query = supabase
+      .from('products')
+      .select('*')
+      .eq('sku_code', sku_code);
+
+    const { data: existingProduct, error: checkError } = await query;
+
+    if (checkError) throw checkError;
+
+    if (existingProduct && existingProduct.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'SKU编码已存在，请使用不同的SKU编码',
         },
         { status: 400 }
       );

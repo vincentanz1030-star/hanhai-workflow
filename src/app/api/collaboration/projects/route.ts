@@ -71,19 +71,32 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseClient();
     const body = await request.json();
 
+    // 验证owner_id是否为有效的UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const validOwnerId = uuidRegex.test(body.owner_id) ? body.owner_id : '00000000-0000-0000-0000-000000000000';
+
     // 添加默认的created_by字段（如果没有提供）
-    if (!body.created_by) {
-      body.created_by = '00000000-0000-0000-0000-000000000000'; // 默认用户ID
-    }
+    const validCreatedBy = body.created_by || '00000000-0000-0000-0000-000000000000';
 
     // 初始化默认值
-    if (!body.progress) body.progress = 0;
-    if (!body.task_count) body.task_count = 0;
-    if (!body.completed_tasks) body.completed_tasks = 0;
+    const projectData = {
+      name: body.name,
+      description: body.description,
+      owner_id: validOwnerId,
+      status: body.status || 'planning',
+      priority: body.priority || 'medium',
+      start_date: body.start_date,
+      end_date: body.end_date,
+      progress: body.progress || 0,
+      task_count: body.task_count || 0,
+      completed_tasks: body.completed_tasks || 0,
+      members: body.members || [],
+      created_by: validCreatedBy,
+    };
 
     const { data, error } = await supabase
       .from('collaboration_projects')
-      .insert(body)
+      .insert(projectData)
       .select()
       .single();
 

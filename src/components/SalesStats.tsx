@@ -18,10 +18,10 @@ import { TrendingUp, Calendar, Package, Loader2, Plus, Edit, Trash2, X } from 'l
 
 const BRAND_NAMES: Record<string, string> = {
   all: '全部品牌',
-  heidax: '海大牌',
-  haichuan: '海川牌',
-  haiyan: '海燕牌',
-  haiding: '海鼎牌',
+  hezhe: '禾哲',
+  baobao: 'BAOBAO',
+  aihe: '爱禾',
+  baodengyuan: '宝登源',
 };
 
 interface SalesStat {
@@ -52,7 +52,7 @@ export function SalesStats() {
   const [newProduct, setNewProduct] = useState({
     product_name: '',
     product_sku: '',
-    brand: 'heidax',
+    brand: 'hezhe',
     launch_date: '',
     sales_quantity: 0,
     sales_amount: 0,
@@ -66,7 +66,7 @@ export function SalesStats() {
   const [editFormData, setEditFormData] = useState({
     product_name: '',
     product_sku: '',
-    brand: 'heidax',
+    brand: 'hezhe',
     launch_date: '',
     sales_quantity: 0,
     sales_amount: 0,

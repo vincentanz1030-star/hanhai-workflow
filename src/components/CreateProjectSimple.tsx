@@ -18,10 +18,10 @@ import { Loader2, Plus } from 'lucide-react';
 
 // 品牌名称映射
 const BRAND_NAMES: Record<string, string> = {
-  brand1: '品牌A',
-  brand2: '品牌B',
-  brand3: '品牌C',
-  brand4: '品牌D',
+  hezhe: '禾哲',
+  baobao: 'BAOBAO',
+  aihe: '爱禾',
+  baodengyuan: '宝登源',
 };
 
 // 岗位列表

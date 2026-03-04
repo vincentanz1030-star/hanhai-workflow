@@ -12,14 +12,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageSquare, Star, ThumbsUp, ThumbsDown, Loader2, Plus, X } from 'lucide-react';
+import { MessageSquare, Star, ThumbsUp, ThumbsDown, Loader2, Plus, X, Edit, Trash2 } from 'lucide-react';
 
 const BRAND_NAMES: Record<string, string> = {
   all: '全部品牌',
-  heidax: '海大牌',
-  haichuan: '海川牌',
-  haiyan: '海燕牌',
-  haiding: '海鼎牌',
+  hezhe: '禾哲',
+  baobao: 'BAOBAO',
+  aihe: '爱禾',
+  baodengyuan: '宝登源',
 };
 
 interface Feedback {
@@ -56,7 +56,7 @@ export function ProductFeedback() {
   const [isAddTrialDialogOpen, setIsAddTrialDialogOpen] = useState(false);
   const [submittingTrial, setSubmittingTrial] = useState(false);
   const [newTrial, setNewTrial] = useState({
-    brand: 'heidax',
+    brand: 'hezhe',
     product_name: '',
     trial_date: new Date().toISOString().split('T')[0],
   });
@@ -70,6 +70,20 @@ export function ProductFeedback() {
     rating: 5,
     comment: '',
   });
+
+  // 编辑反馈对话框状态
+  const [isEditFeedbackDialogOpen, setIsEditFeedbackDialogOpen] = useState(false);
+  const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
+  const [editFeedbackData, setEditFeedbackData] = useState({
+    product_sku: '',
+    rating: 5,
+    comment: '',
+  });
+
+  // 删除反馈确认对话框状态
+  const [isDeleteFeedbackDialogOpen, setIsDeleteFeedbackDialogOpen] = useState(false);
+  const [deletingFeedback, setDeletingFeedback] = useState<Feedback | null>(null);
+  const [deletingFeedbackState, setDeletingFeedbackState] = useState(false);
 
   useEffect(() => {
     loadTrials();
@@ -117,7 +131,7 @@ export function ProductFeedback() {
         alert('商品试用添加成功');
         setIsAddTrialDialogOpen(false);
         setNewTrial({
-          brand: 'heidax',
+          brand: 'hezhe',
           product_name: '',
           trial_date: new Date().toISOString().split('T')[0],
         });
@@ -176,21 +190,96 @@ export function ProductFeedback() {
     setIsAddFeedbackDialogOpen(true);
   };
 
+  const openEditFeedbackDialog = (feedback: Feedback) => {
+    setEditingFeedback(feedback);
+    setEditFeedbackData({
+      product_sku: feedback.product_sku || '',
+      rating: feedback.rating,
+      comment: feedback.comment,
+    });
+    setIsEditFeedbackDialogOpen(true);
+  };
+
+  const handleEditFeedback = async () => {
+    if (!editingFeedback) return;
+
+    setSubmittingFeedback(true);
+    try {
+      const response = await fetch(`/api/product-center/product-feedback/${editingFeedback.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editFeedbackData),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('反馈更新成功');
+        setIsEditFeedbackDialogOpen(false);
+        setEditingFeedback(null);
+        await loadTrials();
+      } else {
+        alert('更新失败：' + data.error);
+      }
+    } catch (error) {
+      console.error('更新反馈失败:', error);
+      alert('网络错误，请稍后重试');
+    } finally {
+      setSubmittingFeedback(false);
+    }
+  };
+
+  const openDeleteFeedbackDialog = (feedback: Feedback) => {
+    setDeletingFeedback(feedback);
+    setIsDeleteFeedbackDialogOpen(true);
+  };
+
+  const handleDeleteFeedback = async () => {
+    if (!deletingFeedback) return;
+
+    setDeletingFeedbackState(true);
+    try {
+      const response = await fetch(`/api/product-center/product-feedback/${deletingFeedback.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('反馈删除成功');
+        setIsDeleteFeedbackDialogOpen(false);
+        setDeletingFeedback(null);
+        await loadTrials();
+      } else {
+        alert('删除失败：' + data.error);
+      }
+    } catch (error) {
+      console.error('删除反馈失败:', error);
+      alert('网络错误，请稍后重试');
+    } finally {
+      setDeletingFeedbackState(false);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('zh-CN');
   };
 
-  const renderStars = (rating: number) => {
+  const renderStars = (rating: number, onChange?: (rating: number) => void) => {
     return (
       <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => (
-          <Star
+          <button
             key={star}
-            className={`h-4 w-4 ${
-              star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
-            }`}
-          />
+            type="button"
+            onClick={() => onChange && onChange(star)}
+            className={onChange ? 'focus:outline-none' : ''}
+          >
+            <Star
+              className={`h-4 w-4 ${
+                star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+              }`}
+            />
+          </button>
         ))}
       </div>
     );
@@ -381,7 +470,7 @@ export function ProductFeedback() {
                 </div>
               </CardHeader>
               <CardContent>
-                {trial.feedbacks.length === 0 ? (
+                {trial.feedbacks?.length === 0 ? (
                   <p className="text-sm text-muted-foreground">暂无反馈，点击右上角按钮添加</p>
                 ) : (
                   <div className="space-y-3">
@@ -392,9 +481,26 @@ export function ProductFeedback() {
                             <Badge variant="outline">{feedback.product_sku}</Badge>
                             {renderStars(feedback.rating)}
                           </div>
-                          <Badge variant={feedback.is_positive ? 'default' : 'destructive'}>
-                            {feedback.is_positive ? '好评' : '差评'}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={feedback.is_positive ? 'default' : 'destructive'}>
+                              {feedback.is_positive ? '好评' : '差评'}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditFeedbackDialog(feedback)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openDeleteFeedbackDialog(feedback)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                         <p className="text-sm">{feedback.comment}</p>
                         <div className="text-xs text-muted-foreground mt-2">
@@ -430,20 +536,7 @@ export function ProductFeedback() {
             <div>
               <label className="text-sm font-medium">评分</label>
               <div className="flex gap-1 mt-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setNewFeedback({ ...newFeedback, rating: star })}
-                    className="focus:outline-none"
-                  >
-                    <Star
-                      className={`h-6 w-6 ${
-                        star <= newFeedback.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
-                      }`}
-                    />
-                  </button>
-                ))}
+                {renderStars(newFeedback.rating, (rating) => setNewFeedback({ ...newFeedback, rating }))}
               </div>
             </div>
             <div>
@@ -464,6 +557,73 @@ export function ProductFeedback() {
             <Button onClick={handleAddFeedback} disabled={submittingFeedback}>
               {submittingFeedback ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               提交
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 编辑反馈对话框 */}
+      <Dialog open={isEditFeedbackDialogOpen} onOpenChange={setIsEditFeedbackDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>编辑产品反馈</DialogTitle>
+            <DialogDescription>修改产品评分和反馈</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-sm font-medium">产品编号</label>
+              <Input
+                className="mt-1"
+                placeholder="输入产品编号（SKU）"
+                value={editFeedbackData.product_sku}
+                onChange={(e) => setEditFeedbackData({ ...editFeedbackData, product_sku: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">评分</label>
+              <div className="flex gap-1 mt-1">
+                {renderStars(editFeedbackData.rating, (rating) => setEditFeedbackData({ ...editFeedbackData, rating }))}
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">反馈内容</label>
+              <Textarea
+                placeholder="请详细描述您的使用体验或建议..."
+                className="mt-1"
+                rows={4}
+                value={editFeedbackData.comment}
+                onChange={(e) => setEditFeedbackData({ ...editFeedbackData, comment: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditFeedbackDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleEditFeedback} disabled={submittingFeedback}>
+              {submittingFeedback ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 删除反馈确认对话框 */}
+      <Dialog open={isDeleteFeedbackDialogOpen} onOpenChange={setIsDeleteFeedbackDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+            <DialogDescription>
+              确定要删除这条反馈吗？删除后将无法恢复。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteFeedbackDialogOpen(false)}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteFeedback} disabled={deletingFeedbackState}>
+              {deletingFeedbackState ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              删除
             </Button>
           </DialogFooter>
         </DialogContent>

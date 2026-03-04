@@ -21,7 +21,7 @@ interface CalendarLaunch {
   id: string;
   brand: string;
   description: string;
-  sales_date: string;
+  salesDate: string;
   status: string;
 }
 
@@ -61,8 +61,10 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
   const fetchData = async () => {
     setIsLoading(true);
     try {
+      console.log('获取日历数据:', { year, month });
       const response = await fetch(`/api/calendar-schedule?year=${year}&month=${month}`);
       const result = await response.json();
+      console.log('日历数据结果:', result);
       if (result.success) {
         setData(result.data);
       }
@@ -104,7 +106,7 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
     setFormData({
       brand: launch.brand,
       description: launch.description || '',
-      sales_date: launch.sales_date.split('T')[0],
+      sales_date: launch.salesDate.split('T')[0],
     });
     setIsEditDialogOpen(true);
   };
@@ -123,6 +125,8 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
       
       const method = editingLaunch ? 'PATCH' : 'POST';
 
+      console.log('保存排期:', { url, method, formData });
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -132,6 +136,8 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
       });
 
       const result = await response.json();
+      
+      console.log('保存结果:', result);
       
       if (result.success) {
         setIsEditDialogOpen(false);
@@ -285,7 +291,7 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                       const day = i + 1;
                       // 找到该品牌在当天的排期
                       const launch = launches.find((l) => {
-                        const launchDate = new Date(l.sales_date);
+                        const launchDate = new Date(l.salesDate + 'T00:00:00');
                         return launchDate.getDate() === day;
                       });
 
@@ -322,7 +328,7 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                                   <p className="font-bold text-base">{getBrandName(brand)}</p>
                                   <div className="flex items-center gap-2 text-sm">
                                     <span className="text-muted-foreground">日期:</span>
-                                    <span className="font-medium">{launch.sales_date.split('T')[0]}</span>
+                                    <span className="font-medium">{launch.salesDate.split('T')[0]}</span>
                                   </div>
                                   <div className="flex items-start gap-2 text-sm">
                                     <span className="text-muted-foreground">描述:</span>

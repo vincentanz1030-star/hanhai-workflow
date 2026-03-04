@@ -24,6 +24,7 @@ interface ApprovalInstance {
   workflow_id: string;
   workflow_name?: string;
   workflow_code?: string;
+  instance_code?: string;
   applicant_id?: string;
   applicant_name?: string;
   initiator?: string;
@@ -33,6 +34,16 @@ interface ApprovalInstance {
   title: string;
   created_at?: string;
   started_at?: string;
+  completed_at?: string;
+  form_data?: Record<string, any>;
+  comments?: Array<{
+    step_no: number;
+    approver_id: string;
+    approver_name: string;
+    action: string;
+    comment: string;
+    created_at: string;
+  }>;
   approval_workflows?: {
     name: string;
     category: string;
@@ -69,7 +80,9 @@ export function ApprovalWorkflow() {
 
   // 审批操作状态
   const [isApprovalActionOpen, setIsApprovalActionOpen] = useState(false);
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
   const [selectedApprovalId, setSelectedApprovalId] = useState<string | null>(null);
+  const [selectedApproval, setSelectedApproval] = useState<ApprovalInstance | null>(null);
   const [approvalComment, setApprovalComment] = useState('');
   const [isApproving, setIsApproving] = useState(false);
 
@@ -161,6 +174,12 @@ export function ApprovalWorkflow() {
     setSelectedApprovalId(approvalId);
     setApprovalComment('');
     setIsApprovalActionOpen(true);
+  };
+
+  // 打开预览对话框
+  const openPreviewDialog = (approval: ApprovalInstance) => {
+    setSelectedApproval(approval);
+    setIsPreviewDialogOpen(true);
   };
 
   // 执行审批操作
@@ -489,7 +508,11 @@ export function ApprovalWorkflow() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="sm">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openPreviewDialog(approval)}
+                          >
                             <Eye className="h-4 w-4" />
                           </Button>
                           {approval.status === 'pending' && (
@@ -577,6 +600,96 @@ export function ApprovalWorkflow() {
                 </>
               )}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 审批预览对话框 */}
+      <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>审批详情</DialogTitle>
+            <DialogDescription>查看审批申请的详细信息</DialogDescription>
+          </DialogHeader>
+          {selectedApproval && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">审批编号</Label>
+                  <p className="font-medium">{selectedApproval.instance_code || selectedApproval.id}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">流程名称</Label>
+                  <p className="font-medium">{selectedApproval.workflow_name || selectedApproval.approval_workflows?.name || '-'}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">标题</Label>
+                  <p className="font-medium">{selectedApproval.title}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">申请人</Label>
+                  <p className="font-medium">{selectedApproval.applicant_name || selectedApproval.initiator_name || '未知'}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">当前步骤</Label>
+                  <p className="font-medium">{selectedApproval.current_step}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">状态</Label>
+                  {getStatusBadge(selectedApproval.status)}
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">申请时间</Label>
+                  <p className="font-medium">
+                    {(selectedApproval.created_at || selectedApproval.started_at) && format(
+                      new Date(selectedApproval.created_at || selectedApproval.started_at!),
+                      'yyyy-MM-dd HH:mm',
+                      { locale: zhCN }
+                    )}
+                  </p>
+                </div>
+                {selectedApproval.completed_at && (
+                  <div>
+                    <Label className="text-muted-foreground">完成时间</Label>
+                    <p className="font-medium">
+                      {format(new Date(selectedApproval.completed_at), 'yyyy-MM-dd HH:mm', { locale: zhCN })}
+                    </p>
+                  </div>
+                )}
+              </div>
+              {selectedApproval.form_data && (
+                <div>
+                  <Label className="text-muted-foreground">申请内容</Label>
+                  <p className="text-sm whitespace-pre-wrap mt-1">{typeof selectedApproval.form_data === 'string' ? selectedApproval.form_data : JSON.stringify(selectedApproval.form_data, null, 2)}</p>
+                </div>
+              )}
+              {selectedApproval.comments && selectedApproval.comments.length > 0 && (
+                <div>
+                  <Label className="text-muted-foreground">审批记录</Label>
+                  <div className="space-y-2 mt-1">
+                    {selectedApproval.comments.map((comment, index) => (
+                      <div key={index} className="text-sm p-2 bg-muted/30 rounded">
+                        <div className="flex justify-between text-muted-foreground text-xs">
+                          <span>{comment.approver_name}</span>
+                          <span>{new Date(comment.created_at).toLocaleString('zh-CN')}</span>
+                        </div>
+                        <div className="font-medium mt-1">
+                          {comment.action === 'approve' ? '通过' : comment.action === 'reject' ? '拒绝' : '待处理'}
+                        </div>
+                        {comment.comment && <div className="text-xs mt-1">{comment.comment}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <Label className="text-muted-foreground">当前节点审批人</Label>
+                <p className="text-sm mt-1">{getCurrentApprovers(selectedApproval)}</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsPreviewDialogOpen(false)}>关闭</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

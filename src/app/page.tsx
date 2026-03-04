@@ -25,6 +25,8 @@ import { GlobalSearch } from '@/components/GlobalSearch';
 import { getPositionName } from '@/lib/config';
 import ProductScheduleCalendar from '@/components/calendar/ProductScheduleCalendar';
 import { ProductList } from '@/components/ProductList';
+import { SalesStats } from '@/components/SalesStats';
+import { ProductFeedback } from '@/components/ProductFeedback';
 import { SupplierList } from '@/components/SupplierList';
 import { PurchaseOrderList } from '@/components/PurchaseOrderList';
 import { CampaignList } from '@/components/CampaignList';
@@ -4199,35 +4201,11 @@ export default function HomePage() {
               </TabsContent>
 
               <TabsContent value="sales" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>销售统计</CardTitle>
-                    <CardDescription>查看商品月度销售数据</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>销售统计功能正在开发中...</p>
-                      <p className="text-sm mt-2">API接口已就绪：/api/product-center/sales-stats</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <SalesStats />
               </TabsContent>
 
               <TabsContent value="feedback" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>商品反馈</CardTitle>
-                    <CardDescription>查看和管理商品用户反馈</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>商品反馈功能正在开发中...</p>
-                      <p className="text-sm mt-2">API接口已就绪：/api/product-center/feedbacks</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ProductFeedback />
               </TabsContent>
             </Tabs>
           </TabsContent>

@@ -54,9 +54,15 @@ export async function GET(request: NextRequest) {
       })).filter((trial: any) => trial.product_feedbacks.length > 0);
     }
 
+    // 映射字段名
+    const mappedTrials = filteredTrials.map((trial: any) => ({
+      ...trial,
+      feedbacks: trial.product_feedbacks || [],
+    }));
+
     return NextResponse.json({
       success: true,
-      data: filteredTrials,
+      data: mappedTrials,
       total: count,
       page,
       limit,

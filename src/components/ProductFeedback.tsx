@@ -197,11 +197,11 @@ export function ProductFeedback() {
   };
 
   // 计算统计
-  const totalFeedbacks = trials.reduce((sum, t) => sum + t.feedbacks.length, 0);
-  const positiveFeedbacks = trials.reduce((sum, t) => sum + t.feedbacks.filter(f => f.is_positive).length, 0);
+  const totalFeedbacks = trials.reduce((sum, t) => sum + (t.feedbacks?.length || 0), 0);
+  const positiveFeedbacks = trials.reduce((sum, t) => sum + (t.feedbacks?.filter(f => f.is_positive).length || 0), 0);
   const negativeFeedbacks = totalFeedbacks - positiveFeedbacks;
   const averageRating = totalFeedbacks > 0
-    ? trials.reduce((sum, t) => sum + t.feedbacks.reduce((s, f) => s + f.rating, 0), 0) / totalFeedbacks
+    ? trials.reduce((sum, t) => sum + (t.feedbacks?.reduce((s, f) => s + f.rating, 0) || 0), 0) / totalFeedbacks
     : 0;
 
   return (

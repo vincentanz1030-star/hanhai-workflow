@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Calendar, Package, Loader2, Plus } from 'lucide-react';
+import { TrendingUp, Calendar, Package, Loader2, Plus, Edit, Trash2, X } from 'lucide-react';
 
 const BRAND_NAMES: Record<string, string> = {
   all: '全部品牌',
@@ -59,6 +59,25 @@ export function SalesStats() {
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
   });
+
+  // 编辑商品对话框状态
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<SalesStat | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    product_name: '',
+    product_sku: '',
+    brand: 'heidax',
+    launch_date: '',
+    sales_quantity: 0,
+    sales_amount: 0,
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+  });
+
+  // 删除确认对话框状态
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingProduct, setDeletingProduct] = useState<SalesStat | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -127,6 +146,80 @@ export function SalesStats() {
       alert('网络错误，请稍后重试');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const openEditDialog = (stat: SalesStat) => {
+    setEditingProduct(stat);
+    setEditFormData({
+      product_name: stat.product_name || '',
+      product_sku: stat.product_sku || '',
+      brand: stat.brand || 'heidax',
+      launch_date: stat.launch_date || '',
+      sales_quantity: stat.sales_quantity,
+      sales_amount: stat.sales_amount,
+      year: stat.year,
+      month: stat.month,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditProduct = async () => {
+    if (!editingProduct) return;
+
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/product-center/sales-stats/${editingProduct.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editFormData),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('商品销售数据更新成功');
+        setIsEditDialogOpen(false);
+        setEditingProduct(null);
+        await loadStats();
+      } else {
+        alert('更新失败：' + data.error);
+      }
+    } catch (error) {
+      console.error('更新商品销售数据失败:', error);
+      alert('网络错误，请稍后重试');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const openDeleteDialog = (stat: SalesStat) => {
+    setDeletingProduct(stat);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!deletingProduct) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/product-center/sales-stats/${deletingProduct.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('商品销售数据删除成功');
+        setIsDeleteDialogOpen(false);
+        setDeletingProduct(null);
+        await loadStats();
+      } else {
+        alert('删除失败：' + data.error);
+      }
+    } catch (error) {
+      console.error('删除商品销售数据失败:', error);
+      alert('网络错误，请稍后重试');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -412,6 +505,7 @@ export function SalesStats() {
                     <TableHead>月销量</TableHead>
                     <TableHead>销售额</TableHead>
                     <TableHead>订单数</TableHead>
+                    <TableHead>操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -428,6 +522,25 @@ export function SalesStats() {
                       <TableCell>{stat.sales_quantity.toLocaleString()}</TableCell>
                       <TableCell className="font-medium">¥{stat.sales_amount.toLocaleString()}</TableCell>
                       <TableCell>{stat.order_count}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditDialog(stat)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDeleteDialog(stat)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -436,6 +549,143 @@ export function SalesStats() {
           )}
         </CardContent>
       </Card>
+
+      {/* 编辑对话框 */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>编辑商品销售数据</DialogTitle>
+            <DialogDescription>修改商品的销售统计信息</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label className="text-sm font-medium">品牌</Label>
+              <Select 
+                value={editFormData.brand} 
+                onValueChange={(v) => setEditFormData({ ...editFormData, brand: v })}
+              >
+                <SelectTrigger className="w-full mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(BRAND_NAMES).filter(([k]) => k !== 'all').map(([key, name]) => (
+                    <SelectItem key={key} value={key}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">产品名称</Label>
+              <Input
+                className="mt-1"
+                placeholder="输入产品名称"
+                value={editFormData.product_name}
+                onChange={(e) => setEditFormData({ ...editFormData, product_name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-medium">产品SKU</Label>
+              <Input
+                className="mt-1"
+                placeholder="输入产品SKU"
+                value={editFormData.product_sku}
+                onChange={(e) => setEditFormData({ ...editFormData, product_sku: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-medium">上市日期</Label>
+              <Input
+                type="date"
+                className="mt-1"
+                value={editFormData.launch_date}
+                onChange={(e) => setEditFormData({ ...editFormData, launch_date: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-medium">销售年份</Label>
+              <Select 
+                value={editFormData.year.toString()} 
+                onValueChange={(v) => setEditFormData({ ...editFormData, year: parseInt(v) })}
+              >
+                <SelectTrigger className="w-full mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearOptions.map(year => (
+                    <SelectItem key={year} value={year.toString()}>{year}年</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">销售月份</Label>
+              <Select 
+                value={editFormData.month.toString()} 
+                onValueChange={(v) => setEditFormData({ ...editFormData, month: parseInt(v) })}
+              >
+                <SelectTrigger className="w-full mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                    <SelectItem key={month} value={month.toString()}>{month}月</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">月销量</Label>
+              <Input
+                type="number"
+                className="mt-1"
+                placeholder="输入月销量"
+                value={editFormData.sales_quantity}
+                onChange={(e) => setEditFormData({ ...editFormData, sales_quantity: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-medium">销售额（元）</Label>
+              <Input
+                type="number"
+                className="mt-1"
+                placeholder="输入销售额"
+                value={editFormData.sales_amount}
+                onChange={(e) => setEditFormData({ ...editFormData, sales_amount: parseFloat(e.target.value) || 0 })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleEditProduct} disabled={submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 删除确认对话框 */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+            <DialogDescription>
+              确定要删除 {deletingProduct?.product_name} 的销售统计数据吗？
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteProduct} disabled={deleting}>
+              {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

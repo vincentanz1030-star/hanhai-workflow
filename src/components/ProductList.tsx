@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Plus, Edit, Package, TrendingUp, Eye, Trash2, Loader2 } from 'lucide-react';
+import { Search, Plus, Edit, Package, TrendingUp, Eye, Trash2, Loader2, X } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -29,18 +29,6 @@ interface Product {
   created_at: string;
 }
 
-interface ProductPrice {
-  cost_price: number;
-  wholesale_price: number;
-  retail_price: number;
-}
-
-interface ProductInventory {
-  warehouse: string;
-  quantity: number;
-  safety_stock: number;
-}
-
 export function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +36,10 @@ export function ProductList() {
   const [selectedBrand, setSelectedBrand] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
 
   // 表单状态
   const [formData, setFormData] = useState({
@@ -111,16 +102,8 @@ export function ProductList() {
       if (data.success) {
         alert('商品创建成功！');
         setIsCreateDialogOpen(false);
-        setFormData({
-          sku_code: '',
-          name: '',
-          description: '',
-          brand: '',
-          status: 'active',
-          lifecycle_stage: 'new',
-          main_image: '',
-        });
-        loadProducts(); // 刷新列表
+        resetForm();
+        loadProducts();
       } else {
         alert(`创建失败: ${data.error || '未知错误'}`);
       }
@@ -132,10 +115,93 @@ export function ProductList() {
     }
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.sku_code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleEditProduct = async () => {
+    if (!formData.sku_code || !formData.name || !formData.brand) {
+      alert('请填写必填项：SKU编码、商品名称、品牌');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/product-center/products/${currentProduct?.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('商品更新成功！');
+        setIsEditDialogOpen(false);
+        resetForm();
+        loadProducts();
+      } else {
+        alert(`更新失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('更新商品失败:', error);
+      alert('更新失败，请稍后重试');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm('确定要删除这个商品吗？')) return;
+
+    try {
+      const response = await fetch(`/api/product-center/products/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('商品删除成功！');
+        loadProducts();
+      } else {
+        alert(`删除失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('删除商品失败:', error);
+      alert('删除失败，请稍后重试');
+    }
+  };
+
+  const openEditDialog = (product: Product) => {
+    setCurrentProduct(product);
+    setFormData({
+      sku_code: product.sku_code,
+      name: product.name,
+      description: product.description,
+      brand: product.brand,
+      status: product.status,
+      lifecycle_stage: product.lifecycle_stage,
+      main_image: product.main_image,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const openDetailDialog = (product: Product) => {
+    setCurrentProduct(product);
+    setIsDetailDialogOpen(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      sku_code: '',
+      name: '',
+      description: '',
+      brand: '',
+      status: 'active',
+      lifecycle_stage: 'new',
+      main_image: '',
+    });
+    setCurrentProduct(null);
+  };
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; variant: string }> = {
@@ -293,7 +359,7 @@ export function ProductList() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>取消</Button>
+              <Button variant="outline" onClick={() => { setIsCreateDialogOpen(false); resetForm(); }}>取消</Button>
               <Button onClick={handleCreateProduct} disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
@@ -313,12 +379,12 @@ export function ProductList() {
       <Card>
         <CardHeader>
           <CardTitle>商品列表</CardTitle>
-          <CardDescription>共 {filteredProducts.length} 个商品</CardDescription>
+          <CardDescription>共 {products.length} 个商品</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">加载中...</div>
-          ) : filteredProducts.length === 0 ? (
+          ) : products.length === 0 ? (
             <div className="text-center py-12">
               <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground">暂无商品数据</p>
@@ -338,7 +404,7 @@ export function ProductList() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProducts.map((product) => (
+                {products.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell className="font-mono">{product.sku_code}</TableCell>
                     <TableCell>
@@ -366,13 +432,13 @@ export function ProductList() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center gap-1 justify-end">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => openDetailDialog(product)}>
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(product)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteProduct(product.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -384,6 +450,188 @@ export function ProductList() {
           )}
         </CardContent>
       </Card>
+
+      {/* 编辑商品对话框 */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>编辑商品</DialogTitle>
+            <DialogDescription>修改商品信息</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-sku">SKU编码 *</Label>
+                <Input
+                  id="edit-sku"
+                  value={formData.sku_code}
+                  onChange={(e) => setFormData({ ...formData, sku_code: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-brand">品牌 *</Label>
+                <Select value={formData.brand} onValueChange={(value) => setFormData({ ...formData, brand: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择品牌" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="he_zhe">禾哲</SelectItem>
+                    <SelectItem value="baobao">BAOBAO</SelectItem>
+                    <SelectItem value="ai_he">爱禾</SelectItem>
+                    <SelectItem value="bao_deng_yuan">宝登远</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">商品名称 *</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">商品描述</Label>
+              <Textarea
+                id="edit-description"
+                rows={3}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">状态</Label>
+                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择状态" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">上架</SelectItem>
+                    <SelectItem value="inactive">下架</SelectItem>
+                    <SelectItem value="draft">草稿</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-lifecycle">生命周期</Label>
+                <Select value={formData.lifecycle_stage} onValueChange={(value) => setFormData({ ...formData, lifecycle_stage: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择生命周期" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">新品</SelectItem>
+                    <SelectItem value="hot">热卖</SelectItem>
+                    <SelectItem value="clearance">清仓</SelectItem>
+                    <SelectItem value="discontinued">停产</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-image">主图URL</Label>
+              <Input
+                id="edit-image"
+                value={formData.main_image}
+                onChange={(e) => setFormData({ ...formData, main_image: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsEditDialogOpen(false); resetForm(); }}>取消</Button>
+            <Button onClick={handleEditProduct} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  更新中...
+                </>
+              ) : (
+                '保存修改'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 商品详情对话框 */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle>商品详情</DialogTitle>
+                <DialogDescription>查看商品完整信息</DialogDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setIsDetailDialogOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+          {currentProduct && (
+            <div className="space-y-6">
+              {/* 基本信息 */}
+              <div className="grid grid-cols-2 gap-6">
+                {currentProduct.main_image && (
+                  <div className="space-y-2">
+                    <Label>商品图片</Label>
+                    <div className="h-64 rounded-lg border overflow-hidden">
+                      <img src={currentProduct.main_image} alt={currentProduct.name} className="h-full w-full object-cover" />
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-muted-foreground">商品名称</Label>
+                    <div className="text-lg font-semibold">{currentProduct.name}</div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">SKU编码</Label>
+                    <div className="font-mono">{currentProduct.sku_code}</div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">品牌</Label>
+                    <div>{currentProduct.brand}</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <div>
+                      <Label className="text-muted-foreground">状态</Label>
+                      <div>{getStatusBadge(currentProduct.status)}</div>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">生命周期</Label>
+                      <div>{getLifecycleBadge(currentProduct.lifecycle_stage)}</div>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">创建时间</Label>
+                    <div className="text-sm">{new Date(currentProduct.created_at).toLocaleString()}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 商品描述 */}
+              <div className="space-y-2">
+                <Label>商品描述</Label>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="whitespace-pre-wrap">{currentProduct.description || '暂无描述'}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* 操作按钮 */}
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>关闭</Button>
+                <Button onClick={() => { setIsDetailDialogOpen(false); openEditDialog(currentProduct); }}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  编辑商品
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Star, Search, Plus, Building, Phone, Mail, MapPin, Loader2 } from 'lucide-react';
+import { Star, Search, Plus, Building, Phone, Mail, MapPin, Loader2, Edit, Trash2 } from 'lucide-react';
 
 interface Supplier {
   id: string;
@@ -37,7 +37,9 @@ export function SupplierList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentSupplier, setCurrentSupplier] = useState<Supplier | null>(null);
 
   // 表单状态
   const [formData, setFormData] = useState({
@@ -99,17 +101,8 @@ export function SupplierList() {
       if (data.success) {
         alert('供应商创建成功！');
         setIsCreateDialogOpen(false);
-        setFormData({
-          supplier_code: '',
-          name: '',
-          contact_person: '',
-          contact_phone: '',
-          contact_email: '',
-          category: 'raw_material',
-          address: '',
-          status: 'active',
-        });
-        loadSuppliers(); // 刷新列表
+        resetForm();
+        loadSuppliers();
       } else {
         alert(`创建失败: ${data.error || '未知错误'}`);
       }
@@ -119,6 +112,91 @@ export function SupplierList() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleEditSupplier = async () => {
+    if (!formData.supplier_code || !formData.name) {
+      alert('请填写必填项：供应商编码、供应商名称');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/product-center/suppliers/${currentSupplier?.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('供应商更新成功！');
+        setIsEditDialogOpen(false);
+        resetForm();
+        loadSuppliers();
+      } else {
+        alert(`更新失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('更新供应商失败:', error);
+      alert('更新失败，请稍后重试');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteSupplier = async (id: string) => {
+    if (!confirm('确定要删除这个供应商吗？')) return;
+
+    try {
+      const response = await fetch(`/api/product-center/suppliers/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('供应商删除成功！');
+        loadSuppliers();
+      } else {
+        alert(`删除失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('删除供应商失败:', error);
+      alert('删除失败，请稍后重试');
+    }
+  };
+
+  const openEditDialog = (supplier: Supplier) => {
+    setCurrentSupplier(supplier);
+    setFormData({
+      supplier_code: supplier.supplier_code,
+      name: supplier.name,
+      contact_person: supplier.contact_person,
+      contact_phone: supplier.contact_phone,
+      contact_email: supplier.contact_email,
+      category: supplier.category,
+      address: supplier.address,
+      status: supplier.status,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      supplier_code: '',
+      name: '',
+      contact_person: '',
+      contact_phone: '',
+      contact_email: '',
+      category: 'raw_material',
+      address: '',
+      status: 'active',
+    });
+    setCurrentSupplier(null);
   };
 
   const filteredSuppliers = suppliers.filter(supplier =>
@@ -265,7 +343,7 @@ export function SupplierList() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>取消</Button>
+              <Button variant="outline" onClick={() => { setIsCreateDialogOpen(false); resetForm(); }}>取消</Button>
               <Button onClick={handleCreateSupplier} disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
@@ -358,8 +436,12 @@ export function SupplierList() {
                     <TableCell>{getStatusBadge(supplier.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center gap-1 justify-end">
-                        <Button variant="ghost" size="sm">编辑</Button>
-                        <Button variant="ghost" size="sm">删除</Button>
+                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(supplier)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteSupplier(supplier.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -369,6 +451,112 @@ export function SupplierList() {
           )}
         </CardContent>
       </Card>
+
+      {/* 编辑供应商对话框 */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>编辑供应商</DialogTitle>
+            <DialogDescription>修改供应商信息</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-supplierCode">供应商编码 *</Label>
+                <Input
+                  id="edit-supplierCode"
+                  value={formData.supplier_code}
+                  onChange={(e) => setFormData({ ...formData, supplier_code: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-supplierName">供应商名称 *</Label>
+                <Input
+                  id="edit-supplierName"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-contactPerson">联系人</Label>
+                <Input
+                  id="edit-contactPerson"
+                  value={formData.contact_person}
+                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-contactPhone">联系电话</Label>
+                <Input
+                  id="edit-contactPhone"
+                  value={formData.contact_phone}
+                  onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-contactEmail">联系邮箱</Label>
+              <Input
+                id="edit-contactEmail"
+                type="email"
+                value={formData.contact_email}
+                onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-category">供应商类别</Label>
+              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择类别" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="raw_material">原材料</SelectItem>
+                  <SelectItem value="packaging">包装材料</SelectItem>
+                  <SelectItem value="logistics">物流服务</SelectItem>
+                  <SelectItem value="other">其他</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-address">地址</Label>
+              <Textarea
+                id="edit-address"
+                rows={2}
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-status">状态</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择状态" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">活跃</SelectItem>
+                  <SelectItem value="inactive">停用</SelectItem>
+                  <SelectItem value="blacklist">黑名单</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsEditDialogOpen(false); resetForm(); }}>取消</Button>
+            <Button onClick={handleEditSupplier} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  更新中...
+                </>
+              ) : (
+                '保存修改'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

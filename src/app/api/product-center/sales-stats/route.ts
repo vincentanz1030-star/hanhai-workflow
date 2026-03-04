@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         products (
           id,
           name,
-          sku,
+          sku_code,
           brand
         )
       `, { count: 'exact' })
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     const formattedData = (data || []).map((item: any) => ({
       ...item,
       product_name: item.products?.name,
-      product_sku: item.products?.sku,
+      product_sku: item.products?.sku_code,
     }));
 
     return NextResponse.json({
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     const { data: existingProduct } = await supabase
       .from('products')
       .select('id')
-      .eq('sku', product_sku)
+      .eq('sku_code', product_sku)
       .single();
 
     if (existingProduct) {
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         .from('products')
         .insert({
           name: product_name,
-          sku: product_sku,
+          sku_code: product_sku,
           brand: brand,
           status: 'active',
         })

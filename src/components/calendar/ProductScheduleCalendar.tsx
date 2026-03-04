@@ -351,16 +351,18 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                                     </Button>
                                   </div>
                                 </TooltipTrigger>
-                                <TooltipContent side="top" className="max-w-xs bg-white border border-border shadow-lg">
-                                  <div className="space-y-2">
+                                <TooltipContent side="top" className="max-w-sm bg-white border border-border shadow-lg p-4">
+                                  <div className="space-y-3">
                                     <p className="font-bold text-sm">{getBrandName(brand)}</p>
                                     <div className="flex items-center gap-2 text-xs">
                                       <span className="text-muted-foreground">日期:</span>
                                       <span className="font-medium">{launch.salesDate.split('T')[0]}</span>
                                     </div>
-                                    <div className="flex items-start gap-2 text-xs">
-                                      <span className="text-muted-foreground">描述:</span>
-                                      <span className="font-medium">{launch.description || '无描述'}</span>
+                                    <div className="text-xs">
+                                      <div className="text-muted-foreground mb-1">描述:</div>
+                                      <div className="font-medium whitespace-normal break-words bg-gray-50 p-2 rounded border">
+                                        {launch.description || '无描述'}
+                                      </div>
                                     </div>
                                     <div className="pt-2 border-t border-border flex gap-2">
                                       <Button

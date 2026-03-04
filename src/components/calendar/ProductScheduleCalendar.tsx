@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, Edit2, Trash2 } from 'lucide-react';
 import { getBrandName, BRAND_CONFIG } from '@/lib/config';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -197,6 +196,13 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
   const { daysInMonth, brandGroups, totalLaunches } = data;
   const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
 
+  // 获取所有品牌的排期（包括没有排期的品牌）
+  const allBrands = Object.keys(BRAND_CONFIG).filter(key => key !== 'all');
+  const brandsWithData = allBrands.map(brand => ({
+    brand,
+    launches: brandGroups[brand] || []
+  }));
+
   return (
     <>
       <Card className={`${compact ? '' : 'mb-6'}`}>
@@ -231,21 +237,21 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
           {/* 图例 */}
           <div className="flex items-center gap-4 mb-4 text-xs">
             <div className="flex items-center gap-1">
-              <span className="font-bold">☑️</span>
-              <span>有排期</span>
+              <span className="text-lg font-bold">☑️</span>
+              <span>有排期（鼠标悬停查看详情）</span>
             </div>
             <div className="flex items-center gap-1 ml-auto text-muted-foreground">
-              <span>鼠标悬停查看描述</span>
+              <span>点击日期添加排期</span>
             </div>
           </div>
 
           {/* 日历网格 */}
           <TooltipProvider>
             <div className="overflow-x-auto">
-              <div className="min-w-[1500px]">
-                {/* 日期头 - 第一行显示1-31日 */}
-                <div className="grid grid-cols-[200px_repeat(31,minmax(45px,1fr))] gap-0 border-b mb-2">
-                  <div className="p-2 text-xs font-medium bg-muted/50 sticky left-0 z-10">
+              <div className="min-w-[1600px]">
+                {/* 日期头 */}
+                <div className="grid grid-cols-[150px_repeat(31,1fr)] gap-0 border-b-2 border-border mb-2">
+                  <div className="p-3 text-sm font-bold bg-muted sticky left-0 z-20 border-r-2 border-border">
                     品牌
                   </div>
                   {Array.from({ length: daysInMonth }, (_, i) => {
@@ -253,92 +259,103 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                     return (
                       <div
                         key={day}
-                        className={`p-2 text-xs font-medium text-center border-l cursor-pointer hover:bg-blue-50 transition-colors ${
-                          isWeekend(day) ? 'bg-muted/30' : 'bg-muted/50'
+                        className={`p-2 text-sm text-center border-l cursor-pointer hover:bg-blue-100 transition-colors ${
+                          isWeekend(day) ? 'bg-orange-50' : 'bg-muted/50'
                         }`}
                         onClick={() => handleDateClick(day)}
                         title="点击添加排期"
                       >
                         <div className="font-bold">{day}</div>
-                        <div className="text-muted-foreground">{getDayOfWeek(day)}</div>
+                        <div className="text-xs text-muted-foreground">{getDayOfWeek(day)}</div>
                       </div>
                     );
                   })}
                 </div>
 
                 {/* 品牌行 */}
-                {Object.entries(brandGroups).length === 0 ? (
-                  <div className="py-12 text-center text-muted-foreground">
-                    本月暂无排期，点击上方"添加排期"按钮或点击日期添加
-                  </div>
-                ) : (
-                  Object.entries(brandGroups).map(([brand, launches]) => (
-                    <div key={brand} className="grid grid-cols-[200px_repeat(31,minmax(45px,1fr))] gap-0 border-b last:border-b-0">
-                      {/* 左侧品牌列 - 只显示品牌名称 */}
-                      <div className="p-3 text-sm font-semibold sticky left-0 z-10 bg-background flex items-center gap-2 border-r">
-                        <span className="truncate">{getBrandName(brand)}</span>
-                        <Badge variant="outline" className="ml-auto shrink-0">
-                          {launches.length}
-                        </Badge>
-                      </div>
-                      
-                      {/* 右侧日历网格 - 1-31日 */}
-                      {Array.from({ length: daysInMonth }, (_, i) => {
-                        const day = i + 1;
-                        // 找到该品牌在当天的排期
-                        const launch = launches.find((l) => {
-                          const launchDate = new Date(l.sales_date);
-                          return launchDate.getDate() === day;
-                        });
+                {brandsWithData.map(({ brand, launches }) => (
+                  <div key={brand} className="grid grid-cols-[150px_repeat(31,1fr)] gap-0 border-b border-border last:border-b-0 hover:bg-muted/20">
+                    {/* 左侧品牌列 - 只显示品牌名称 */}
+                    <div className="p-3 text-sm font-semibold sticky left-0 z-10 bg-background border-r border-border">
+                      {getBrandName(brand)}
+                    </div>
+                    
+                    {/* 右侧日历网格 - 1-31日 */}
+                    {Array.from({ length: daysInMonth }, (_, i) => {
+                      const day = i + 1;
+                      // 找到该品牌在当天的排期
+                      const launch = launches.find((l) => {
+                        const launchDate = new Date(l.sales_date);
+                        return launchDate.getDate() === day;
+                      });
 
-                        return (
-                          <div
-                            key={i}
-                            className={`p-2 text-center border-l cursor-pointer hover:bg-blue-50 transition-colors ${
-                              isWeekend(day) ? 'bg-muted/10' : ''
-                            }`}
-                            onClick={() => handleDateClick(day, brand)}
-                            title={`点击添加${getBrandName(brand)}的排期`}
-                          >
-                            {launch ? (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="flex items-center justify-center h-8 bg-blue-50 rounded relative group">
-                                    <span className="text-xl font-bold">☑️</span>
-                                    <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 rounded transition-opacity"></div>
-                                    {/* 编辑按钮 - 鼠标悬停时显示 */}
+                      return (
+                        <div
+                          key={i}
+                          className={`p-2 text-center border-l cursor-pointer hover:bg-blue-100 transition-colors ${
+                            isWeekend(day) ? 'bg-orange-50' : ''
+                          }`}
+                          onClick={() => handleDateClick(day, brand)}
+                          title={`点击添加${getBrandName(brand)}的排期`}
+                        >
+                          {launch ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center justify-center h-10 bg-blue-500 text-white rounded shadow-sm hover:bg-blue-600 transition-colors relative group">
+                                  <span className="text-2xl">☑️</span>
+                                  {/* 编辑按钮 - 鼠标悬停时显示 */}
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 p-0 absolute top-0 right-0 bg-white text-blue-600 opacity-0 group-hover:opacity-100 rounded-tr rounded-bl"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleLaunchEdit(launch, e);
+                                    }}
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs bg-white border border-border shadow-lg">
+                                <div className="space-y-2">
+                                  <p className="font-bold text-base">{getBrandName(brand)}</p>
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="text-muted-foreground">日期:</span>
+                                    <span className="font-medium">{launch.sales_date.split('T')[0]}</span>
+                                  </div>
+                                  <div className="flex items-start gap-2 text-sm">
+                                    <span className="text-muted-foreground">描述:</span>
+                                    <span className="font-medium">{launch.description || '无描述'}</span>
+                                  </div>
+                                  <div className="pt-2 border-t border-border flex gap-2">
                                     <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-5 w-5 p-0 absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 bg-white shadow-sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleLaunchEdit(launch, e);
-                                      }}
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleLaunchEdit(launch, { stopPropagation: () => {} } as any)}
                                     >
-                                      <Edit2 className="h-3 w-3" />
+                                      <Edit2 className="h-3 w-3 mr-1" />
+                                      编辑
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      onClick={() => handleLaunchDelete(launch, { stopPropagation: () => {} } as any)}
+                                    >
+                                      <Trash2 className="h-3 w-3 mr-1" />
+                                      删除
                                     </Button>
                                   </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="max-w-xs">
-                                  <div className="space-y-1">
-                                    <p className="font-medium">{getBrandName(brand)}</p>
-                                    <p className="text-sm text-muted-foreground">
-                                      日期: {launch.sales_date.split('T')[0]}
-                                    </p>
-                                    <p className="text-sm">
-                                      描述: {launch.description || '无描述'}
-                                    </p>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            ) : null}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))
-                )}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </div>
           </TooltipProvider>
@@ -346,7 +363,7 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
           {/* 统计信息 */}
           <div className="mt-4 pt-4 border-t flex items-center justify-between text-sm text-muted-foreground">
             <span>本月共 {totalLaunches} 个新品排期</span>
-            <span>共 {Object.keys(brandGroups).length} 个品牌</span>
+            <span>共 {Object.keys(brandGroups).length} 个品牌有排期</span>
           </div>
         </CardContent>
       </Card>

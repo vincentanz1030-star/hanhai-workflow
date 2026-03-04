@@ -21,12 +21,27 @@ import { zhCN } from 'date-fns/locale';
 interface ApprovalInstance {
   id: string;
   workflow_id: string;
-  workflow_name: string;
-  applicant_id: string;
-  applicant_name: string;
-  current_step: string;
+  workflow_name?: string;
+  workflow_code?: string;
+  applicant_id?: string;
+  applicant_name?: string;
+  initiator?: string;
+  initiator_name?: string;
+  current_step: string | number;
   status: string;
-  created_at: string;
+  title: string;
+  created_at?: string;
+  started_at?: string;
+  approval_workflows?: {
+    name: string;
+    category: string;
+    steps?: Array<{
+      step_no: number;
+      step_name: string;
+      approvers: string[];
+      approval_type: string;
+    }>;
+  };
 }
 
 export function ApprovalWorkflow() {
@@ -121,9 +136,34 @@ export function ApprovalWorkflow() {
     return <Badge variant={config.variant as any}>{config.label}</Badge>;
   };
 
+  // 获取当前步骤的审批人信息
+  const getCurrentApprovers = (approval: ApprovalInstance) => {
+    if (!approval.approval_workflows?.steps || approval.approval_workflows.steps.length === 0) {
+      return '无';
+    }
+
+    const stepNo = typeof approval.current_step === 'number' 
+      ? approval.current_step 
+      : parseInt(approval.current_step as string) || 1;
+
+    const currentStep = approval.approval_workflows.steps.find(s => s.step_no === stepNo);
+    if (!currentStep || !currentStep.approvers || currentStep.approvers.length === 0) {
+      return '无';
+    }
+
+    const approvalTypeMap: Record<string, string> = {
+      any: '任一人',
+      all: '所有人',
+      sequential: '依次审批'
+    };
+
+    return `${currentStep.step_name}（${approvalTypeMap[currentStep.approval_type] || '审批'}）`;
+  };
+
   const filteredApprovals = approvals.filter(approval =>
-    approval.workflow_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    approval.applicant_name.toLowerCase().includes(searchTerm.toLowerCase())
+    (approval.workflow_name || approval.approval_workflows?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (approval.applicant_name || approval.initiator_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (approval.title || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -296,6 +336,7 @@ export function ApprovalWorkflow() {
                     <TableHead>流程名称</TableHead>
                     <TableHead>申请人</TableHead>
                     <TableHead>当前节点</TableHead>
+                    <TableHead>审批人</TableHead>
                     <TableHead>状态</TableHead>
                     <TableHead>申请时间</TableHead>
                     <TableHead>操作</TableHead>
@@ -308,7 +349,7 @@ export function ApprovalWorkflow() {
                         <div className="flex items-center gap-2">
                           <ClipboardCheck className="h-4 w-4 text-primary" />
                           <div>
-                            <div className="font-medium">{approval.workflow_name}</div>
+                            <div className="font-medium">{approval.workflow_name || approval.title || approval.approval_workflows?.name}</div>
                             <div className="text-xs text-muted-foreground">ID: {approval.id}</div>
                           </div>
                         </div>
@@ -318,15 +359,22 @@ export function ApprovalWorkflow() {
                           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                             <User className="h-4 w-4 text-primary" />
                           </div>
-                          <span className="text-sm">{approval.applicant_name}</span>
+                          <span className="text-sm">{approval.applicant_name || approval.initiator_name || '未知'}</span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{approval.current_step}</Badge>
                       </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">{getCurrentApprovers(approval)}</span>
+                      </TableCell>
                       <TableCell>{getStatusBadge(approval.status)}</TableCell>
                       <TableCell>
-                        {approval.created_at && format(new Date(approval.created_at), 'yyyy-MM-dd HH:mm', { locale: zhCN })}
+                        {(approval.created_at || approval.started_at) && format(
+                          new Date(approval.created_at || approval.started_at!), 
+                          'yyyy-MM-dd HH:mm', 
+                          { locale: zhCN }
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">

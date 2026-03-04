@@ -33,8 +33,7 @@ export async function GET(request: NextRequest) {
       .from('approval_instances')
       .select(`
         *,
-        approval_workflows(name, category),
-        initiator_users:users!approval_instances_initiator_fkey(email, name)
+        approval_workflows(name, category, steps)
       `, { count: 'exact' });
 
     if (status && status !== 'all') {
@@ -75,15 +74,22 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseClient();
     const body = await request.json();
 
-    const { workflow_id, workflow_code, title, form_data, initiator, comments, approvers } = body;
+    const { workflow_id, title, content, comments } = body;
 
-    // 如果传入的是workflow_code，需要查找对应的workflow_id
+    // 检查workflow_id是否为字符串（workflow_code），如果是则查找对应的UUID
     let actualWorkflowId = workflow_id;
-    if (workflow_code && !workflow_id) {
+    let actualWorkflowCode = '';
+
+    // 验证workflow_id是否是UUID格式
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (!uuidRegex.test(workflow_id)) {
+      // 如果不是UUID，则当作workflow_code处理
+      actualWorkflowCode = workflow_id;
       const { data: workflow } = await supabase
         .from('approval_workflows')
-        .select('id')
-        .eq('code', workflow_code)
+        .select('id, name')
+        .eq('code', workflow_id)
         .single();
       
       if (workflow) {
@@ -92,7 +98,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: `未找到审批流程：${workflow_code}`,
+            error: `未找到审批流程：${workflow_id}`,
           },
           { status: 400 }
         );
@@ -112,20 +118,36 @@ export async function POST(request: NextRequest) {
     // 生成实例编号
     const instance_code = `APR-${Date.now()}`;
 
+    // 准备插入数据
+    const insertData: any = {
+      workflow_id: actualWorkflowId,
+      workflow_code: actualWorkflowCode,
+      instance_code,
+      title,
+      current_step: 0,
+      status: 'pending',
+      created_by: body.initiator || '00000000-0000-0000-0000-000000000000',
+      initiator: body.initiator || '00000000-0000-0000-0000-000000000000',
+    };
+
+    // 如果有content，存储到form_data
+    if (content) {
+      insertData.form_data = { content };
+    }
+
+    // 如果有comments，添加到insertData
+    if (comments) {
+      insertData.comments = comments;
+    }
+
+    // 如果有审批人，添加到insertData
+    if (body.approvers && Array.isArray(body.approvers)) {
+      insertData.approvers = body.approvers;
+    }
+
     const { data, error } = await supabase
       .from('approval_instances')
-      .insert({
-        workflow_id: actualWorkflowId,
-        workflow_code: workflow_code || '',
-        instance_code,
-        title,
-        form_data,
-        initiator,
-        comments,
-        current_step: 0,
-        status: 'pending',
-        created_by: initiator || '00000000-0000-0000-0000-000000000000',
-      })
+      .insert(insertData)
       .select()
       .single();
 

@@ -16,6 +16,7 @@ import { zhCN } from 'date-fns/locale';
 import { Slider } from '@/components/ui/slider';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { NotificationBell } from '@/components/NotificationBell';
 import { WorkloadMonitor } from '@/components/WorkloadMonitor';
@@ -1212,6 +1213,16 @@ export default function HomePage() {
   const [criticalPathData, setCriticalPathData] = useState<any>(null);
   const [criticalPathLoading, setCriticalPathLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // 监听URL查询参数来激活对应的Tab
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['dashboard', 'projects', 'timeline', 'roles', 'product-framework', 'workload', 'feedback'].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   // 加载项目列表 - 最简单的实现
   const loadProjects = async () => {

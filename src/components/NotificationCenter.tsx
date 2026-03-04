@@ -47,19 +47,19 @@ export function NotificationCenter({
     switch (notification.type) {
       case 'collaboration':
         // 跳转到协同合作板块
-        router.push('/collaboration');
+        router.push('/?tab=feedback');
         break;
       case 'reminder':
         // 跳转到项目列表
-        router.push('/projects');
+        router.push('/?tab=projects');
         break;
       case 'weekly':
-        // 跳转到本周工作安排
-        router.push('/weekly');
+        // 跳转到本周工作安排（时间线Tab）
+        router.push('/?tab=timeline');
         break;
       case 'project':
         // 跳转到项目列表
-        router.push('/projects');
+        router.push('/?tab=projects');
         break;
       default:
         break;

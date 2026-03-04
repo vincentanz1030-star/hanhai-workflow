@@ -18,6 +18,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { NotificationBell } from '@/components/NotificationBell';
 import { WorkloadMonitor } from '@/components/WorkloadMonitor';
 import { NotificationCenter } from '@/components/NotificationCenter';
@@ -1031,7 +1032,7 @@ function OrgTreeNode({
   );
 }
 
-export default function HomePage() {
+function HomePageContent() {
   const { user, loading: authLoading, logout } = useAuth();
 
   const [projects, setProjects] = useState<Project[]>([]);
@@ -5236,4 +5237,18 @@ export default function HomePage() {
   );
 }
 
-
+// 在首页使用 Suspense 包裹内容组件，因为使用了 useSearchParams
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+          <p className="text-muted-foreground">加载中...</p>
+        </div>
+      </div>
+    }>
+      <HomePageContent />
+    </Suspense>
+  );
+}

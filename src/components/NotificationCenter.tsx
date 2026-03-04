@@ -173,7 +173,7 @@ export function NotificationCenter({
           </div>
         ) : (
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsList className="grid w-full grid-cols-5 mb-4">
               <TabsTrigger value="all" className="text-xs">
                 全部
                 <Badge variant="secondary" className="ml-1 text-xs">
@@ -196,6 +196,12 @@ export function NotificationCenter({
                 周计划
                 <Badge variant="secondary" className="ml-1 text-xs">
                   {weeklyPlans.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="project" className="text-xs">
+                项目
+                <Badge variant="secondary" className="ml-1 text-xs">
+                  {projectNotifications.length}
                 </Badge>
               </TabsTrigger>
             </TabsList>
@@ -285,6 +291,19 @@ export function NotificationCenter({
               ) : (
                 <div className="space-y-2">
                   {weeklyPlans.map(renderNotificationItem)}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="project" className="max-h-[400px] overflow-y-auto">
+              {projectNotifications.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">暂无项目通知</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {projectNotifications.map(renderNotificationItem)}
                 </div>
               )}
             </TabsContent>

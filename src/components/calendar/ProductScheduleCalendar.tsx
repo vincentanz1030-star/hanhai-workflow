@@ -10,12 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 
 interface CalendarLaunch {
   id: string;
@@ -265,9 +259,8 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
           </div>
 
           {/* 日历网格 - 使用响应式布局 */}
-          <TooltipProvider>
-            <div className="overflow-x-auto">
-              <div className="min-w-full">
+          <div className="overflow-x-auto">
+            <div className="min-w-full">
                 {/* 日期头 */}
                 <div className="grid grid-cols-[120px_repeat(31,1fr)] gap-0.5 border-b-2 border-border mb-2">
                   <div className="p-2 text-xs font-bold bg-muted sticky left-0 z-20 border-r-2 border-border">
@@ -320,81 +313,37 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                             title={`点击添加${getBrandName(brand)}的排期`}
                           >
                             {launch ? (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="w-full h-8 bg-white border border-gray-300 rounded-sm hover:bg-gray-50 transition-colors relative group flex items-center justify-center">
-                                    <svg 
-                                      xmlns="http://www.w3.org/2000/svg" 
-                                      width="20" 
-                                      height="20" 
-                                      viewBox="0 0 24 24" 
-                                      fill="none" 
-                                      stroke="currentColor" 
-                                      strokeWidth="3" 
-                                      strokeLinecap="round" 
-                                      strokeLinejoin="round" 
-                                      className="text-black"
-                                    >
-                                      <polyline points="20 6 9 17 4 12"></polyline>
-                                    </svg>
-                                    {/* 编辑按钮 - 鼠标悬停时显示 */}
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-5 w-5 p-0 absolute top-0 right-0 bg-white text-blue-600 opacity-0 group-hover:opacity-100 rounded-sm shadow-sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleLaunchEdit(launch, e);
-                                      }}
-                                    >
-                                      <Edit2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="max-w-sm bg-white border border-border shadow-lg p-4">
-                                  <div className="space-y-3">
-                                    <p className="font-bold text-sm">{getBrandName(brand)}</p>
-                                    <div className="flex items-center gap-2 text-xs">
-                                      <span className="text-muted-foreground">日期:</span>
-                                      <span className="font-medium">{launch.salesDate.split('T')[0]}</span>
-                                    </div>
-                                    <div className="text-xs">
-                                      <div className="text-muted-foreground mb-1">描述:</div>
-                                      <div className="font-medium whitespace-normal break-words bg-gray-50 p-2 rounded border">
-                                        {launch.description || '无描述'}
-                                      </div>
-                                    </div>
-                                    <div className="pt-2 border-t border-border flex gap-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="text-xs"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          handleLaunchEdit(launch, e as any);
-                                        }}
-                                      >
-                                        <Edit2 className="h-3 w-3 mr-1" />
-                                        编辑
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          handleLaunchDelete(launch, e as any);
-                                        }}
-                                      >
-                                        <Trash2 className="h-3 w-3 mr-1" />
-                                        删除
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
+                              <div 
+                                className="w-full h-8 bg-white border border-gray-300 rounded-sm hover:bg-gray-50 transition-colors relative group flex items-center justify-center"
+                                title={`${getBrandName(brand)} - ${launch.salesDate.split('T')[0]} - 描述: ${launch.description || '无描述'}`}
+                              >
+                                <svg 
+                                  xmlns="http://www.w3.org/2000/svg" 
+                                  width="20" 
+                                  height="20" 
+                                  viewBox="0 0 24 24" 
+                                  fill="none" 
+                                  stroke="currentColor" 
+                                  strokeWidth="3" 
+                                  strokeLinecap="round" 
+                                  strokeLinejoin="round" 
+                                  className="text-black"
+                                >
+                                  <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                {/* 编辑按钮 - 鼠标悬停时显示 */}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5 p-0 absolute top-0 right-0 bg-white text-blue-600 opacity-0 group-hover:opacity-100 rounded-sm shadow-sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleLaunchEdit(launch, e);
+                                  }}
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                </Button>
+                              </div>
                             ) : null}
                           </div>
                         );
@@ -404,7 +353,6 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                 })}
               </div>
             </div>
-          </TooltipProvider>
 
           {/* 统计信息 */}
           <div className="mt-4 pt-4 border-t flex items-center justify-between text-xs text-muted-foreground">

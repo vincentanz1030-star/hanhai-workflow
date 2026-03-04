@@ -41,7 +41,9 @@ export function ProjectCollaboration() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedPriority, setSelectedPriority] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
   // 表单状态
   const [formData, setFormData] = useState({
@@ -121,6 +123,85 @@ export function ProjectCollaboration() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleEditProject = async () => {
+    if (!formData.name) {
+      alert('请填写必填项：项目名称');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/collaboration/projects/${currentProject?.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('项目更新成功！');
+        setIsEditDialogOpen(false);
+        setFormData({
+          name: '',
+          description: '',
+          owner_id: '',
+          priority: 'medium',
+          status: 'planning',
+          start_date: '',
+          end_date: '',
+        });
+        setCurrentProject(null);
+        loadProjects(); // 刷新列表
+      } else {
+        alert(`更新失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('更新项目失败:', error);
+      alert('更新失败，请稍后重试');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteProject = async (id: string) => {
+    if (!confirm('确定要删除这个项目吗？')) return;
+
+    try {
+      const response = await fetch(`/api/collaboration/projects/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('项目删除成功！');
+        loadProjects();
+      } else {
+        alert(`删除失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('删除项目失败:', error);
+      alert('删除失败，请稍后重试');
+    }
+  };
+
+  const openEditDialog = (project: Project) => {
+    setCurrentProject(project);
+    setFormData({
+      name: project.name,
+      description: project.description,
+      owner_id: project.owner_id,
+      priority: project.priority,
+      status: project.status,
+      start_date: project.start_date,
+      end_date: project.end_date,
+    });
+    setIsEditDialogOpen(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -417,10 +498,10 @@ export function ProjectCollaboration() {
                           <Button variant="ghost" size="sm">
                             <View className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(project)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteProject(project.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -433,6 +514,95 @@ export function ProjectCollaboration() {
           )}
         </CardContent>
       </Card>
+
+      {/* 编辑项目对话框 */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>编辑项目</DialogTitle>
+            <DialogDescription>修改项目信息</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-projectName">项目名称 *</Label>
+              <Input
+                id="edit-projectName"
+                placeholder="输入项目名称"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">项目描述</Label>
+              <Textarea
+                id="edit-description"
+                placeholder="输入项目描述"
+                rows={3}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-startDate">开始日期</Label>
+                <Input
+                  id="edit-startDate"
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-endDate">结束日期</Label>
+                <Input
+                  id="edit-endDate"
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-priority">优先级</Label>
+                <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择优先级" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">低</SelectItem>
+                    <SelectItem value="medium">中</SelectItem>
+                    <SelectItem value="high">高</SelectItem>
+                    <SelectItem value="urgent">紧急</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-owner">项目负责人</Label>
+                <Input
+                  id="edit-owner"
+                  placeholder="选择负责人"
+                  value={formData.owner_id}
+                  onChange={(e) => setFormData({ ...formData, owner_id: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>取消</Button>
+            <Button onClick={handleEditProject} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  更新中...
+                </>
+              ) : (
+                '保存修改'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

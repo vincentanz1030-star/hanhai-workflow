@@ -40,7 +40,9 @@ export function KnowledgeArticles() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentArticle, setCurrentArticle] = useState<Article | null>(null);
 
   // 表单状态
   const [formData, setFormData] = useState({
@@ -123,6 +125,88 @@ export function KnowledgeArticles() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleEditArticle = async () => {
+    if (!formData.title || !formData.content) {
+      alert('请填写必填项：标题、内容');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(t => t);
+
+      const response = await fetch(`/api/collaboration/knowledge/${currentArticle?.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          tags: tagsArray,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('文章更新成功！');
+        setIsEditDialogOpen(false);
+        setFormData({
+          title: '',
+          content: '',
+          category_id: '',
+          tags: '',
+          status: 'published',
+          is_pinned: false,
+        });
+        setCurrentArticle(null);
+        loadArticles(); // 刷新列表
+      } else {
+        alert(`更新失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('更新文章失败:', error);
+      alert('更新失败，请稍后重试');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteArticle = async (id: string) => {
+    if (!confirm('确定要删除这篇文章吗？')) return;
+
+    try {
+      const response = await fetch(`/api/collaboration/knowledge/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('文章删除成功！');
+        loadArticles();
+      } else {
+        alert(`删除失败: ${data.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('删除文章失败:', error);
+      alert('删除失败，请稍后重试');
+    }
+  };
+
+  const openEditDialog = (article: Article) => {
+    setCurrentArticle(article);
+    setFormData({
+      title: article.title,
+      content: article.content,
+      category_id: article.category_id,
+      tags: article.tags.join(', '),
+      status: article.status,
+      is_pinned: article.is_pinned,
+    });
+    setIsEditDialogOpen(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -292,7 +376,7 @@ export function KnowledgeArticles() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredArticles.map((article) => (
-                <Card key={article.id} className="hover:shadow-md transition-shadow cursor-pointer">
+                <Card key={article.id} className="hover:shadow-md transition-shadow">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
@@ -337,6 +421,16 @@ export function KnowledgeArticles() {
                         {article.updated_at && format(new Date(article.updated_at), 'yyyy-MM-dd', { locale: zhCN })}
                       </span>
                     </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditDialog(article)}>
+                        <Edit className="h-3 w-3 mr-1" />
+                        编辑
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => handleDeleteArticle(article.id)}>
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        删除
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -344,6 +438,98 @@ export function KnowledgeArticles() {
           )}
         </CardContent>
       </Card>
+
+      {/* 编辑文章对话框 */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>编辑知识文章</DialogTitle>
+            <DialogDescription>修改文章信息</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">标题 *</Label>
+              <Input
+                id="edit-title"
+                placeholder="输入文章标题"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-category">分类</Label>
+              <Select value={formData.category_id} onValueChange={(value) => setFormData({ ...formData, category_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择分类" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">制度规范</SelectItem>
+                  <SelectItem value="2">操作手册</SelectItem>
+                  <SelectItem value="3">常见问题</SelectItem>
+                  <SelectItem value="4">培训资料</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-content">内容 *</Label>
+              <Textarea
+                id="edit-content"
+                placeholder="输入文章内容"
+                rows={10}
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-tags">标签（用逗号分隔）</Label>
+              <Input
+                id="edit-tags"
+                placeholder="例如：规范,流程,指南"
+                value={formData.tags}
+                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">状态</Label>
+                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择状态" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="published">已发布</SelectItem>
+                    <SelectItem value="draft">草稿</SelectItem>
+                    <SelectItem value="archived">已归档</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <input
+                  type="checkbox"
+                  id="edit-pinned"
+                  checked={formData.is_pinned}
+                  onChange={(e) => setFormData({ ...formData, is_pinned: e.target.checked })}
+                  className="rounded"
+                />
+                <Label htmlFor="edit-pinned" className="cursor-pointer">置顶文章</Label>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>取消</Button>
+            <Button onClick={handleEditArticle} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  更新中...
+                </>
+              ) : (
+                '保存修改'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

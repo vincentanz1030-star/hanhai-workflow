@@ -51,6 +51,7 @@ export function SupplierList() {
     category: 'raw_material',
     address: '',
     status: 'active',
+    rating: 5,
   });
 
   useEffect(() => {
@@ -181,6 +182,7 @@ export function SupplierList() {
       category: supplier.category,
       address: supplier.address,
       status: supplier.status,
+      rating: supplier.rating,
     });
     setIsEditDialogOpen(true);
   };
@@ -195,6 +197,7 @@ export function SupplierList() {
       category: 'raw_material',
       address: '',
       status: 'active',
+      rating: 5,
     });
     setCurrentSupplier(null);
   };
@@ -219,6 +222,22 @@ export function SupplierList() {
     return stars;
   };
 
+  const getInteractiveRatingStars = (rating: number, onChange: (rating: number) => void) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <Star
+          key={i}
+          className={`h-6 w-6 cursor-pointer transition-transform hover:scale-110 ${
+            i <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+          }`}
+          onClick={() => onChange(i)}
+        />
+      );
+    }
+    return stars;
+  };
+
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; variant: string }> = {
       active: { label: '活跃', variant: 'default' },
@@ -227,6 +246,16 @@ export function SupplierList() {
     };
     const config = statusMap[status] || { label: status, variant: 'outline' };
     return <Badge variant={config.variant as any}>{config.label}</Badge>;
+  };
+
+  const getCategoryLabel = (category: string) => {
+    const categoryMap: Record<string, string> = {
+      raw_material: '原材料',
+      packaging: '包装材料',
+      logistics: '物流服务',
+      other: '其他',
+    };
+    return categoryMap[category] || category;
   };
 
   return (
@@ -423,7 +452,7 @@ export function SupplierList() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{supplier.category}</Badge>
+                      <Badge variant="outline">{getCategoryLabel(supplier.category)}</Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -527,6 +556,15 @@ export function SupplierList() {
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>供应商评级</Label>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  {getInteractiveRatingStars(formData.rating, (rating) => setFormData({ ...formData, rating }))}
+                </div>
+                <span className="text-sm text-muted-foreground">({formData.rating}星)</span>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-status">状态</Label>

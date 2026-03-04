@@ -683,7 +683,7 @@ export function ProductList() {
               <div className="space-y-2">
                 <Label>商品描述</Label>
                 <Card>
-                  <CardContent className="p-4 max-h-48 overflow-y-auto">
+                  <CardContent className="p-4 max-h-64 overflow-y-auto">
                     <div className="whitespace-pre-wrap">{currentProduct.description || '暂无描述'}</div>
                   </CardContent>
                 </Card>

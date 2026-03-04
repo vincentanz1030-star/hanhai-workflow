@@ -195,7 +195,7 @@ export function ProductFeedback() {
     setEditFeedbackData({
       product_sku: feedback.product_sku || '',
       rating: feedback.rating,
-      comment: feedback.comment,
+      comment: feedback.comment || '',
     });
     setIsEditFeedbackDialogOpen(true);
   };

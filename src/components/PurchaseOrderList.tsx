@@ -36,6 +36,8 @@ interface PurchaseOrder {
 
 export function PurchaseOrderList() {
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,7 +54,33 @@ export function PurchaseOrderList() {
 
   useEffect(() => {
     loadOrders();
+    loadSuppliers();
+    loadProducts();
   }, [selectedStatus]);
+
+  const loadSuppliers = async () => {
+    try {
+      const response = await fetch('/api/product-center/suppliers?page=1&limit=100');
+      const data = await response.json();
+      if (data.success) {
+        setSuppliers(data.data);
+      }
+    } catch (error) {
+      console.error('加载供应商失败:', error);
+    }
+  };
+
+  const loadProducts = async () => {
+    try {
+      const response = await fetch('/api/product-center/products?page=1&limit=100');
+      const data = await response.json();
+      if (data.success) {
+        setProducts(data.data);
+      }
+    } catch (error) {
+      console.error('加载商品失败:', error);
+    }
+  };
 
   const loadOrders = async () => {
     setLoading(true);
@@ -205,8 +233,11 @@ export function PurchaseOrderList() {
                       <SelectValue placeholder="选择供应商" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">供应商A</SelectItem>
-                      <SelectItem value="2">供应商B</SelectItem>
+                      {suppliers.map((supplier) => (
+                        <SelectItem key={supplier.id} value={supplier.id}>
+                          {supplier.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -218,8 +249,11 @@ export function PurchaseOrderList() {
                     <SelectValue placeholder="选择商品" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">商品A</SelectItem>
-                    <SelectItem value="2">商品B</SelectItem>
+                    {products.map((product) => (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.name} ({product.sku_code})
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

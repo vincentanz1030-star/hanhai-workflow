@@ -315,7 +315,7 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                             {launch ? (
                               <div 
                                 className="w-full h-8 bg-white border border-gray-300 rounded-sm hover:bg-gray-50 transition-colors relative group flex items-center justify-center"
-                                title={`${getBrandName(brand)} - ${launch.salesDate.split('T')[0]} - 描述: ${launch.description || '无描述'}`}
+                                title={launch.description || '无描述'}
                               >
                                 <svg 
                                   xmlns="http://www.w3.org/2000/svg" 

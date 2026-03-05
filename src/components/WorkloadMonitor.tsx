@@ -62,7 +62,11 @@ interface WorkloadData {
   summary: WorkloadSummary;
 }
 
-export default function WorkloadMonitor() {
+interface WorkloadMonitorProps {
+  compact?: boolean;
+}
+
+export default function WorkloadMonitor({ compact = false }: WorkloadMonitorProps) {
   const [workload, setWorkload] = useState<WorkloadData | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedPosition, setExpandedPosition] = useState<string | null>(null);
@@ -131,63 +135,65 @@ export default function WorkloadMonitor() {
 
   return (
     <div className="space-y-6">
-      {/* 汇总统计 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="text-sm font-medium text-muted-foreground">总任务数</div>
-              <div className="text-2xl font-bold">{summary.totalTasks}</div>
-              <div className="text-xs text-muted-foreground">
-                进行中: {summary.inProgressTasks}
+      {!compact && (
+        /* 汇总统计 */
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="text-sm font-medium text-muted-foreground">总任务数</div>
+                <div className="text-2xl font-bold">{summary.totalTasks}</div>
+                <div className="text-xs text-muted-foreground">
+                  进行中: {summary.inProgressTasks}
+                </div>
               </div>
+              <Users className="h-6 w-6 text-muted-foreground" />
             </div>
-            <Users className="h-6 w-6 text-muted-foreground" />
-          </div>
-        </Card>
+          </Card>
 
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="text-sm font-medium text-muted-foreground">已完成</div>
-              <div className="text-2xl font-bold">{summary.completedTasks}</div>
-              <div className="text-xs text-muted-foreground">
-                完成率 {summary.totalTasks > 0 ? Math.round((summary.completedTasks / summary.totalTasks) * 100) : 0}%
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="text-sm font-medium text-muted-foreground">已完成</div>
+                <div className="text-2xl font-bold">{summary.completedTasks}</div>
+                <div className="text-xs text-muted-foreground">
+                  完成率 {summary.totalTasks > 0 ? Math.round((summary.completedTasks / summary.totalTasks) * 100) : 0}%
+                </div>
               </div>
+              <CheckCircle className="h-6 w-6 text-muted-foreground" />
             </div>
-            <CheckCircle className="h-6 w-6 text-muted-foreground" />
-          </div>
-        </Card>
+          </Card>
 
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="text-sm font-medium text-muted-foreground">逾期任务</div>
-              <div className="text-2xl font-bold text-destructive">{summary.overdueTasks}</div>
-              <div className="text-xs text-muted-foreground">
-                需立即处理
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="text-sm font-medium text-muted-foreground">逾期任务</div>
+                <div className="text-2xl font-bold text-destructive">{summary.overdueTasks}</div>
+                <div className="text-xs text-muted-foreground">
+                  需立即处理
+                </div>
               </div>
+              <AlertCircle className="h-6 w-6 text-destructive" />
             </div>
-            <AlertCircle className="h-6 w-6 text-destructive" />
-          </div>
-        </Card>
+          </Card>
 
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="text-sm font-medium text-muted-foreground">平均负载</div>
-              <div className="text-2xl font-bold">{summary.averageWorkload}</div>
-              <div className="text-xs text-muted-foreground">
-                负载评分
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="text-sm font-medium text-muted-foreground">平均负载</div>
+                <div className="text-2xl font-bold">{summary.averageWorkload}</div>
+                <div className="text-xs text-muted-foreground">
+                  负载评分
+                </div>
               </div>
+              <TrendingUp className="h-6 w-6 text-muted-foreground" />
             </div>
-            <TrendingUp className="h-6 w-6 text-muted-foreground" />
-          </div>
-        </Card>
-      </div>
+          </Card>
+        </div>
+      )}
 
       {/* 工作负载预警和岗位工作负载 - 并列布局 */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className={compact ? "space-y-6" : "grid gap-6 md:grid-cols-2"}>
         {/* 工作负载预警 */}
         {overloadedUsers.length > 0 && (
           <Card className="border-destructive">
@@ -219,7 +225,7 @@ export default function WorkloadMonitor() {
         )}
 
         {/* 岗位工作负载 */}
-        <Card className="md:col-span-1">
+        <Card className={compact ? "" : "md:col-span-1"}>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">岗位工作负载</CardTitle>
             <CardDescription className="text-xs">点击查看详情</CardDescription>

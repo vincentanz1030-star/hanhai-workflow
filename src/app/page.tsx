@@ -3178,13 +3178,15 @@ function HomePageContent() {
               </CardContent>
             </Card>
 
-            {/* 各岗位进度柱状图 */}
-            <Card>
-                <CardHeader>
-                  <CardTitle className="text-base sm:text-lg">各岗位平均进度</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">所有项目中各岗位的平均完成进度</CardDescription>
-                </CardHeader>
-                <CardContent>
+            {/* 各岗位进度柱状图和工作负载监控 */}
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* 各岗位进度柱状图 */}
+              <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base sm:text-lg">各岗位平均进度</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">所有项目中各岗位的平均完成进度</CardDescription>
+                  </CardHeader>
+                  <CardContent>
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart 
                       data={Object.keys(ROLE_NAMES).map(role => {
@@ -3287,7 +3289,11 @@ function HomePageContent() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+
+              {/* 工作负载监控 */}
+              <WorkloadMonitor compact={true} />
+            </div>
+          </TabsContent>
 
           {/* 项目列表 */}
           <TabsContent value="projects" className="space-y-6">
@@ -4115,7 +4121,16 @@ function HomePageContent() {
 
           {/* 工作负载监控 */}
           <TabsContent value="workload" className="space-y-6">
-            <WorkloadMonitor />
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Activity className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">工作负载监控</h3>
+                <p className="text-muted-foreground mb-4">工作负载内容已移至【数据看板】页面</p>
+                <Button onClick={() => setActiveTab('dashboard')}>
+                  前往数据看板
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* 关键路径分析 */}

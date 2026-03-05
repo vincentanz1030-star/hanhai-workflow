@@ -5,7 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { ImagePreview } from '@/components/ui/image-preview';
 import {
   Upload,
@@ -262,6 +263,9 @@ export function ImageUploader({
         {/* 大图预览 Dialog */}
         <Dialog open={isZoomed} onOpenChange={setIsZoomed}>
           <DialogContent className="max-w-5xl p-2 bg-background/95 backdrop-blur-sm border-0">
+            <VisuallyHidden>
+              <DialogTitle>图片预览</DialogTitle>
+            </VisuallyHidden>
             <ImagePreview
               fileKey={value.fileKey}
               alt="预览"

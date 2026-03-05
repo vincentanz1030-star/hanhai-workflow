@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Loader2, AlertCircle, ZoomIn } from 'lucide-react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
 
 interface ImagePreviewProps {
   fileKey: string | null;
@@ -91,6 +92,9 @@ export function ImagePreview({ fileKey, alt = 'Image', className = '', enableZoo
       {/* 大图预览 Dialog */}
       <Dialog open={isZoomed} onOpenChange={setIsZoomed}>
         <DialogContent className="max-w-5xl p-2 bg-background/95 backdrop-blur-sm border-0">
+          <VisuallyHidden>
+            <DialogTitle>图片预览</DialogTitle>
+          </VisuallyHidden>
           <img
             src={imageUrl}
             alt={alt}

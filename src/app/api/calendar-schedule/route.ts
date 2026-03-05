@@ -26,9 +26,10 @@ export async function GET(request: NextRequest) {
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
     const month = parseInt(searchParams.get('month') || (new Date().getMonth() + 1).toString());
 
-    // 获取指定月份的新品排期
+    // 计算当月的最后一天（修复4月只有30天的问题）
+    const daysInMonth = new Date(year, month, 0).getDate();
     const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
-    const endDate = `${year}-${month.toString().padStart(2, '0')}-31`;
+    const endDate = `${year}-${month.toString().padStart(2, '0')}-${daysInMonth.toString().padStart(2, '0')}`;
 
     const { data: launches, error } = await client
       .from('new_product_launches')
@@ -41,9 +42,6 @@ export async function GET(request: NextRequest) {
       console.error('获取新品排期失败:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    // 计算当月天数
-    const daysInMonth = new Date(year, month, 0).getDate();
 
     // 按品牌分组
     const brandGroups: Record<string, any[]> = {};

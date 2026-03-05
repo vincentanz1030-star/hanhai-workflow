@@ -21,10 +21,10 @@ const BRAND_NAMES: Record<string, string> = {
   he_zhe: '禾哲',
   baobao: 'BAOBAO',
   ai_he: '爱禾',
-  bao_deng_yuan: '宝登远',
+  bao_deng_yuan: '宝登源',
   hezhe: '禾哲',
   aihe: '爱禾',
-  baodengyuan: '宝登远',
+  baodengyuan: '宝登源',
 };
 
 interface Product {
@@ -291,7 +291,7 @@ export function ProductList() {
             <SelectItem value="he_zhe">禾哲</SelectItem>
             <SelectItem value="baobao">BAOBAO</SelectItem>
             <SelectItem value="ai_he">爱禾</SelectItem>
-            <SelectItem value="bao_deng_yuan">宝登远</SelectItem>
+            <SelectItem value="bao_deng_yuan">宝登源</SelectItem>
           </SelectContent>
         </Select>
         <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
@@ -351,7 +351,7 @@ export function ProductList() {
                       <SelectItem value="he_zhe">禾哲</SelectItem>
                       <SelectItem value="baobao">BAOBAO</SelectItem>
                       <SelectItem value="ai_he">爱禾</SelectItem>
-                      <SelectItem value="bao_deng_yuan">宝登远</SelectItem>
+                      <SelectItem value="bao_deng_yuan">宝登源</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -549,7 +549,7 @@ export function ProductList() {
                     <SelectItem value="he_zhe">禾哲</SelectItem>
                     <SelectItem value="baobao">BAOBAO</SelectItem>
                     <SelectItem value="ai_he">爱禾</SelectItem>
-                    <SelectItem value="bao_deng_yuan">宝登远</SelectItem>
+                    <SelectItem value="bao_deng_yuan">宝登源</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

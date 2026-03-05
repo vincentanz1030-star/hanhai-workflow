@@ -102,7 +102,7 @@ async function importProjects(client: any, data: any[], userId: string): Promise
         '合者': 'he_zhe',
         '宝宝': 'baobao',
         '爱合': 'ai_he',
-        '宝登远': 'bao_deng_yuan',
+        '宝登源': 'bao_deng_yuan',
       };
       const brand = brandMap[row['品牌']] || row['品牌'].toLowerCase();
 
@@ -227,7 +227,7 @@ async function importSalesTargets(client: any, data: any[], userId: string): Pro
         '合者': 'he_zhe',
         '宝宝': 'baobao',
         '爱合': 'ai_he',
-        '宝登远': 'bao_deng_yuan',
+        '宝登源': 'bao_deng_yuan',
       };
       const brand = brandMap[row['品牌']] || row['品牌'].toLowerCase();
 

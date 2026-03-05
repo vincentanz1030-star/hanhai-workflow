@@ -145,7 +145,7 @@ export default function PersonalWorkspacePage() {
       he_zhe: '合者',
       baobao: '宝宝',
       ai_he: '爱合',
-      bao_deng_yuan: '宝登远',
+      bao_deng_yuan: '宝登源',
     };
     return brandMap[brand] || brand;
   };

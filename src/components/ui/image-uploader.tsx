@@ -5,15 +5,17 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ImagePreview } from '@/components/ui/image-preview';
-import { 
-  Upload, 
-  X, 
-  Image as ImageIcon, 
-  RefreshCw, 
+import {
+  Upload,
+  X,
+  Image as ImageIcon,
+  RefreshCw,
   Trash2,
   AlertCircle,
-  CheckCircle 
+  CheckCircle,
+  ZoomIn
 } from 'lucide-react';
 
 export interface ImageUploadResult {
@@ -42,6 +44,8 @@ export function ImageUploader({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 处理文件选择
@@ -166,36 +170,52 @@ export function ImageUploader({
   // 如果已有图片，显示预览
   if (value && value.fileKey) {
     return (
-      <Card className={`relative overflow-hidden ${className}`}>
-        {/* 图片预览 */}
-        <div className="relative aspect-video w-full">
-          <ImagePreview
-            fileKey={value.fileKey}
-            alt="Preview"
-            className="w-full h-full object-cover"
-          />
-          
+      <>
+        <Card className={`relative overflow-hidden ${className}`}>
+          {/* 图片预览 */}
+          <div className="relative aspect-video w-full">
+            <ImagePreview
+              fileKey={value.fileKey}
+              alt="Preview"
+              className="w-full h-full object-cover"
+              enableZoom={false}
+            />
+
           {/* 遮罩层 */}
-          <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-colors">
+          <div
+            className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-colors cursor-pointer"
+            onClick={() => setIsZoomed(true)}
+          >
+            {/* 放大图标提示 */}
+            <div className="absolute top-3 right-3 flex items-center justify-center">
+              <ZoomIn className="h-5 w-5 text-white opacity-0 hover:opacity-100 transition-opacity" />
+            </div>
+
             {/* 操作按钮组 */}
             <div className="absolute inset-0 flex items-center justify-center gap-4 opacity-0 hover:opacity-100 transition-opacity">
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
-                onClick={triggerFileSelect}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  triggerFileSelect();
+                }}
                 disabled={disabled || uploading}
                 className="bg-white/90 hover:bg-white"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 重新上传
               </Button>
-              
+
               <Button
                 type="button"
                 variant="destructive"
                 size="sm"
-                onClick={handleDelete}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete();
+                }}
                 disabled={disabled || uploading}
                 className="bg-white/90 hover:bg-white text-red-600"
               >
@@ -238,7 +258,20 @@ export function ImageUploader({
           className="hidden"
           disabled={disabled}
         />
+
+        {/* 大图预览 Dialog */}
+        <Dialog open={isZoomed} onOpenChange={setIsZoomed}>
+          <DialogContent className="max-w-5xl p-2 bg-background/95 backdrop-blur-sm border-0">
+            <ImagePreview
+              fileKey={value.fileKey}
+              alt="预览"
+              className="max-w-full max-h-[80vh] object-contain rounded"
+              enableZoom={false}
+            />
+          </DialogContent>
+        </Dialog>
       </Card>
+    </>
     );
   }
 

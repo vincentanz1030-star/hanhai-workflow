@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, AlertCircle, X, ZoomIn } from 'lucide-react';
+import { Loader2, AlertCircle, ZoomIn } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface ImagePreviewProps {
@@ -73,7 +73,7 @@ export function ImagePreview({ fileKey, alt = 'Image', className = '', enableZoo
   return (
     <>
       <div
-        className="relative inline-block cursor-pointer group"
+        className={`relative inline-block ${enableZoom ? 'cursor-pointer' : ''} group`}
         onClick={enableZoom ? () => setIsZoomed(true) : undefined}
       >
         <img
@@ -82,7 +82,7 @@ export function ImagePreview({ fileKey, alt = 'Image', className = '', enableZoo
           className={`${className} ${enableZoom ? 'group-hover:opacity-90 transition-opacity' : ''}`}
         />
         {enableZoom && (
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 flex items-center justify-center transition-colors">
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 flex items-center justify-center transition-colors pointer-events-none">
             <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         )}
@@ -90,20 +90,12 @@ export function ImagePreview({ fileKey, alt = 'Image', className = '', enableZoo
 
       {/* 大图预览 Dialog */}
       <Dialog open={isZoomed} onOpenChange={setIsZoomed}>
-        <DialogContent className="max-w-5xl p-0 bg-transparent border-0 shadow-none">
-          <div className="relative">
-            <button
-              onClick={() => setIsZoomed(false)}
-              className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
-            >
-              <X className="h-6 w-6" />
-            </button>
-            <img
-              src={imageUrl}
-              alt={alt}
-              className="max-w-full max-h-[85vh] object-contain rounded-lg"
-            />
-          </div>
+        <DialogContent className="max-w-5xl p-2 bg-background/95 backdrop-blur-sm border-0">
+          <img
+            src={imageUrl}
+            alt={alt}
+            className="max-w-full max-h-[80vh] object-contain rounded"
+          />
         </DialogContent>
       </Dialog>
     </>

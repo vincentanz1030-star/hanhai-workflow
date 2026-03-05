@@ -5,6 +5,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ interface Campaign {
 }
 
 export function CampaignList() {
+  const searchParams = useSearchParams();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -69,6 +71,22 @@ export function CampaignList() {
   useEffect(() => {
     loadCampaigns();
   }, [selectedType, selectedStatus]);
+
+  // 监听 URL 参数，打开对应的活动详情
+  useEffect(() => {
+    const openCampaignId = searchParams.get('openCampaignId');
+    if (openCampaignId && campaigns.length > 0) {
+      const campaign = campaigns.find(c => c.id === openCampaignId);
+      if (campaign) {
+        setCurrentCampaign(campaign);
+        setIsDetailDialogOpen(true);
+        // 清除 URL 参数
+        const url = new URL(window.location.href);
+        url.searchParams.delete('openCampaignId');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  }, [searchParams, campaigns]);
 
   const loadCampaigns = async () => {
     setLoading(true);

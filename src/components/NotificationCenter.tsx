@@ -19,13 +19,21 @@ import { useRouter } from 'next/navigation';
 
 interface Notification {
   id: string;
-  type: 'collaboration' | 'reminder' | 'weekly' | 'project' | 'approval';
+  type: 'collaboration' | 'reminder' | 'weekly' | 'project' | 'approval' | 'task' | 'campaign' | 'campaign_task';
   title: string;
   content: string;
   priority: 'high' | 'medium' | 'low';
   role?: string;
   deadline?: string;
   createdAt: string;
+  // 关联 ID 字段
+  projectId?: string;
+  taskId?: string;
+  collaborationId?: string;
+  approvalId?: string;
+  campaignId?: string;
+  campaignTaskId?: string;
+  feedbackId?: string;
 }
 
 interface NotificationCenterProps {
@@ -46,31 +54,68 @@ export function NotificationCenter({
   const router = useRouter();
 
   const handleNotificationClick = (notification: Notification) => {
-    // 根据通知类型跳转到对应板块
+    // 构建基础 URL 参数
+    const params = new URLSearchParams();
+
+    // 根据通知类型跳转到对应板块，并添加关联 ID
     switch (notification.type) {
       case 'collaboration':
-        // 跳转到协同合作板块 - 项目协同子Tab
-        router.push('/?tab=collaboration&subtab=projects');
+        params.set('tab', 'collaboration');
+        params.set('subtab', 'projects');
+        if (notification.collaborationId) {
+          params.set('openCollaborationId', notification.collaborationId);
+        }
         break;
       case 'reminder':
-        // 跳转到项目列表
-        router.push('/?tab=projects');
+        params.set('tab', 'projects');
+        if (notification.projectId) {
+          params.set('openProjectId', notification.projectId);
+        }
         break;
       case 'weekly':
-        // 跳转到本周工作安排（时间线Tab）
-        router.push('/?tab=timeline');
+        params.set('tab', 'timeline');
         break;
       case 'project':
-        // 跳转到项目列表
-        router.push('/?tab=projects');
+        params.set('tab', 'projects');
+        if (notification.projectId) {
+          params.set('openProjectId', notification.projectId);
+        }
         break;
       case 'approval':
-        // 跳转到协同平台审批流程子Tab
-        router.push('/?tab=collaboration&subtab=approval');
+        params.set('tab', 'collaboration');
+        params.set('subtab', 'approval');
+        if (notification.approvalId) {
+          params.set('openApprovalId', notification.approvalId);
+        }
+        break;
+      case 'task':
+        params.set('tab', 'projects');
+        if (notification.projectId) {
+          params.set('openProjectId', notification.projectId);
+        }
+        if (notification.taskId) {
+          params.set('openTaskId', notification.taskId);
+        }
+        break;
+      case 'campaign':
+        params.set('tab', 'marketing');
+        if (notification.campaignId) {
+          params.set('openCampaignId', notification.campaignId);
+        }
+        break;
+      case 'campaign_task':
+        params.set('tab', 'marketing');
+        if (notification.campaignTaskId) {
+          params.set('openCampaignTaskId', notification.campaignTaskId);
+        }
         break;
       default:
         break;
     }
+
+    // 跳转到对应的 URL
+    const url = params.toString() ? `/?${params.toString()}` : '/';
+    router.push(url);
   };
   const getPriorityColor = (priority: string) => {
     switch (priority) {

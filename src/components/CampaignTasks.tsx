@@ -5,6 +5,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +44,7 @@ interface User {
 }
 
 export function CampaignTasks() {
+  const searchParams = useSearchParams();
   const [tasks, setTasks] = useState<CampaignTask[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -74,6 +76,22 @@ export function CampaignTasks() {
     loadUsers();
     loadCampaigns();
   }, [selectedStatus, selectedAssignee, selectedCampaign]);
+
+  // 监听 URL 参数，打开对应的任务详情
+  useEffect(() => {
+    const openCampaignTaskId = searchParams.get('openCampaignTaskId');
+    if (openCampaignTaskId && tasks.length > 0) {
+      const task = tasks.find(t => t.id === openCampaignTaskId);
+      if (task) {
+        setCurrentTask(task);
+        setIsDetailDialogOpen(true);
+        // 清除 URL 参数
+        const url = new URL(window.location.href);
+        url.searchParams.delete('openCampaignTaskId');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  }, [searchParams, tasks]);
 
   const loadUsers = async () => {
     try {

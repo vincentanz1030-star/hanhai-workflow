@@ -564,15 +564,12 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
                   <h4 className="text-base sm:text-lg font-semibold truncate">{task.taskName}</h4>
                   {/* 图片预览缩略图 */}
                   {(task.imageUrl || task.imageUrl2 || task.imageUrl3) && (
-                    <div className="flex-shrink-0 relative group">
+                    <div className="flex-shrink-0">
                       <ImagePreview
                         fileKey={task.imageUrl || task.imageUrl2 || task.imageUrl3}
                         alt="任务图片"
-                        className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded border cursor-pointer"
+                        className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded border"
                       />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center rounded transition-colors cursor-pointer">
-                        <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
                     </div>
                   )}
                 </div>

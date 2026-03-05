@@ -5,7 +5,8 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { MoreVertical, Clock, User, Calendar } from 'lucide-react';
+import { TaskDetailDialog } from '@/components/TaskDetailDialog';
+import { MoreVertical, Clock, User, Calendar, Image as ImageIcon } from 'lucide-react';
 
 interface Task {
   id: string;
@@ -16,11 +17,16 @@ interface Task {
   estimated_completion_date: string | null;
   assigned_to?: string | null;
   project_id: string;
+  description?: string;
+  image_url?: string;
+  image_url_2?: string;
+  image_url_3?: string;
 }
 
 interface TaskBoardProps {
   tasks: Task[];
   onTaskUpdate: (taskId: string, newStatus: string) => void;
+  onTaskSave?: (taskId: string, updates: any) => Promise<void>;
 }
 
 interface Column {
@@ -53,7 +59,7 @@ const getRoleName = (role: string) => {
   return roleMap[role] || role;
 };
 
-export function TaskBoard({ tasks, onTaskUpdate }: TaskBoardProps) {
+export function TaskBoard({ tasks, onTaskUpdate, onTaskSave }: TaskBoardProps) {
   const [tasksByColumn, setTasksByColumn] = useState<Record<string, Task[]>>(() => {
     const initial: Record<string, Task[]> = {};
     columns.forEach(col => {
@@ -61,6 +67,8 @@ export function TaskBoard({ tasks, onTaskUpdate }: TaskBoardProps) {
     });
     return initial;
   });
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   const handleDragEnd = (result: DropResult) => {
     const { source, destination, draggableId } = result;
@@ -148,15 +156,40 @@ export function TaskBoard({ tasks, onTaskUpdate }: TaskBoardProps) {
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                className={`bg-card border rounded-lg p-3 cursor-move hover:shadow-md transition-shadow ${
+                                className={`bg-card border rounded-lg cursor-move hover:shadow-md transition-shadow ${
                                   snapshot.isDragging ? 'shadow-lg rotate-2' : ''
                                 }`}
                               >
-                                <div className="space-y-2">
-                                  {/* 任务标题 */}
-                                  <p className="text-sm font-medium line-clamp-2">
-                                    {task.task_name}
-                                  </p>
+                                <div className="space-y-2 p-3">
+                                  {/* 任务标题和图片预览 */}
+                                  <div className="flex gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium line-clamp-2">
+                                        {task.task_name}
+                                      </p>
+                                    </div>
+                                    
+                                    {/* 图片预览缩略图 */}
+                                    {(task.image_url || task.image_url_2 || task.image_url_3) && (
+                                      <div className="flex-shrink-0">
+                                        <div className="relative w-12 h-12 rounded overflow-hidden border">
+                                          <img
+                                            src={task.image_url || task.image_url_2 || task.image_url_3}
+                                            alt="预览"
+                                            className="w-full h-full object-cover"
+                                          />
+                                          <div className="absolute inset-0 bg-black/0 hover:bg-black/30 flex items-center justify-center cursor-pointer transition-colors"
+                                               onClick={(e) => {
+                                                 e.stopPropagation();
+                                                 setSelectedTask(task);
+                                                 setDetailDialogOpen(true);
+                                               }}>
+                                            <ImageIcon className="h-4 w-4 text-white opacity-0 hover:opacity-100 transition-opacity" />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
 
                                   {/* 岗位标签 */}
                                   <Badge variant="outline" className="text-xs">
@@ -191,7 +224,8 @@ export function TaskBoard({ tasks, onTaskUpdate }: TaskBoardProps) {
                                       className="p-1 hover:bg-muted rounded"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        // TODO: 打开任务详情
+                                        setSelectedTask(task);
+                                        setDetailDialogOpen(true);
                                       }}
                                     >
                                       <MoreVertical className="h-4 w-4 text-muted-foreground" />
@@ -212,6 +246,16 @@ export function TaskBoard({ tasks, onTaskUpdate }: TaskBoardProps) {
           );
         })}
       </div>
+
+      {/* 任务详情对话框 */}
+      {selectedTask && (
+        <TaskDetailDialog
+          task={selectedTask}
+          open={detailDialogOpen}
+          onOpenChange={setDetailDialogOpen}
+          onSave={onTaskSave || (() => Promise.resolve())}
+        />
+      )}
     </DragDropContext>
   );
 }

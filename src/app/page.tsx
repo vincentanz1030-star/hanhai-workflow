@@ -3421,6 +3421,80 @@ function HomePageContent() {
                                   </div>
                                 );
                               })()}
+
+                              {/* 催促提醒预览 */}
+                              {(project.tasks || []).length > 0 && (() => {
+                                const tasks = project.tasks || [];
+                                const urgentReminders = tasks.filter(t => t.reminderCount && t.reminderCount >= 3).length;
+                                const warningReminders = tasks.filter(t => t.reminderCount && t.reminderCount >= 1 && t.reminderCount < 3).length;
+                                const totalReminders = tasks.reduce((sum, t) => sum + (t.reminderCount || 0), 0);
+
+                                // 统计被催促的岗位
+                                const remindedRoles: Array<{ role: string; count: number }> = [];
+                                const uniqueRoles = new Set(tasks.map(t => t.role));
+                                uniqueRoles.forEach(role => {
+                                  const roleTasks = tasks.filter(t => t.role === role);
+                                  const roleReminderCount = roleTasks.reduce((sum, t) => sum + (t.reminderCount || 0), 0);
+                                  if (roleReminderCount > 0) {
+                                    remindedRoles.push({ role, count: roleReminderCount });
+                                  }
+                                });
+
+                                const hasReminders = urgentReminders > 0 || warningReminders > 0;
+
+                                if (!hasReminders) return null;
+
+                                return (
+                                  <div className={`rounded-lg p-3 mb-3 border-2 ${
+                                    urgentReminders > 0 ? 'bg-red-50 dark:bg-red-900/10 border-red-300 dark:border-red-700' :
+                                    warningReminders > 0 ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-300 dark:border-yellow-700' :
+                                    'bg-orange-50 dark:bg-orange-900/10 border-orange-300 dark:border-orange-700'
+                                  }`}>
+                                    <div className="flex items-start gap-2">
+                                      <AlertCircle className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
+                                        urgentReminders > 0 ? 'text-red-600 dark:text-red-400' :
+                                        warningReminders > 0 ? 'text-yellow-600 dark:text-yellow-400' :
+                                        'text-orange-600 dark:text-orange-400'
+                                      }`} />
+                                      <div className="flex-1 min-w-0">
+                                        <div className={`font-medium text-sm ${
+                                          urgentReminders > 0 ? 'text-red-700 dark:text-red-300' :
+                                          warningReminders > 0 ? 'text-yellow-700 dark:text-yellow-300' :
+                                          'text-orange-700 dark:text-orange-300'
+                                        }`}>
+                                          {urgentReminders > 0 ? `🚨 ${urgentReminders}个任务严重延误！` :
+                                          warningReminders > 0 ? `⚠️ ${warningReminders}个任务需要关注` :
+                                          `📢 共${totalReminders}次催促提醒`}
+                                        </div>
+                                        <div className={`text-xs mt-1 ${
+                                          urgentReminders > 0 ? 'text-red-600 dark:text-red-400' :
+                                          warningReminders > 0 ? 'text-yellow-600 dark:text-yellow-400' :
+                                          'text-orange-600 dark:text-orange-400'
+                                        }`}>
+                                          {urgentReminders > 0 ? '请立即处理延误任务' :
+                                          warningReminders > 0 ? '请加快任务进度' :
+                                          '请关注催促的任务'}
+                                        </div>
+                                        {/* 被催促的岗位 */}
+                                        {remindedRoles.length > 0 && (
+                                          <div className="mt-1.5 pt-1.5 border-t border-current border-opacity-20">
+                                            <div className="text-[10px] opacity-90">
+                                              岗位: {remindedRoles.slice(0, 3).map((r, i) => (
+                                                <span key={i} className="inline-block">
+                                                  {ROLE_NAMES[r.role]}
+                                                  {r.count > 1 && <span className="opacity-70">({r.count}次)</span>}
+                                                  {i < Math.min(remindedRoles.length, 3) - 1 && <span className="mx-1">·</span>}
+                                                </span>
+                                              ))}
+                                              {remindedRoles.length > 3 && <span className="opacity-70"> 等{remindedRoles.length}个岗位</span>}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </div>
                             {editingProjectId === project.id ? (
                               <div className="flex gap-2">

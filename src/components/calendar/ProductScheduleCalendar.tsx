@@ -54,6 +54,8 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
 
   const fetchData = async () => {
     setIsLoading(true);
+    // 先清除旧数据，避免数据残留
+    setData(null);
     try {
       console.log('获取日历数据:', { year, month });
       const response = await fetch(`/api/calendar-schedule?year=${year}&month=${month}`);
@@ -64,6 +66,8 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
       }
     } catch (error) {
       console.error('获取日历数据失败:', error);
+      // 出错时也清除数据
+      setData(null);
     } finally {
       setIsLoading(false);
     }

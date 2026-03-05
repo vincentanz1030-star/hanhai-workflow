@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, Users, CheckCircle, AlertCircle, AlertTriangle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil, LogOut, User, Shield, Loader2, Settings, Search, Package, Building, ShoppingCart, MessageSquare, CheckSquare, Activity, FileText, BookOpen, FolderKanban, CalendarDays, ClipboardCheck, MessageCircle } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, AlertCircle, AlertTriangle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil, LogOut, User, Shield, Loader2, Settings, Search, Package, Building, ShoppingCart, MessageSquare, CheckSquare, Activity, FileText, BookOpen, FolderKanban, CalendarDays, ClipboardCheck, MessageCircle, Image as ImageIcon } from 'lucide-react';
 import { format, differenceInDays, isBefore, isAfter, isToday } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Slider } from '@/components/ui/slider';
@@ -556,7 +556,26 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
                 <Badge variant="outline" className="text-base sm:text-lg px-2 sm:px-3 py-1">
                   {task.taskOrder}
                 </Badge>
-                <h4 className="text-base sm:text-lg font-semibold">{task.taskName}</h4>
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <h4 className="text-base sm:text-lg font-semibold truncate">{task.taskName}</h4>
+                  {/* 图片预览缩略图 */}
+                  {(task.imageUrl || task.imageUrl2 || task.imageUrl3) && (
+                    <div className="flex-shrink-0 relative group">
+                      <img
+                        src={task.imageUrl || task.imageUrl2 || task.imageUrl3 || ''}
+                        alt="任务图片"
+                        className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded border cursor-pointer"
+                        onClick={() => {
+                          // 可以在这里打开图片预览对话框
+                          alert('点击查看完整图片功能正在开发中');
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center rounded transition-colors cursor-pointer">
+                        <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <Badge className={`${STATUS_COLORS[task.status]} text-white text-xs sm:text-sm`}>
                   {STATUS_NAMES[task.status]}
                 </Badge>
@@ -4236,6 +4255,18 @@ function HomePageContent() {
               </TabsList>
 
               <TabsContent value="products" className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">商品列表</h3>
+                    <p className="text-sm text-muted-foreground">查看和管理所有商品</p>
+                  </div>
+                  <Button asChild>
+                    <Link href="/product-center/products">
+                      <ImageIcon className="h-4 w-4 mr-2" />
+                      查看图片列表
+                    </Link>
+                  </Button>
+                </div>
                 <ProductList />
               </TabsContent>
 

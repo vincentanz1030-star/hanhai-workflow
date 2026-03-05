@@ -1229,6 +1229,7 @@ function HomePageContent() {
   const [criticalPathLoading, setCriticalPathLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeCollaborationTab, setActiveCollaborationTab] = useState('knowledge');
+  const [highlightProjectId, setHighlightProjectId] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -1236,12 +1237,35 @@ function HomePageContent() {
   useEffect(() => {
     const tab = searchParams.get('tab');
     const subtab = searchParams.get('subtab');
+    const openProjectId = searchParams.get('openProjectId');
+
     if (tab && ['dashboard', 'projects', 'timeline', 'roles', 'product-framework', 'workload', 'feedback'].includes(tab)) {
       setActiveTab(tab);
     }
     // 协同平台子Tabs
     if (tab === 'collaboration' && subtab && ['knowledge', 'projects', 'schedule', 'approval', 'messages', 'support'].includes(subtab)) {
       setActiveCollaborationTab(subtab);
+    }
+
+    // 处理打开项目详情
+    if (openProjectId && tab === 'projects') {
+      setHighlightProjectId(openProjectId);
+      // 自动滚动到项目位置
+      setTimeout(() => {
+        const element = document.getElementById(`project-${openProjectId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // 高亮效果
+          element.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+          setTimeout(() => {
+            element.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+          }, 3000);
+          // 清除 URL 参数
+          const url = new URL(window.location.href);
+          url.searchParams.delete('openProjectId');
+          window.history.replaceState({}, '', url.toString());
+        }
+      }, 500);
     }
   }, [searchParams]);
 
@@ -3364,7 +3388,7 @@ function HomePageContent() {
                 ) : (
                   <div className="space-y-8">
                     {filteredProjects.map((project) => (
-                      <div key={project.id} className="border-l-4 border-primary pl-6 pb-8 relative">
+                      <div key={project.id} id={`project-${project.id}`} className="border-l-4 border-primary pl-6 pb-8 relative transition-all duration-300">
                         <div className="absolute -left-2 top-0 h-4 w-4 rounded-full bg-primary" />
                         <div className="mb-4">
                           <div className="flex items-start justify-between">

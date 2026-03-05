@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { ImagePreview } from '@/components/ui/image-preview';
 import { 
   Plus, 
   Search, 
@@ -214,14 +215,14 @@ export default function ProductsPage() {
                       {/* 商品图片 */}
                       <div className="aspect-square relative overflow-hidden bg-muted">
                         {product.main_image ? (
-                          <img
-                            src={product.main_image}
+                          <ImagePreview
+                            fileKey={product.main_image}
                             alt={product.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           />
                         ) : product.images && product.images.length > 0 ? (
-                        <img
-                          src={product.images[0]}
+                        <ImagePreview
+                          fileKey={product.images[0]}
                           alt={product.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                         />
@@ -310,14 +311,14 @@ export default function ProductsPage() {
                           <td className="p-4">
                             <div className="w-16 h-16 rounded overflow-hidden bg-muted">
                               {product.main_image ? (
-                                <img
-                                  src={product.main_image}
+                                <ImagePreview
+                                  fileKey={product.main_image}
                                   alt={product.name}
                                   className="w-full h-full object-cover"
                                 />
                               ) : product.images && product.images.length > 0 ? (
-                                <img
-                                  src={product.images[0]}
+                                <ImagePreview
+                                  fileKey={product.images[0]}
                                   alt={product.name}
                                   className="w-full h-full object-cover"
                                 />

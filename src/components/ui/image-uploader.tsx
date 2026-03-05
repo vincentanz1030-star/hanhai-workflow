@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ImagePreview } from '@/components/ui/image-preview';
 import { 
   Upload, 
   X, 
@@ -163,16 +164,15 @@ export function ImageUploader({
   };
 
   // 如果已有图片，显示预览
-  if (value && value.imageUrl) {
+  if (value && value.fileKey) {
     return (
       <Card className={`relative overflow-hidden ${className}`}>
         {/* 图片预览 */}
         <div className="relative aspect-video w-full">
-          <img
-            src={value.imageUrl}
+          <ImagePreview
+            fileKey={value.fileKey}
             alt="Preview"
             className="w-full h-full object-cover"
-            draggable={false}
           />
           
           {/* 遮罩层 */}

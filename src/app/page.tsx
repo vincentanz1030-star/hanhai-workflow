@@ -40,6 +40,7 @@ import { ScheduleManagement } from '@/components/ScheduleManagement';
 import { ApprovalWorkflow } from '@/components/ApprovalWorkflow';
 import { InternalMessages } from '@/components/InternalMessages';
 import { ImageUploader, ImageUploadResult } from '@/components/ui/image-uploader';
+import { ImagePreview } from '@/components/ui/image-preview';
 
 // 类型定义
 interface Project {
@@ -564,14 +565,10 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
                   {/* 图片预览缩略图 */}
                   {(task.imageUrl || task.imageUrl2 || task.imageUrl3) && (
                     <div className="flex-shrink-0 relative group">
-                      <img
-                        src={task.imageUrl || task.imageUrl2 || task.imageUrl3 || ''}
+                      <ImagePreview
+                        fileKey={task.imageUrl || task.imageUrl2 || task.imageUrl3}
                         alt="任务图片"
                         className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded border cursor-pointer"
-                        onClick={() => {
-                          // 可以在这里打开图片预览对话框
-                          alert('点击查看完整图片功能正在开发中');
-                        }}
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center rounded transition-colors cursor-pointer">
                         <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />

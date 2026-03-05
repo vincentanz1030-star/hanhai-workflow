@@ -10,6 +10,7 @@ const storage = new S3Storage({
   region: 'cn-beijing',
 });
 
+// POST - 上传文件
 export async function POST(request: NextRequest) {
   try {
     // 打印环境变量用于调试
@@ -81,6 +82,75 @@ export async function POST(request: NextRequest) {
     console.error('错误堆栈:', error instanceof Error ? error.stack : '无堆栈信息');
     return NextResponse.json(
       { error: '上传失败，请重试' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - 删除文件
+export async function DELETE(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const key = searchParams.get('key');
+
+    if (!key) {
+      return NextResponse.json({ error: '缺少文件 key 参数' }, { status: 400 });
+    }
+
+    console.log('开始删除文件:', key);
+
+    // 从对象存储删除文件
+    const deleted = await storage.deleteFile({ fileKey: key });
+
+    if (deleted) {
+      console.log('删除成功:', key);
+      return NextResponse.json({
+        success: true,
+        message: '文件删除成功',
+      });
+    } else {
+      console.log('文件不存在或删除失败:', key);
+      return NextResponse.json(
+        { error: '文件不存在或删除失败' },
+        { status: 404 }
+      );
+    }
+  } catch (error) {
+    console.error('删除失败，详细错误:', error);
+    return NextResponse.json(
+      { error: '删除失败，请重试' },
+      { status: 500 }
+    );
+  }
+}
+
+// GET - 获取文件访问 URL
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const key = searchParams.get('key');
+    const expireTime = parseInt(searchParams.get('expireTime') || '2592000'); // 默认30天
+
+    if (!key) {
+      return NextResponse.json({ error: '缺少文件 key 参数' }, { status: 400 });
+    }
+
+    console.log('生成访问URL:', key);
+
+    // 生成签名 URL
+    const imageUrl = await storage.generatePresignedUrl({
+      key,
+      expireTime,
+    });
+
+    return NextResponse.json({
+      success: true,
+      imageUrl,
+    });
+  } catch (error) {
+    console.error('生成URL失败，详细错误:', error);
+    return NextResponse.json(
+      { error: '生成访问URL失败，请重试' },
       { status: 500 }
     );
   }

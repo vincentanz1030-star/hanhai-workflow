@@ -104,9 +104,9 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
 
   const getBrandName = (brand: string) => {
     const brandMap: Record<string, string> = {
-      he_zhe: '合者',
-      baobao: '宝宝',
-      ai_he: '爱合',
+      he_zhe: '禾哲',
+      baobao: 'BAOBAO',
+      ai_he: '爱禾',
       bao_deng_yuan: '宝登源',
     };
     return brandMap[brand] || brand;

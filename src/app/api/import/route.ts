@@ -99,9 +99,9 @@ async function importProjects(client: any, data: any[], userId: string): Promise
 
       // 映射品牌
       const brandMap: Record<string, string> = {
-        '合者': 'he_zhe',
-        '宝宝': 'baobao',
-        '爱合': 'ai_he',
+        '禾哲': 'he_zhe',
+        'BAOBAO': 'baobao',
+        '爱禾': 'ai_he',
         '宝登源': 'bao_deng_yuan',
       };
       const brand = brandMap[row['品牌']] || row['品牌'].toLowerCase();
@@ -224,9 +224,9 @@ async function importSalesTargets(client: any, data: any[], userId: string): Pro
 
       // 映射品牌
       const brandMap: Record<string, string> = {
-        '合者': 'he_zhe',
-        '宝宝': 'baobao',
-        '爱合': 'ai_he',
+        '禾哲': 'he_zhe',
+        'BAOBAO': 'baobao',
+        '爱禾': 'ai_he',
         '宝登源': 'bao_deng_yuan',
       };
       const brand = brandMap[row['品牌']] || row['品牌'].toLowerCase();
@@ -297,7 +297,7 @@ export async function GET(request: NextRequest) {
         templateData = [
           {
             '项目名称': '示例项目',
-            '品牌': '合者',
+            '品牌': '禾哲',
             '类型': '产品开发',
             '销售日期': '2025-01-20',
             '确认日期': '2025-01-01',
@@ -325,7 +325,7 @@ export async function GET(request: NextRequest) {
       case 'sales_targets':
         templateData = [
           {
-            '品牌': '合者',
+            '品牌': '禾哲',
             '年份': 2025,
             '月份': 1,
             '月度目标': 100000,

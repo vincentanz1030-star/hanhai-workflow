@@ -31,6 +31,9 @@ import { ProductFeedback } from '@/components/ProductFeedback';
 import { SupplierList } from '@/components/SupplierList';
 import { PurchaseOrderList } from '@/components/PurchaseOrderList';
 import { CampaignList } from '@/components/CampaignList';
+import { CampaignTasks } from '@/components/CampaignTasks';
+import { CampaignExecution } from '@/components/CampaignExecution';
+import { CampaignReview } from '@/components/CampaignReview';
 import { KnowledgeArticles } from '@/components/KnowledgeArticles';
 import { ProjectCollaboration } from '@/components/ProjectCollaboration';
 import { ScheduleManagement } from '@/components/ScheduleManagement';
@@ -1225,14 +1228,20 @@ function HomePageContent() {
   const [criticalPathData, setCriticalPathData] = useState<any>(null);
   const [criticalPathLoading, setCriticalPathLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeCollaborationTab, setActiveCollaborationTab] = useState('knowledge');
   const searchParams = useSearchParams();
   const router = useRouter();
 
   // 监听URL查询参数来激活对应的Tab
   useEffect(() => {
     const tab = searchParams.get('tab');
+    const subtab = searchParams.get('subtab');
     if (tab && ['dashboard', 'projects', 'timeline', 'roles', 'product-framework', 'workload', 'feedback'].includes(tab)) {
       setActiveTab(tab);
+    }
+    // 协同平台子Tabs
+    if (tab === 'collaboration' && subtab && ['knowledge', 'projects', 'schedule', 'approval', 'messages', 'support'].includes(subtab)) {
+      setActiveCollaborationTab(subtab);
     }
   }, [searchParams]);
 
@@ -4229,65 +4238,19 @@ function HomePageContent() {
               </TabsList>
 
               <TabsContent value="campaigns" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>活动策划</CardTitle>
-                    <CardDescription>创建和管理营销活动</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>活动策划功能正在开发中...</p>
-                      <p className="text-sm mt-2">API接口已就绪：/api/marketing/campaigns</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <CampaignList />
               </TabsContent>
 
               <TabsContent value="tasks" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>活动任务</CardTitle>
-                    <CardDescription>管理活动相关任务</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <CheckSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>活动任务功能正在开发中...</p>
-                      <p className="text-sm mt-2">API接口已就绪：/api/marketing/campaign-tasks</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <CampaignTasks />
               </TabsContent>
 
               <TabsContent value="execution" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>执行监控</CardTitle>
-                    <CardDescription>监控活动执行效果</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>执行监控功能正在开发中...</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <CampaignExecution />
               </TabsContent>
 
               <TabsContent value="review" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>活动复盘</CardTitle>
-                    <CardDescription>活动总结和经验积累</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12 text-muted-foreground">
-                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>活动复盘功能正在开发中...</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <CampaignReview />
               </TabsContent>
             </Tabs>
           </TabsContent>
@@ -4301,7 +4264,7 @@ function HomePageContent() {
               </div>
             </div>
 
-            <Tabs defaultValue="knowledge" className="space-y-4">
+            <Tabs defaultValue="knowledge" value={activeCollaborationTab} onValueChange={setActiveCollaborationTab} className="space-y-4">
               <TabsList className="grid grid-cols-3 sm:grid-cols-6 gap-1">
                 <TabsTrigger value="knowledge">知识库</TabsTrigger>
                 <TabsTrigger value="projects">项目协同</TabsTrigger>

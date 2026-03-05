@@ -49,8 +49,8 @@ export function NotificationCenter({
     // 根据通知类型跳转到对应板块
     switch (notification.type) {
       case 'collaboration':
-        // 跳转到协同合作板块
-        router.push('/?tab=collaboration');
+        // 跳转到协同合作板块 - 项目协同子Tab
+        router.push('/?tab=collaboration&subtab=projects');
         break;
       case 'reminder':
         // 跳转到项目列表
@@ -65,7 +65,7 @@ export function NotificationCenter({
         router.push('/?tab=projects');
         break;
       case 'approval':
-        // 跳转到协同平台审批流程
+        // 跳转到协同平台审批流程子Tab
         router.push('/?tab=collaboration&subtab=approval');
         break;
       default:

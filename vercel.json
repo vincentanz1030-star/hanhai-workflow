@@ -1,18 +1,10 @@
 {
-  "buildCommand": "bash scripts/build-vercel.sh",
+  "buildCommand": "pnpm run build",
   "outputDirectory": ".next",
-  "devCommand": "pnpm dev",
-  "installCommand": "pnpm install",
+  "devCommand": "pnpm run dev",
+  "installCommand": "pnpm install --prefer-frozen-lockfile",
   "framework": "nextjs",
   "regions": ["hkg1"],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "build": {
-    "env": {
-      "NODE_ENV": "production"
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
@@ -47,12 +39,6 @@
           "value": "no-store, must-revalidate"
         }
       ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
     }
   ]
 }

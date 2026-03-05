@@ -2555,19 +2555,18 @@ function HomePageContent() {
             loadCriticalPath();
           }
         }} className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-12 gap-1 h-auto justify-items-center">
-            <TabsTrigger value="dashboard" className="text-xs sm:text-sm py-2 px-2">数据看板</TabsTrigger>
-            <TabsTrigger value="projects" className="text-xs sm:text-sm py-2 px-2">项目列表</TabsTrigger>
-            <TabsTrigger value="timeline" className="text-xs sm:text-sm py-2 px-2">时间线</TabsTrigger>
-            <TabsTrigger value="roles" className="text-xs sm:text-sm py-2 px-2">岗位进度</TabsTrigger>
-            <TabsTrigger value="workload" className="text-xs sm:text-sm py-2 px-2">工作负载</TabsTrigger>
-            <TabsTrigger value="product-center" className="text-xs sm:text-sm py-2 px-2 text-blue-600 dark:text-blue-400">商品中心</TabsTrigger>
-            <TabsTrigger value="marketing" className="text-xs sm:text-sm py-2 px-2 text-purple-600 dark:text-purple-400">营销中台</TabsTrigger>
-            <TabsTrigger value="collaboration" className="text-xs sm:text-sm py-2 px-2 text-green-600 dark:text-green-400">协同平台</TabsTrigger>
-            <TabsTrigger value="analytics" className="text-xs sm:text-sm py-2 px-2" asChild>
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-11 gap-1 h-auto justify-items-center">
+            <TabsTrigger value="dashboard" className="sm:text-base py-2 px-2">数据看板</TabsTrigger>
+            <TabsTrigger value="projects" className="sm:text-base py-2 px-2">项目列表</TabsTrigger>
+            <TabsTrigger value="timeline" className="sm:text-base py-2 px-2">时间线</TabsTrigger>
+            <TabsTrigger value="roles" className="sm:text-base py-2 px-2">岗位进度</TabsTrigger>
+            <TabsTrigger value="product-center" className="sm:text-base py-2 px-2 text-blue-600 dark:text-blue-400">商品中心</TabsTrigger>
+            <TabsTrigger value="marketing" className="sm:text-base py-2 px-2 text-purple-600 dark:text-purple-400">营销中台</TabsTrigger>
+            <TabsTrigger value="collaboration" className="sm:text-base py-2 px-2 text-green-600 dark:text-green-400">协同平台</TabsTrigger>
+            <TabsTrigger value="analytics" className="sm:text-base py-2 px-2" asChild>
               <a href="/analytics">数据分析</a>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs sm:text-sm py-2 px-2">系统设置</TabsTrigger>
+            <TabsTrigger value="settings" className="sm:text-base py-2 px-2">系统设置</TabsTrigger>
           </TabsList>
 
           {/* 品牌过滤器已禁用 - 总是显示所有品牌的项目 */}
@@ -4114,20 +4113,6 @@ function HomePageContent() {
                 </Card>
               );
             })}
-          </TabsContent>
-
-          {/* 工作负载监控 */}
-          <TabsContent value="workload" className="space-y-6">
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Activity className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">工作负载监控</h3>
-                <p className="text-muted-foreground mb-4">工作负载内容已移至【数据看板】页面</p>
-                <Button onClick={() => setActiveTab('dashboard')}>
-                  前往数据看板
-                </Button>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* 关键路径分析 */}

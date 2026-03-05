@@ -39,6 +39,7 @@ import { ProjectCollaboration } from '@/components/ProjectCollaboration';
 import { ScheduleManagement } from '@/components/ScheduleManagement';
 import { ApprovalWorkflow } from '@/components/ApprovalWorkflow';
 import { InternalMessages } from '@/components/InternalMessages';
+import { ImageUploader, ImageUploadResult } from '@/components/ui/image-uploader';
 
 // 类型定义
 interface Project {
@@ -370,6 +371,8 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
   const [isEditingContent, setIsEditingContent] = useState(false);
   const [editingTaskName, setEditingTaskName] = useState(task.taskName);
   const [editingTaskDescription, setEditingTaskDescription] = useState(task.description || '');
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(1);
 
   // 编辑任务内容
   const handleUpdateContent = async () => {
@@ -636,6 +639,15 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
             <span className="hidden sm:inline">评分</span>
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsImageDialogOpen(true)}
+            className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
+          >
+            <ImageIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+            <span className="hidden sm:inline">上传图片</span>
+          </Button>
+          <Button
             variant={task.reminderCount && task.reminderCount > 0 ? "destructive" : "outline"}
             size="sm"
             onClick={handleRemind}
@@ -891,6 +903,85 @@ function TaskCard({ task, onUpdate }: { task: Task; onUpdate: (task: Partial<Tas
               当前评分：{task.rating || 0} 星
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 图片上传对话框 */}
+      <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>上传任务图片</DialogTitle>
+            <DialogDescription>
+              为 {task.taskName} 上传相关图片，最多3张
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              <span className="font-medium">图片 {currentImageIndex}</span>
+              <Badge variant="outline">{currentImageIndex}/3</Badge>
+            </div>
+            <ImageUploader
+              value={{
+                fileKey: currentImageIndex === 1 ? task.imageUrl || '' : 
+                          currentImageIndex === 2 ? task.imageUrl2 || '' : 
+                          task.imageUrl3 || '',
+                imageUrl: currentImageIndex === 1 ? task.imageUrl || '' : 
+                          currentImageIndex === 2 ? task.imageUrl2 || '' : 
+                          task.imageUrl3 || ''
+              }}
+              onChange={async (result) => {
+                if (!result) return;
+                try {
+                  const response = await fetch(`/api/tasks/${task.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      [currentImageIndex === 1 ? 'imageUrl' : currentImageIndex === 2 ? 'imageUrl2' : 'imageUrl3']: result.fileKey
+                    }),
+                  });
+                  if (response.ok) {
+                    const data = await response.json();
+                    onUpdate(data.task);
+                  }
+                } catch (error) {
+                  console.error('上传图片失败:', error);
+                }
+              }}
+              maxSize={10}
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentImageIndex(1)}
+                disabled={currentImageIndex === 1}
+              >
+                图片 1
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentImageIndex(2)}
+                disabled={currentImageIndex === 2}
+              >
+                图片 2
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentImageIndex(3)}
+                disabled={currentImageIndex === 3}
+              >
+                图片 3
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setIsImageDialogOpen(false)}>
+              关闭
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

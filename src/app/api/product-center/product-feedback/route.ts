@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { trial_id, product_sku, rating, comment, is_positive } = body;
+    const { trial_id, product_sku, rating, comment, is_positive, images } = body;
 
     // 验证必填字段
     if (!trial_id || !product_sku || !rating || !comment) {
@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
         rating,
         comment,
         is_positive: is_positive !== undefined ? is_positive : rating >= 4,
+        images: images || [],
         user_id: '00000000-0000-0000-0000-000000000000',
         status: 'pending',
       })

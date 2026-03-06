@@ -22,7 +22,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    const { product_sku, rating, comment } = body;
+    const { product_sku, rating, comment, images } = body;
 
     // 验证必填字段
     if (!product_sku || !rating || !comment) {
@@ -54,6 +54,7 @@ export async function PATCH(
         rating,
         comment,
         is_positive: rating >= 4,
+        images: images !== undefined ? images : existingFeedback.images,
       })
       .eq('id', id)
       .select()

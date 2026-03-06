@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageSquare, Star, ThumbsUp, ThumbsDown, Loader2, Plus, X, Edit, Trash2 } from 'lucide-react';
+import { MessageSquare, Star, ThumbsUp, ThumbsDown, Loader2, Plus, X, Edit, Trash2, Image as ImageIcon, Upload } from 'lucide-react';
 
 const BRAND_NAMES: Record<string, string> = {
   all: '全部品牌',
@@ -34,6 +34,7 @@ interface Feedback {
   rating: number;
   comment: string;
   is_positive: boolean;
+  images?: string[];
   created_at: string;
   status: 'pending' | 'reviewed' | 'resolved';
 }
@@ -83,6 +84,7 @@ export function ProductFeedback() {
     product_sku: '',
     rating: 5,
     comment: '',
+    images: [] as string[],
   });
 
   // 编辑反馈对话框状态
@@ -92,6 +94,7 @@ export function ProductFeedback() {
     product_sku: '',
     rating: 5,
     comment: '',
+    images: [] as string[],
   });
 
   // 删除反馈确认对话框状态
@@ -123,6 +126,68 @@ export function ProductFeedback() {
       setError('网络错误，请稍后重试');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 图片上传处理函数
+  const handleImageUpload = async (feedbackIdOrTrialId: string, files: FileList): Promise<string[]> => {
+    const uploadedKeys: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file.type.startsWith('image/')) {
+        alert('只能上传图片文件');
+        continue;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert('图片大小不能超过 5MB');
+        continue;
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('feedbackId', feedbackIdOrTrialId);
+
+        const response = await fetch('/api/product-center/feedback-images', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          uploadedKeys.push(data.data.fileKey);
+        } else {
+          alert('上传失败：' + data.error);
+        }
+      } catch (error) {
+        console.error('上传图片失败:', error);
+        alert('上传图片失败，请稍后重试');
+      }
+    }
+
+    return uploadedKeys;
+  };
+
+  // 图片删除处理函数
+  const handleImageDelete = async (fileKey: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/product-center/feedback-images/${encodeURIComponent(fileKey)}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        return true;
+      } else {
+        alert('删除失败：' + data.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('删除图片失败:', error);
+      alert('删除图片失败，请稍后重试');
+      return false;
     }
   };
 
@@ -169,6 +234,13 @@ export function ProductFeedback() {
 
     setSubmittingFeedback(true);
     try {
+      // 如果有图片，先上传图片
+      let imageKeys: string[] = [];
+      if (newFeedback.images.length > 0) {
+        // 图片已经在上传时处理了，这里直接使用
+        imageKeys = newFeedback.images;
+      }
+
       const response = await fetch('/api/product-center/product-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -178,6 +250,7 @@ export function ProductFeedback() {
           rating: newFeedback.rating,
           comment: newFeedback.comment,
           is_positive: newFeedback.rating >= 4,
+          images: imageKeys,
         }),
       });
 
@@ -185,7 +258,7 @@ export function ProductFeedback() {
       if (data.success) {
         alert('反馈添加成功');
         setIsAddFeedbackDialogOpen(false);
-        setNewFeedback({ product_sku: '', rating: 5, comment: '' });
+        setNewFeedback({ product_sku: '', rating: 5, comment: '', images: [] });
         setSelectedTrialId(null);
         await loadTrials();
       } else {
@@ -282,6 +355,7 @@ export function ProductFeedback() {
       product_sku: feedback.product_sku || '',
       rating: feedback.rating,
       comment: feedback.comment || '',
+      images: feedback.images || [],
     });
     setIsEditFeedbackDialogOpen(true);
   };
@@ -294,7 +368,12 @@ export function ProductFeedback() {
       const response = await fetch(`/api/product-center/product-feedback/${editingFeedback.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editFeedbackData),
+        body: JSON.stringify({
+          product_sku: editFeedbackData.product_sku,
+          rating: editFeedbackData.rating,
+          comment: editFeedbackData.comment,
+          images: editFeedbackData.images,
+        }),
       });
 
       const data = await response.json();
@@ -302,6 +381,7 @@ export function ProductFeedback() {
         alert('反馈更新成功');
         setIsEditFeedbackDialogOpen(false);
         setEditingFeedback(null);
+        setEditFeedbackData({ product_sku: '', rating: 5, comment: '', images: [] });
         await loadTrials();
       } else {
         alert('更新失败：' + data.error);
@@ -348,6 +428,59 @@ export function ProductFeedback() {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('zh-CN');
+  };
+
+  // 图片预览组件
+  const ImagePreview = ({ fileKey }: { fileKey: string }) => {
+    const [imageUrl, setImageUrl] = useState<string>('');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+
+    useEffect(() => {
+      const fetchImageUrl = async () => {
+        try {
+          const response = await fetch(`/api/storage/presigned-url?fileKey=${encodeURIComponent(fileKey)}&operation=GET`);
+          const data = await response.json();
+          if (data.success && data.data.url) {
+            setImageUrl(data.data.url);
+          } else {
+            setError(true);
+          }
+        } catch (err) {
+          console.error('获取图片URL失败:', err);
+          setError(true);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchImageUrl();
+    }, [fileKey]);
+
+    if (loading) {
+      return (
+        <div className="w-20 h-20 bg-muted rounded-lg flex items-center justify-center">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+
+    if (error || !imageUrl) {
+      return (
+        <div className="w-20 h-20 bg-muted rounded-lg flex items-center justify-center text-xs text-muted-foreground">
+          加载失败
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={imageUrl}
+        alt="反馈图片"
+        className="w-20 h-20 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+        onClick={() => window.open(imageUrl, '_blank')}
+      />
+    );
   };
 
   const renderStars = (rating: number, onChange?: (rating: number) => void) => {
@@ -606,6 +739,13 @@ export function ProductFeedback() {
                           </div>
                         </div>
                         <p className="text-sm">{feedback.comment}</p>
+                        {feedback.images && feedback.images.length > 0 && (
+                          <div className="mt-3 flex gap-2 flex-wrap">
+                            {feedback.images.map((imageKey, index) => (
+                              <ImagePreview key={index} fileKey={imageKey} />
+                            ))}
+                          </div>
+                        )}
                         <div className="text-xs text-muted-foreground mt-2">
                           {formatDate(feedback.created_at)}
                         </div>
@@ -652,6 +792,61 @@ export function ProductFeedback() {
                 onChange={(e) => setNewFeedback({ ...newFeedback, comment: e.target.value })}
               />
             </div>
+            <div>
+              <label className="text-sm font-medium">上传图片</label>
+              <div className="mt-2 space-y-2">
+                {/* 图片上传区域 */}
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center hover:border-muted-foreground/50 transition-colors">
+                  <input
+                    type="file"
+                    id="image-upload-add"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = e.target.files;
+                      if (files && files.length > 0 && selectedTrialId) {
+                        const uploadedKeys = await handleImageUpload(selectedTrialId, files);
+                        setNewFeedback({ ...newFeedback, images: [...newFeedback.images, ...uploadedKeys] });
+                        // 重置文件输入
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                  <label htmlFor="image-upload-add" className="cursor-pointer block">
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">点击或拖拽上传图片</p>
+                    <p className="text-xs text-muted-foreground mt-1">支持 JPG、PNG、GIF 格式，单张图片不超过 5MB</p>
+                  </label>
+                </div>
+
+                {/* 已上传图片预览 */}
+                {newFeedback.images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {newFeedback.images.map((fileKey, index) => (
+                      <div key={index} className="relative group">
+                        <ImagePreview fileKey={fileKey} />
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const success = await handleImageDelete(fileKey);
+                            if (success) {
+                              setNewFeedback({
+                                ...newFeedback,
+                                images: newFeedback.images.filter((_, i) => i !== index)
+                              });
+                            }
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddFeedbackDialogOpen(false)}>
@@ -697,6 +892,61 @@ export function ProductFeedback() {
                 value={editFeedbackData.comment}
                 onChange={(e) => setEditFeedbackData({ ...editFeedbackData, comment: e.target.value })}
               />
+            </div>
+            <div>
+              <label className="text-sm font-medium">上传图片</label>
+              <div className="mt-2 space-y-2">
+                {/* 图片上传区域 */}
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center hover:border-muted-foreground/50 transition-colors">
+                  <input
+                    type="file"
+                    id="image-upload-edit"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = e.target.files;
+                      if (files && files.length > 0 && editingFeedback) {
+                        const uploadedKeys = await handleImageUpload(editingFeedback.id, files);
+                        setEditFeedbackData({ ...editFeedbackData, images: [...editFeedbackData.images, ...uploadedKeys] });
+                        // 重置文件输入
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                  <label htmlFor="image-upload-edit" className="cursor-pointer block">
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">点击或拖拽上传图片</p>
+                    <p className="text-xs text-muted-foreground mt-1">支持 JPG、PNG、GIF 格式，单张图片不超过 5MB</p>
+                  </label>
+                </div>
+
+                {/* 已上传图片预览 */}
+                {editFeedbackData.images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {editFeedbackData.images.map((fileKey, index) => (
+                      <div key={index} className="relative group">
+                        <ImagePreview fileKey={fileKey} />
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const success = await handleImageDelete(fileKey);
+                            if (success) {
+                              setEditFeedbackData({
+                                ...editFeedbackData,
+                                images: editFeedbackData.images.filter((_, i) => i !== index)
+                              });
+                            }
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>

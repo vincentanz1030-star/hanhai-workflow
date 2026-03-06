@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
           rating,
           comment,
           is_positive,
+          images,
           created_at,
           status
         )

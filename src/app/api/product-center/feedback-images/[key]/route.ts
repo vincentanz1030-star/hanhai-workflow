@@ -16,6 +16,13 @@ export async function DELETE(
   { params }: { params: Promise<{ key: string }> }
 ) {
   try {
+    // 从 cookie 中获取 token 进行验证
+    const token = request.cookies.get('auth_token')?.value;
+    if (!token) {
+      console.error('[反馈图片删除] 未找到认证 token');
+      return NextResponse.json({ error: '请先登录' }, { status: 401 });
+    }
+
     const { key } = await params;
 
     console.log('[反馈图片删除] 开始删除文件:', key);

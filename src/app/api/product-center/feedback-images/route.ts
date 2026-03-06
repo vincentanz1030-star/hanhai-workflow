@@ -15,6 +15,13 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[反馈图片上传] 开始上传');
 
+    // 从 cookie 中获取 token 进行验证
+    const token = request.cookies.get('auth_token')?.value;
+    if (!token) {
+      console.error('[反馈图片上传] 未找到认证 token');
+      return NextResponse.json({ error: '请先登录' }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const feedbackId = formData.get('feedbackId') as string;
@@ -111,6 +118,13 @@ export async function POST(request: NextRequest) {
 // GET - 获取图片访问URL
 export async function GET(request: NextRequest) {
   try {
+    // 从 cookie 中获取 token 进行验证
+    const token = request.cookies.get('auth_token')?.value;
+    if (!token) {
+      console.error('[反馈图片] 未找到认证 token');
+      return NextResponse.json({ error: '请先登录' }, { status: 401 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const key = searchParams.get('key');
     const expireTime = parseInt(searchParams.get('expireTime') || '2592000');

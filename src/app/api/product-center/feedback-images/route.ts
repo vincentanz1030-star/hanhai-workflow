@@ -131,10 +131,15 @@ export async function GET(request: NextRequest) {
       success: true,
       imageUrl,
     });
-  } catch (error) {
-    console.error('[反馈图片] 生成URL失败:', error);
+    } catch (error: any) {
+    console.error('[反馈图片上传] 上传失败:', error);
+    console.error('[反馈图片上传] 错误堆栈:', error?.stack);
+
     return NextResponse.json(
-      { error: '生成访问URL失败，请重试' },
+      {
+        error: '上传失败，请重试',
+        details: error?.message || '未知错误',
+      },
       { status: 500 }
     );
   }

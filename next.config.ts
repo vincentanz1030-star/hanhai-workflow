@@ -3,7 +3,6 @@ import path from 'path';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  allowedDevOrigins: ['*.dev.coze.site'],
   images: {
     remotePatterns: [
       {
@@ -13,8 +12,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // 添加 outputFileTracingRoot 配置
-  output: 'standalone',
   // 添加缓存控制头
   async headers() {
     return [

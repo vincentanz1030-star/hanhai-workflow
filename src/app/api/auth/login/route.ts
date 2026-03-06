@@ -82,6 +82,15 @@ export async function POST(request: NextRequest) {
         details: error.details,
         hint: error.hint
       });
+
+      // 如果用户不存在，返回友好的错误信息
+      if (error.code === 'PGRST116') {
+        return NextResponse.json(
+          { error: '邮箱或密码错误' },
+          { status: 401 }
+        );
+      }
+
       return NextResponse.json(
         { error: '登录失败，请稍后重试' },
         { status: 500 }

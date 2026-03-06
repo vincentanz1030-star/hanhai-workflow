@@ -25,10 +25,22 @@ const BRAND_NAMES: Record<string, string> = {
 // 辅助函数：获取带认证的 fetch 选项
 function getAuthFetchOptions(options: RequestInit = {}): RequestInit {
   const token = localStorage.getItem('auth_token');
+  
+  console.log('[getAuthFetchOptions] Token 检查:', {
+    exists: !!token,
+    length: token?.length,
+    tokenPreview: token ? `${token.substring(0, 30)}...` : null,
+  });
+
   const headers = {
     ...options.headers,
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
   };
+
+  console.log('[getAuthFetchOptions] Headers:', {
+    hasAuthorization: !!headers['Authorization'],
+    hasCredentials: !!options.credentials || true,
+  });
 
   return {
     ...options,

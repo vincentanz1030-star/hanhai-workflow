@@ -18,13 +18,27 @@ export async function POST(request: NextRequest) {
     console.log('[反馈图片上传] 开始上传');
     console.log('[反馈图片上传] Cookie Header:', request.headers.get('cookie'));
     console.log('[反馈图片上传] Authorization Header:', request.headers.get('authorization'));
+    console.log('[反馈图片上传] 所有 Headers:', Object.fromEntries(request.headers.entries()));
 
     // 从请求中获取 token（支持 Cookie 和 Authorization header）
     const token = await getTokenFromRequestHelper(request);
 
     if (!token) {
       console.error('[反馈图片上传] 未找到认证 token');
-      return NextResponse.json({ error: '请先登录' }, { status: 401 });
+      console.error('[反馈图片上传] 请检查：');
+      console.error('[反馈图片上传] 1. 是否已登录？');
+      console.error('[反馈图片上传] 2. localStorage 中是否有 auth_token？');
+      console.error('[反馈图片上传] 3. Cookie 中是否有 auth_token？');
+      console.error('[反馈图片上传] 4. 前端是否正确发送 Authorization header？');
+      return NextResponse.json({ 
+        error: '未登录，请先登录',
+        debug: {
+          hasCookie: !!request.headers.get('cookie'),
+          hasAuthHeader: !!request.headers.get('authorization'),
+          authHeaderValue: request.headers.get('authorization')?.substring(0, 50),
+          cookies: request.headers.get('cookie')?.substring(0, 100),
+        }
+      }, { status: 401 });
     }
 
     console.log('[反馈图片上传] 找到 token，长度:', token.length);
@@ -33,7 +47,14 @@ export async function POST(request: NextRequest) {
     const decoded = verifyToken(token);
     if (!decoded) {
       console.error('[反馈图片上传] Token 验证失败');
-      return NextResponse.json({ error: '登录已过期，请重新登录' }, { status: 401 });
+      console.error('[反馈图片上传] Token 内容:', token.substring(0, 50));
+      return NextResponse.json({ 
+        error: '登录已过期，请重新登录',
+        debug: {
+          tokenLength: token.length,
+          tokenPreview: token.substring(0, 50),
+        }
+      }, { status: 401 });
     }
 
     console.log('[反馈图片上传] Token 验证成功，用户:', decoded.email);

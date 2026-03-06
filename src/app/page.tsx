@@ -2379,6 +2379,11 @@ function HomePageContent() {
               >
                 <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
+              {/* 显示用户角色 */}
+              <div className="hidden md:flex items-center text-xs text-muted-foreground">
+                {user.roles?.[0]?.role && <span className="ml-2 mr-2">({user.roles[0].role})</span>}
+              </div>
+              {/* 管理员功能入口 */}
               {user.roles.some((r: any) => r.role === 'admin') && (
                 <div className="flex gap-1">
                   <Link href="/admin">

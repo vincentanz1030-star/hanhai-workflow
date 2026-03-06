@@ -6,8 +6,8 @@ import { verifyToken } from '@/lib/auth';
 // 初始化对象存储
 const storage = new S3Storage({
   endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
-  accessKey: '',
-  secretKey: '',
+  accessKey: process.env.COZE_STORAGE_ACCESS_KEY || '',
+  secretKey: process.env.COZE_STORAGE_SECRET_KEY || '',
   bucketName: process.env.COZE_BUCKET_NAME,
   region: 'cn-beijing',
 });

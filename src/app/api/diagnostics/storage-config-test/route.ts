@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
   }
 
   // 尝试通过 Coze Loop API 获取临时凭证
-  let apiTestResult = null;
+  let apiTestResult: any = null;
   try {
     console.log('[API 测试] 尝试通过 Coze Loop API 获取临时凭证...');
     const loopApiToken = process.env.COZE_LOOP_API_TOKEN;
@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
             sessionToken: credentials.sessionToken ? '已设置' : '未设置',
             expiration: credentials.expiration || '未设置',
           },
+          uploadTest: null as any,
         };
 
         // 如果成功获取凭证，尝试使用它们

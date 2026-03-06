@@ -150,20 +150,34 @@ export function ProductFeedback() {
         formData.append('file', file);
         formData.append('feedbackId', feedbackIdOrTrialId);
 
+        console.log('[前端] 开始上传图片:', {
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          feedbackId: feedbackIdOrTrialId,
+        });
+
         const response = await fetch('/api/product-center/feedback-images', {
           method: 'POST',
           body: formData,
         });
 
+        console.log('[前端] 上传响应状态:', response.status);
+
         const data = await response.json();
+        console.log('[前端] 上传响应数据:', data);
+
         if (data.success) {
           uploadedKeys.push(data.fileKey);
+          console.log('[前端] 上传成功，fileKey:', data.fileKey);
         } else {
-          alert('上传失败：' + data.error);
+          console.error('[前端] 上传失败:', data);
+          const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+          alert('上传失败：' + errorMsg);
         }
       } catch (error) {
-        console.error('上传图片失败:', error);
-        alert('上传图片失败，请稍后重试');
+        console.error('[前端] 上传图片失败:', error);
+        alert('上传图片失败，请稍后重试\n错误信息：' + (error as Error).message);
       }
     }
 

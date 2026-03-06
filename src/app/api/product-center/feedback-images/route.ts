@@ -19,23 +19,36 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File;
     const feedbackId = formData.get('feedbackId') as string;
 
+    console.log('[反馈图片上传] 接收到的参数:', {
+      hasFile: !!file,
+      fileName: file?.name,
+      fileType: file?.type,
+      fileSize: file?.size,
+      feedbackId: feedbackId || 'null',
+    });
+
     if (!file) {
+      console.error('[反馈图片上传] 未找到文件');
       return NextResponse.json({ error: '未找到文件' }, { status: 400 });
     }
 
     // 验证文件类型
     if (!file.type.startsWith('image/')) {
+      console.error('[反馈图片上传] 文件类型错误:', file.type);
       return NextResponse.json({ error: '只支持图片文件' }, { status: 400 });
     }
 
     // 验证文件大小（最大5MB）
     if (file.size > 5 * 1024 * 1024) {
+      console.error('[反馈图片上传] 文件大小超限:', file.size);
       return NextResponse.json({ error: '文件大小不能超过5MB' }, { status: 400 });
     }
 
     // 转换文件为Buffer
+    console.log('[反馈图片上传] 开始转换文件为Buffer');
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    console.log('[反馈图片上传] Buffer转换完成，大小:', buffer.length);
 
     // 生成文件名（使用反馈ID和时间戳）
     const timestamp = Date.now();
@@ -56,6 +69,7 @@ export async function POST(request: NextRequest) {
     });
 
     // 上传文件到对象存储
+    console.log('[反馈图片上传] 开始上传到对象存储');
     const fileKey = await storage.uploadFile({
       fileContent: buffer,
       fileName: filePath,
@@ -65,12 +79,13 @@ export async function POST(request: NextRequest) {
     console.log('[反馈图片上传] 上传成功，fileKey:', fileKey);
 
     // 生成签名 URL（有效期 30 天）
+    console.log('[反馈图片上传] 开始生成签名URL');
     const imageUrl = await storage.generatePresignedUrl({
       key: fileKey,
       expireTime: 2592000,
     });
 
-    console.log('[反馈图片上传] 生成签名URL成功');
+    console.log('[反馈图片上传] 生成签名URL成功:', imageUrl);
 
     return NextResponse.json({
       success: true,
@@ -78,10 +93,16 @@ export async function POST(request: NextRequest) {
       imageUrl,
       fileName: file.name,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[反馈图片上传] 上传失败:', error);
+    console.error('[反馈图片上传] 错误堆栈:', error?.stack);
+
+    // 返回更详细的错误信息
     return NextResponse.json(
-      { error: '上传失败，请重试' },
+      {
+        error: '上传失败，请重试',
+        details: error?.message || '未知错误',
+      },
       { status: 500 }
     );
   }

@@ -70,7 +70,7 @@ async function setAdminViaRestAPI(email: string, supabaseUrl: string, supabaseKe
   try {
     // 1. 查找用户 ID
     const userResponse = await fetch(
-      `${supabaseUrl}/rest/v1/users?email=eq.${email}&select=user_id`,
+      `${supabaseUrl}/rest/v1/users?email=eq.${email}&select=id,email`,
       {
         headers: {
           'apikey': supabaseKey,
@@ -88,7 +88,7 @@ async function setAdminViaRestAPI(email: string, supabaseUrl: string, supabaseKe
       return NextResponse.json({ error: '用户不存在' }, { status: 404 });
     }
 
-    const userId = users[0].user_id;
+    const userId = users[0].id;
 
     // 2. 检查是否已经是管理员
     const roleResponse = await fetch(

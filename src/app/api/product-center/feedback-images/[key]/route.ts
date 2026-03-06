@@ -16,12 +16,19 @@ export async function DELETE(
   { params }: { params: Promise<{ key: string }> }
 ) {
   try {
+    console.log('[反馈图片删除] 开始删除操作');
+    console.log('[反馈图片删除] Cookie Header:', request.headers.get('cookie'));
+    console.log('[反馈图片删除] 所有 Cookies:', request.cookies.getAll());
+
     // 从 cookie 中获取 token 进行验证
     const token = request.cookies.get('auth_token')?.value;
     if (!token) {
       console.error('[反馈图片删除] 未找到认证 token');
+      console.error('[反馈图片删除] 可用的 cookie 名称:', request.cookies.getAll().map(c => c.name));
       return NextResponse.json({ error: '请先登录' }, { status: 401 });
     }
+
+    console.log('[反馈图片删除] 找到 token，长度:', token.length);
 
     const { key } = await params;
 

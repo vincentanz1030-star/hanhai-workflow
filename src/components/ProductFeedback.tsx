@@ -161,14 +161,12 @@ export function ProductFeedback() {
 
         const response = await fetch('/api/product-center/feedback-images', {
           method: 'POST',
-          headers: {
-            'credentials': 'include',
-          },
           body: formData,
           credentials: 'include',
         });
 
         console.log('[前端] 上传响应状态:', response.status);
+        console.log('[前端] 响应 Headers:', Array.from(response.headers.entries()));
 
         const data = await response.json();
         console.log('[前端] 上传响应数据:', data);
@@ -193,12 +191,18 @@ export function ProductFeedback() {
   // 图片删除处理函数
   const handleImageDelete = async (fileKey: string): Promise<boolean> => {
     try {
+      console.log('[前端] 开始删除图片:', fileKey);
+
       const response = await fetch(`/api/product-center/feedback-images/${encodeURIComponent(fileKey)}`, {
         method: 'DELETE',
         credentials: 'include',
       });
 
+      console.log('[前端] 删除响应状态:', response.status);
+
       const data = await response.json();
+      console.log('[前端] 删除响应数据:', data);
+
       if (data.success) {
         return true;
       } else {

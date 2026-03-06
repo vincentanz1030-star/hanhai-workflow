@@ -14,13 +14,18 @@ const storage = new S3Storage({
 export async function POST(request: NextRequest) {
   try {
     console.log('[反馈图片上传] 开始上传');
+    console.log('[反馈图片上传] Cookie Header:', request.headers.get('cookie'));
+    console.log('[反馈图片上传] 所有 Cookies:', request.cookies.getAll());
 
     // 从 cookie 中获取 token 进行验证
     const token = request.cookies.get('auth_token')?.value;
     if (!token) {
       console.error('[反馈图片上传] 未找到认证 token');
+      console.error('[反馈图片上传] 可用的 cookie 名称:', request.cookies.getAll().map(c => c.name));
       return NextResponse.json({ error: '请先登录' }, { status: 401 });
     }
+
+    console.log('[反馈图片上传] 找到 token，长度:', token.length);
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -118,12 +123,19 @@ export async function POST(request: NextRequest) {
 // GET - 获取图片访问URL
 export async function GET(request: NextRequest) {
   try {
+    console.log('[反馈图片] 开始获取图片URL');
+    console.log('[反馈图片] Cookie Header:', request.headers.get('cookie'));
+    console.log('[反馈图片] 所有 Cookies:', request.cookies.getAll());
+
     // 从 cookie 中获取 token 进行验证
     const token = request.cookies.get('auth_token')?.value;
     if (!token) {
       console.error('[反馈图片] 未找到认证 token');
+      console.error('[反馈图片] 可用的 cookie 名称:', request.cookies.getAll().map(c => c.name));
       return NextResponse.json({ error: '请先登录' }, { status: 401 });
     }
+
+    console.log('[反馈图片] 找到 token，长度:', token.length);
 
     const searchParams = request.nextUrl.searchParams;
     const key = searchParams.get('key');

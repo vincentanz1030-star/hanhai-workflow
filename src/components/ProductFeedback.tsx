@@ -157,7 +157,7 @@ export function ProductFeedback() {
 
         const data = await response.json();
         if (data.success) {
-          uploadedKeys.push(data.data.fileKey);
+          uploadedKeys.push(data.fileKey);
         } else {
           alert('上传失败：' + data.error);
         }
@@ -439,10 +439,10 @@ export function ProductFeedback() {
     useEffect(() => {
       const fetchImageUrl = async () => {
         try {
-          const response = await fetch(`/api/storage/presigned-url?fileKey=${encodeURIComponent(fileKey)}&operation=GET`);
+          const response = await fetch(`/api/product-center/feedback-images?key=${encodeURIComponent(fileKey)}`);
           const data = await response.json();
-          if (data.success && data.data.url) {
-            setImageUrl(data.data.url);
+          if (data.success && data.imageUrl) {
+            setImageUrl(data.imageUrl);
           } else {
             setError(true);
           }

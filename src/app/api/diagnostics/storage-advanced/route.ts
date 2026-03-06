@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     return authResult;
   }
 
-  const diagnostics = {
+  const diagnostics: any = {
     timestamp: new Date().toISOString(),
     env: {
       COZE_BUCKET_ENDPOINT_URL: process.env.COZE_BUCKET_ENDPOINT_URL || '未设置',
@@ -254,7 +254,7 @@ export async function GET(request: NextRequest) {
 
   // 总结
   console.log('[高级存储诊断] 诊断完成');
-  const passedTests = diagnostics.tests.filter(t => t.passed).length;
+  const passedTests = diagnostics.tests.filter((t: any) => t.passed).length;
   const totalTests = diagnostics.tests.length;
 
   diagnostics.summary = {

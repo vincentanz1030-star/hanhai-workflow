@@ -36,59 +36,13 @@ export async function POST(request: NextRequest) {
 
   // 初始化存储（最简单的配置）
   console.log('[简化存储测试] 初始化 S3Storage...');
-  let storage;
-  try {
-    storage = new S3Storage({
-      endpointUrl: endpointUrl,
-      accessKey: '',
-      secretKey: '',
-      bucketName: bucketName,
-    });
-    console.log('[简化存储测试] 初始化成功');
-  } catch (error: any) {
-    console.error('[简化存储测试] 初始化失败:', error);
-    return NextResponse.json({
-      success: false,
-      error: '初始化 S3Storage 失败',
-      details: error?.message || '未知错误',
-      stack: error?.stack || '无堆栈信息',
-    }, { status: 500 });
-  }
-
-  if (!endpointUrl) {
-    return NextResponse.json({
-      success: false,
-      error: '未设置 COZE_BUCKET_ENDPOINT_URL 环境变量',
-    }, { status: 500 });
-  }
-
-  if (!bucketName) {
-    return NextResponse.json({
-      success: false,
-      error: '未设置 COZE_BUCKET_NAME 环境变量',
-    }, { status: 500 });
-  }
-
-  // 初始化存储（最简单的配置）
-  console.log('[简化存储测试] 初始化 S3Storage...');
-  let storage;
-  try {
-    storage = new S3Storage({
-      endpointUrl: endpointUrl,
-      accessKey: '',
-      secretKey: '',
-      bucketName: bucketName,
-    });
-    console.log('[简化存储测试] 初始化成功');
-  } catch (error: any) {
-    console.error('[简化存储测试] 初始化失败:', error);
-    return NextResponse.json({
-      success: false,
-      error: '初始化 S3Storage 失败',
-      details: error?.message || '未知错误',
-      stack: error?.stack || '无堆栈信息',
-    }, { status: 500 });
-  }
+  const storageClient = new S3Storage({
+    endpointUrl: endpointUrl,
+    accessKey: '',
+    secretKey: '',
+    bucketName: bucketName,
+  });
+  console.log('[简化存储测试] 初始化成功');
 
   // 测试上传
   console.log('[简化存储测试] 开始上传...');
@@ -102,7 +56,7 @@ export async function POST(request: NextRequest) {
       bufferLength: testBuffer.length,
     });
 
-    const fileKey = await storage.uploadFile({
+    const fileKey = await storageClient.uploadFile({
       fileContent: testBuffer,
       fileName: fileName,
       contentType: 'text/plain',
@@ -114,7 +68,7 @@ export async function POST(request: NextRequest) {
     console.log('[简化存储测试] 生成签名 URL...');
     let signedUrl = null;
     try {
-      signedUrl = await storage.generatePresignedUrl({
+      signedUrl = await storageClient.generatePresignedUrl({
         key: fileKey,
         expireTime: 60,
       });
@@ -136,7 +90,7 @@ export async function POST(request: NextRequest) {
     // 测试删除
     console.log('[简化存储测试] 删除测试文件...');
     try {
-      await storage.deleteFile({ fileKey });
+      await storageClient.deleteFile({ fileKey });
       console.log('[简化存储测试] 删除成功');
     } catch (deleteError: any) {
       console.error('[简化存储测试] 删除失败:', deleteError);

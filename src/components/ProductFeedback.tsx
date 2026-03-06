@@ -22,6 +22,21 @@ const BRAND_NAMES: Record<string, string> = {
   baodengyuan: '宝登源',
 };
 
+// 辅助函数：获取带认证的 fetch 选项
+function getAuthFetchOptions(options: RequestInit = {}): RequestInit {
+  const token = localStorage.getItem('auth_token');
+  const headers = {
+    ...options.headers,
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+
+  return {
+    ...options,
+    headers,
+    credentials: 'include',
+  };
+}
+
 interface Feedback {
   id: string;
   trial_id?: string;
@@ -113,9 +128,10 @@ export function ProductFeedback() {
       const params = new URLSearchParams();
       if (selectedStatus !== 'all') params.append('status', selectedStatus);
 
-      const response = await fetch(`/api/product-center/product-trials${params.toString() ? `?${params}` : ''}`, {
-        credentials: 'include',
-      });
+      const response = await fetch(
+        `/api/product-center/product-trials${params.toString() ? `?${params}` : ''}`,
+        getAuthFetchOptions()
+      );
       const data = await response.json();
 
       if (data.success) {
@@ -159,11 +175,10 @@ export function ProductFeedback() {
           feedbackId: feedbackIdOrTrialId,
         });
 
-        const response = await fetch('/api/product-center/feedback-images', {
+        const response = await fetch('/api/product-center/feedback-images', getAuthFetchOptions({
           method: 'POST',
           body: formData,
-          credentials: 'include',
-        });
+        }));
 
         console.log('[前端] 上传响应状态:', response.status);
         console.log('[前端] 响应 Headers:', Array.from(response.headers.entries()));
@@ -193,10 +208,12 @@ export function ProductFeedback() {
     try {
       console.log('[前端] 开始删除图片:', fileKey);
 
-      const response = await fetch(`/api/product-center/feedback-images/${encodeURIComponent(fileKey)}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
+      const response = await fetch(
+        `/api/product-center/feedback-images/${encodeURIComponent(fileKey)}`,
+        getAuthFetchOptions({
+          method: 'DELETE',
+        })
+      );
 
       console.log('[前端] 删除响应状态:', response.status);
 
@@ -224,12 +241,14 @@ export function ProductFeedback() {
 
     setSubmittingTrial(true);
     try {
-      const response = await fetch('/api/product-center/product-trials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTrial),
-        credentials: 'include',
-      });
+      const response = await fetch(
+        '/api/product-center/product-trials',
+        getAuthFetchOptions({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newTrial),
+        })
+      );
 
       const data = await response.json();
       if (data.success) {
@@ -267,19 +286,21 @@ export function ProductFeedback() {
         imageKeys = newFeedback.images;
       }
 
-      const response = await fetch('/api/product-center/product-feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          trial_id: selectedTrialId,
-          product_sku: newFeedback.product_sku,
-          rating: newFeedback.rating,
-          comment: newFeedback.comment,
-          is_positive: newFeedback.rating >= 4,
-          images: imageKeys,
-        }),
-        credentials: 'include',
-      });
+      const response = await fetch(
+        '/api/product-center/product-feedback',
+        getAuthFetchOptions({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            trial_id: selectedTrialId,
+            product_sku: newFeedback.product_sku,
+            rating: newFeedback.rating,
+            comment: newFeedback.comment,
+            is_positive: newFeedback.rating >= 4,
+            images: imageKeys,
+          }),
+        })
+      );
 
       const data = await response.json();
       if (data.success) {
@@ -317,12 +338,14 @@ export function ProductFeedback() {
 
     setSubmittingTrial(true);
     try {
-      const response = await fetch(`/api/product-center/product-trials/${editingTrial.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editTrialData),
-        credentials: 'include',
-      });
+      const response = await fetch(
+        `/api/product-center/product-trials/${editingTrial.id}`,
+        getAuthFetchOptions({
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(editTrialData),
+        })
+      );
 
       const data = await response.json();
       if (data.success) {
@@ -351,10 +374,12 @@ export function ProductFeedback() {
 
     setDeletingTrialState(true);
     try {
-      const response = await fetch(`/api/product-center/product-trials/${deletingTrial.id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
+      const response = await fetch(
+        `/api/product-center/product-trials/${deletingTrial.id}`,
+        getAuthFetchOptions({
+          method: 'DELETE',
+        })
+      );
 
       const data = await response.json();
       if (data.success) {
@@ -394,17 +419,19 @@ export function ProductFeedback() {
 
     setSubmittingFeedback(true);
     try {
-      const response = await fetch(`/api/product-center/product-feedback/${editingFeedback.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          product_sku: editFeedbackData.product_sku,
-          rating: editFeedbackData.rating,
-          comment: editFeedbackData.comment,
-          images: editFeedbackData.images,
-        }),
-        credentials: 'include',
-      });
+      const response = await fetch(
+        `/api/product-center/product-feedback/${editingFeedback.id}`,
+        getAuthFetchOptions({
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            product_sku: editFeedbackData.product_sku,
+            rating: editFeedbackData.rating,
+            comment: editFeedbackData.comment,
+            images: editFeedbackData.images,
+          }),
+        })
+      );
 
       const data = await response.json();
       if (data.success) {
@@ -434,10 +461,12 @@ export function ProductFeedback() {
 
     setDeletingFeedbackState(true);
     try {
-      const response = await fetch(`/api/product-center/product-feedback/${deletingFeedback.id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
+      const response = await fetch(
+        `/api/product-center/product-feedback/${deletingFeedback.id}`,
+        getAuthFetchOptions({
+          method: 'DELETE',
+        })
+      );
 
       const data = await response.json();
       if (data.success) {
@@ -470,9 +499,10 @@ export function ProductFeedback() {
     useEffect(() => {
       const fetchImageUrl = async () => {
         try {
-          const response = await fetch(`/api/product-center/feedback-images?key=${encodeURIComponent(fileKey)}`, {
-            credentials: 'include',
-          });
+          const response = await fetch(
+            `/api/product-center/feedback-images?key=${encodeURIComponent(fileKey)}`,
+            getAuthFetchOptions()
+          );
           const data = await response.json();
           if (data.success && data.imageUrl) {
             setImageUrl(data.imageUrl);

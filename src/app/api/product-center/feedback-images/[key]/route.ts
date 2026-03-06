@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Storage } from 'coze-coding-dev-sdk';
+import { getTokenFromRequest as getTokenFromRequestHelper } from '@/lib/token-helper';
+import { verifyToken } from '@/lib/auth';
 
 // 初始化对象存储
 const storage = new S3Storage({
@@ -18,17 +20,26 @@ export async function DELETE(
   try {
     console.log('[反馈图片删除] 开始删除操作');
     console.log('[反馈图片删除] Cookie Header:', request.headers.get('cookie'));
-    console.log('[反馈图片删除] 所有 Cookies:', request.cookies.getAll());
+    console.log('[反馈图片删除] Authorization Header:', request.headers.get('authorization'));
 
-    // 从 cookie 中获取 token 进行验证
-    const token = request.cookies.get('auth_token')?.value;
+    // 从请求中获取 token（支持 Cookie 和 Authorization header）
+    const token = await getTokenFromRequestHelper(request);
+
     if (!token) {
       console.error('[反馈图片删除] 未找到认证 token');
-      console.error('[反馈图片删除] 可用的 cookie 名称:', request.cookies.getAll().map(c => c.name));
       return NextResponse.json({ error: '请先登录' }, { status: 401 });
     }
 
     console.log('[反馈图片删除] 找到 token，长度:', token.length);
+
+    // 验证 token
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      console.error('[反馈图片删除] Token 验证失败');
+      return NextResponse.json({ error: '登录已过期，请重新登录' }, { status: 401 });
+    }
+
+    console.log('[反馈图片删除] Token 验证成功，用户:', decoded.email);
 
     const { key } = await params;
 

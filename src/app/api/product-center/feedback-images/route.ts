@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Storage } from 'coze-coding-dev-sdk';
+import { getTokenFromRequest as getTokenFromRequestHelper } from '@/lib/token-helper';
+import { verifyToken } from '@/lib/auth';
 
 // 初始化对象存储
 const storage = new S3Storage({
@@ -15,17 +17,26 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[反馈图片上传] 开始上传');
     console.log('[反馈图片上传] Cookie Header:', request.headers.get('cookie'));
-    console.log('[反馈图片上传] 所有 Cookies:', request.cookies.getAll());
+    console.log('[反馈图片上传] Authorization Header:', request.headers.get('authorization'));
 
-    // 从 cookie 中获取 token 进行验证
-    const token = request.cookies.get('auth_token')?.value;
+    // 从请求中获取 token（支持 Cookie 和 Authorization header）
+    const token = await getTokenFromRequestHelper(request);
+
     if (!token) {
       console.error('[反馈图片上传] 未找到认证 token');
-      console.error('[反馈图片上传] 可用的 cookie 名称:', request.cookies.getAll().map(c => c.name));
       return NextResponse.json({ error: '请先登录' }, { status: 401 });
     }
 
     console.log('[反馈图片上传] 找到 token，长度:', token.length);
+
+    // 验证 token
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      console.error('[反馈图片上传] Token 验证失败');
+      return NextResponse.json({ error: '登录已过期，请重新登录' }, { status: 401 });
+    }
+
+    console.log('[反馈图片上传] Token 验证成功，用户:', decoded.email);
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -125,17 +136,26 @@ export async function GET(request: NextRequest) {
   try {
     console.log('[反馈图片] 开始获取图片URL');
     console.log('[反馈图片] Cookie Header:', request.headers.get('cookie'));
-    console.log('[反馈图片] 所有 Cookies:', request.cookies.getAll());
+    console.log('[反馈图片] Authorization Header:', request.headers.get('authorization'));
 
-    // 从 cookie 中获取 token 进行验证
-    const token = request.cookies.get('auth_token')?.value;
+    // 从请求中获取 token（支持 Cookie 和 Authorization header）
+    const token = await getTokenFromRequestHelper(request);
+
     if (!token) {
       console.error('[反馈图片] 未找到认证 token');
-      console.error('[反馈图片] 可用的 cookie 名称:', request.cookies.getAll().map(c => c.name));
       return NextResponse.json({ error: '请先登录' }, { status: 401 });
     }
 
     console.log('[反馈图片] 找到 token，长度:', token.length);
+
+    // 验证 token
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      console.error('[反馈图片] Token 验证失败');
+      return NextResponse.json({ error: '登录已过期，请重新登录' }, { status: 401 });
+    }
+
+    console.log('[反馈图片] Token 验证成功，用户:', decoded.email);
 
     const searchParams = request.nextUrl.searchParams;
     const key = searchParams.get('key');

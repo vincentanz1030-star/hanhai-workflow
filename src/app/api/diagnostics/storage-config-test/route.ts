@@ -16,6 +16,15 @@ export async function POST(request: NextRequest) {
   // 尝试不同的配置组合
   const configurations = [
     {
+      name: '使用环境变量 COZE_STORAGE_ACCESS_KEY/SECRET_KEY',
+      config: {
+        endpointUrl: endpointUrl,
+        accessKey: process.env.COZE_STORAGE_ACCESS_KEY || '',
+        secretKey: process.env.COZE_STORAGE_SECRET_KEY || '',
+        bucketName: bucketName,
+      },
+    },
+    {
       name: '当前配置（空密钥）',
       config: {
         endpointUrl: endpointUrl,

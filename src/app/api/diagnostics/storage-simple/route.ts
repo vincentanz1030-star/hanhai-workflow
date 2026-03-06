@@ -34,12 +34,12 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 
-  // 初始化存储（最简单的配置）
+  // 初始化存储（使用环境变量配置认证）
   console.log('[简化存储测试] 初始化 S3Storage...');
   const storageClient = new S3Storage({
     endpointUrl: endpointUrl,
-    accessKey: '',
-    secretKey: '',
+    accessKey: process.env.COZE_STORAGE_ACCESS_KEY || '',
+    secretKey: process.env.COZE_STORAGE_SECRET_KEY || '',
     bucketName: bucketName,
   });
   console.log('[简化存储测试] 初始化成功');

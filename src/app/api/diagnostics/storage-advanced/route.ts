@@ -81,6 +81,16 @@ export async function GET(request: NextRequest) {
 
   const configurations = [
     {
+      name: '环境变量配置',
+      config: {
+        endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
+        accessKey: process.env.COZE_STORAGE_ACCESS_KEY || '',
+        secretKey: process.env.COZE_STORAGE_SECRET_KEY || '',
+        bucketName: process.env.COZE_BUCKET_NAME,
+        region: 'cn-beijing',
+      },
+    },
+    {
       name: '默认配置（空密钥）',
       config: {
         endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
@@ -94,8 +104,8 @@ export async function GET(request: NextRequest) {
       name: '不指定 region',
       config: {
         endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
-        accessKey: '',
-        secretKey: '',
+        accessKey: process.env.COZE_STORAGE_ACCESS_KEY || '',
+        secretKey: process.env.COZE_STORAGE_SECRET_KEY || '',
         bucketName: process.env.COZE_BUCKET_NAME,
       },
     },
@@ -103,8 +113,8 @@ export async function GET(request: NextRequest) {
       name: '不指定 bucketName',
       config: {
         endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
-        accessKey: '',
-        secretKey: '',
+        accessKey: process.env.COZE_STORAGE_ACCESS_KEY || '',
+        secretKey: process.env.COZE_STORAGE_SECRET_KEY || '',
         region: 'cn-beijing',
       },
     },

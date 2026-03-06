@@ -113,7 +113,9 @@ export function ProductFeedback() {
       const params = new URLSearchParams();
       if (selectedStatus !== 'all') params.append('status', selectedStatus);
 
-      const response = await fetch(`/api/product-center/product-trials${params.toString() ? `?${params}` : ''}`);
+      const response = await fetch(`/api/product-center/product-trials${params.toString() ? `?${params}` : ''}`, {
+        credentials: 'include',
+      });
       const data = await response.json();
 
       if (data.success) {
@@ -159,7 +161,11 @@ export function ProductFeedback() {
 
         const response = await fetch('/api/product-center/feedback-images', {
           method: 'POST',
+          headers: {
+            'credentials': 'include',
+          },
           body: formData,
+          credentials: 'include',
         });
 
         console.log('[前端] 上传响应状态:', response.status);
@@ -189,6 +195,7 @@ export function ProductFeedback() {
     try {
       const response = await fetch(`/api/product-center/feedback-images/${encodeURIComponent(fileKey)}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -217,6 +224,7 @@ export function ProductFeedback() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newTrial),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -266,6 +274,7 @@ export function ProductFeedback() {
           is_positive: newFeedback.rating >= 4,
           images: imageKeys,
         }),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -308,6 +317,7 @@ export function ProductFeedback() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editTrialData),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -339,6 +349,7 @@ export function ProductFeedback() {
     try {
       const response = await fetch(`/api/product-center/product-trials/${deletingTrial.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -388,6 +399,7 @@ export function ProductFeedback() {
           comment: editFeedbackData.comment,
           images: editFeedbackData.images,
         }),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -420,6 +432,7 @@ export function ProductFeedback() {
     try {
       const response = await fetch(`/api/product-center/product-feedback/${deletingFeedback.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -453,7 +466,9 @@ export function ProductFeedback() {
     useEffect(() => {
       const fetchImageUrl = async () => {
         try {
-          const response = await fetch(`/api/product-center/feedback-images?key=${encodeURIComponent(fileKey)}`);
+          const response = await fetch(`/api/product-center/feedback-images?key=${encodeURIComponent(fileKey)}`, {
+            credentials: 'include',
+          });
           const data = await response.json();
           if (data.success && data.imageUrl) {
             setImageUrl(data.imageUrl);

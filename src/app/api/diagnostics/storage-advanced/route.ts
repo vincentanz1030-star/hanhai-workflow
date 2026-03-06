@@ -26,7 +26,11 @@ export async function GET(request: NextRequest) {
   const urlFormatTest = {
     name: '端点 URL 格式检查',
     passed: false,
-    details: {},
+    details: {
+      url: '' as string,
+      isValid: false,
+      error: '' as string,
+    },
   };
 
   if (endpointUrl) {
@@ -44,11 +48,16 @@ export async function GET(request: NextRequest) {
   const connectivityTest = {
     name: '端点可访问性测试',
     passed: false,
-    details: {},
+    details: {
+      statusCode: 0,
+      statusText: '' as string,
+      headers: {} as Record<string, string>,
+      error: '' as string,
+    },
   };
 
   try {
-    const response = await fetch(endpointUrl, {
+    const response = await fetch(endpointUrl!, {
       method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0',
@@ -106,7 +115,16 @@ export async function GET(request: NextRequest) {
     const testResult = {
       name: configTest.name,
       passed: false,
-      details: {},
+      details: {
+        listSuccess: false,
+        fileCount: 0,
+        error: '' as string,
+        stack: '' as string,
+        uploadSuccess: false,
+        fileKey: '' as string,
+        deleteSuccess: false,
+        uploadError: '' as string,
+      },
     };
 
     try {
@@ -170,6 +188,7 @@ export async function GET(request: NextRequest) {
       COZE_SUPABASE_URL: process.env.COZE_SUPABASE_URL ? '已设置' : '未设置',
       COZE_SUPABASE_ANON_KEY: process.env.COZE_SUPABASE_ANON_KEY ? '已设置' : '未设置',
       NODE_ENV: process.env.NODE_ENV || '未设置',
+      missing: [] as string[],
     },
   };
 
@@ -197,15 +216,19 @@ export async function GET(request: NextRequest) {
     const pathTest = {
       name: `路径测试: ${path}`,
       passed: false,
-      details: { path },
+      details: {
+        path: path,
+        fileKey: '' as string,
+        error: '' as string,
+      },
     };
 
     try {
       const storage = new S3Storage({
-        endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
+        endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL!,
         accessKey: '',
         secretKey: '',
-        bucketName: process.env.COZE_BUCKET_NAME,
+        bucketName: process.env.COZE_BUCKET_NAME!,
         region: 'cn-beijing',
       });
 

@@ -1,18 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { verifyPassword, generateToken } from '@/lib/auth';
 import { getPrimaryRole } from '@/lib/permissions';
-
-// 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
-// 环境变量验证
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('[登录API] 致命错误: Supabase 环境变量未设置');
-  console.error('[登录API] COZE_SUPABASE_URL:', supabaseUrl ? '已设置' : '未设置');
-  console.error('[登录API] COZE_SUPABASE_ANON_KEY:', supabaseAnonKey ? '已设置' : '未设置');
-}
+import { getSupabaseClient, queryWithRetry } from '@/lib/db-pool';
 
 export async function POST(request: NextRequest) {
   // 添加请求 ID 用于追踪
@@ -34,46 +23,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 验证环境变量
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error(`[${requestId}] [登录API] 致命错误: Supabase 环境变量未设置`);
-      return NextResponse.json(
-        { error: '服务器配置错误，请联系管理员' },
-        { status: 500 }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      db: { schema: 'public' as const }
-    });
-
-    // 查询用户（添加重试机制）
+    // 使用连接池查询用户（带自动重试）
     console.log(`[${requestId}] [登录API] 查询用户信息...`);
-    let user = null;
-    let error = null;
-    let retryCount = 0;
-    const maxRetries = 3;
-
-    while (retryCount < maxRetries) {
-      const { data: userData, error: userError } = await supabase
+    
+    const { data: user, error } = await queryWithRetry(async (client) => {
+      return await client
         .from('users')
         .select('*')
         .eq('email', email)
         .single();
-
-      if (!userError && userData) {
-        user = userData;
-        break;
-      }
-
-      error = userError;
-      retryCount++;
-
-      if (retryCount < maxRetries) {
-        console.log(`[${requestId}] [登录API] 查询失败，第 ${retryCount} 次重试...`);
-        await new Promise(resolve => setTimeout(resolve, 500)); // 等待 500ms 后重试
-      }
-    }
+    }, 5); // 最多重试 5 次
 
     if (error) {
       console.error(`[${requestId}] [登录API] 查询用户失败:`, {
@@ -175,9 +134,10 @@ export async function POST(request: NextRequest) {
 
     console.log(`[${requestId}] [登录API] 密码验证通过`);
 
-    // 获取用户主角色
+    // 获取用户主角色（使用连接池）
     let primaryRole = null;
     try {
+      const client = getSupabaseClient();
       primaryRole = await getPrimaryRole(user.id);
       console.log(`[${requestId}] [登录API] 用户角色:`, primaryRole);
     } catch (roleError) {

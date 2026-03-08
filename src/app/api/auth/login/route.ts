@@ -3,6 +3,19 @@ import { verifyPassword, generateToken } from '@/lib/auth';
 import { getPrimaryRole } from '@/lib/permissions';
 import { getSupabaseClient, queryWithRetry } from '@/lib/db-pool';
 
+// 用户类型定义
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  password_hash: string;
+  brand: string;
+  is_active: boolean;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export async function POST(request: NextRequest) {
   // 添加请求 ID 用于追踪
   const requestId = `login_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -26,7 +39,7 @@ export async function POST(request: NextRequest) {
     // 使用连接池查询用户（带自动重试）
     console.log(`[${requestId}] [登录API] 查询用户信息...`);
     
-    const { data: user, error } = await queryWithRetry(async (client) => {
+    const { data: user, error } = await queryWithRetry<User>(async (client) => {
       return await client
         .from('users')
         .select('*')

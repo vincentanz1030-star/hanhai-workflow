@@ -10,9 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 import { 
   Building, Package, Image, TrendingUp, BookOpen, Wrench, Users, 
-  Star, Eye, Download, Search, Plus, Filter, ChevronRight 
+  Star, Eye, Download, Search, Plus, Filter, ChevronRight, Upload 
 } from 'lucide-react';
 
 interface SharedResourceStats {
@@ -558,6 +559,43 @@ function DesignTab() {
     { value: 'other', label: '其他' },
   ];
 
+  // 下载处理函数
+  const handleDownload = async (designId: number) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/shared/designs?downloadId=${designId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        // 使用 fetch + blob 模式下载
+        const fileResponse = await fetch(data.data.downloadUrl);
+        const blob = await fileResponse.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = data.data.fileName;
+        link.click();
+        window.URL.revokeObjectURL(blobUrl);
+        toast.success('下载成功');
+      } else {
+        toast.error(data.error || '下载失败');
+      }
+    } catch (error) {
+      console.error('下载失败:', error);
+      toast.error('下载失败，请重试');
+    }
+  };
+
+  // 文件大小格式化
+  const formatFileSize = (bytes: number) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -617,27 +655,23 @@ function DesignTab() {
               {design.thumbnail_url ? (
                 <img 
                   src={design.thumbnail_url} 
-                  alt={design.name}
+                  alt={design.name || design.asset_name}
                   className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Image className="h-12 w-12 text-muted-foreground/50" />
+                  <Package className="h-12 w-12 text-muted-foreground/50" />
                 </div>
               )}
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                <Button size="sm" variant="secondary">
-                  <Eye className="h-4 w-4 mr-1" />
-                  预览
-                </Button>
-                <Button size="sm" variant="secondary">
+                <Button size="sm" variant="secondary" onClick={() => handleDownload(design.id)}>
                   <Download className="h-4 w-4 mr-1" />
                   下载
                 </Button>
               </div>
             </div>
             <CardContent className="p-3">
-              <div className="font-medium truncate">{design.name}</div>
+              <div className="font-medium truncate">{design.name || design.asset_name}</div>
               <div className="flex items-center justify-between mt-2 text-sm text-muted-foreground">
                 <Badge variant="outline" className="text-xs">
                   {designTypes.find(t => t.value === design.asset_type)?.label || design.asset_type}
@@ -649,6 +683,11 @@ function DesignTab() {
                   </span>
                 </div>
               </div>
+              {design.file_size && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  {formatFileSize(design.file_size)}
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -671,12 +710,105 @@ function DesignForm({ onSuccess }: { onSuccess: () => void }) {
     description: '',
     tags: [] as string[],
     is_public: true,
-    file_url: '',
+    file_key: '',
+    file_name: '',
+    file_size: 0,
+    thumbnail_key: '',
   });
   const [tagInput, setTagInput] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
+  const [uploadedFile, setUploadedFile] = useState<{
+    fileKey: string;
+    fileName: string;
+    fileSize: number;
+    fileType: string;
+  } | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<{
+    fileKey: string;
+    fileName: string;
+  } | null>(null);
+
+  // 文件上传处理
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isThumbnail = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 检查文件大小（主文件100MB，缩略图5MB）
+    const maxSize = isThumbnail ? 5 * 1024 * 1024 : 100 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error(isThumbnail ? '缩略图大小不能超过5MB' : '文件大小不能超过100MB');
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(`正在上传 ${file.name}...`);
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      uploadFormData.append('category', isThumbnail ? 'thumbnails' : 'designs');
+
+      const response = await fetch('/api/shared/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: uploadFormData,
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        if (isThumbnail) {
+          setThumbnailFile({
+            fileKey: data.data.fileKey,
+            fileName: data.data.fileName,
+          });
+          setFormData(prev => ({ ...prev, thumbnail_key: data.data.fileKey }));
+          toast.success('缩略图上传成功');
+        } else {
+          setUploadedFile({
+            fileKey: data.data.fileKey,
+            fileName: data.data.fileName,
+            fileSize: data.data.fileSize,
+            fileType: data.data.fileType,
+          });
+          setFormData(prev => ({ 
+            ...prev, 
+            file_key: data.data.fileKey,
+            file_name: data.data.fileName,
+            file_size: data.data.fileSize,
+          }));
+          // 如果名称为空，自动填充文件名
+          if (!formData.name) {
+            const nameWithoutExt = data.data.fileName.replace(/\.[^/.]+$/, '');
+            setFormData(prev => ({ ...prev, name: nameWithoutExt }));
+          }
+          toast.success('文件上传成功');
+        }
+      } else {
+        toast.error(data.error || '上传失败');
+      }
+    } catch (error) {
+      console.error('上传失败:', error);
+      toast.error('上传失败，请重试');
+    } finally {
+      setUploading(false);
+      setUploadProgress('');
+      // 清空input，允许重新选择同一文件
+      e.target.value = '';
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.file_key) {
+      toast.error('请先上传素材文件');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch('/api/shared/designs', {
@@ -689,10 +821,14 @@ function DesignForm({ onSuccess }: { onSuccess: () => void }) {
       });
       const data = await response.json();
       if (data.success) {
+        toast.success('素材上传成功');
         onSuccess();
+      } else {
+        toast.error(data.error || '提交失败');
       }
     } catch (error) {
       console.error('提交失败:', error);
+      toast.error('提交失败，请重试');
     }
   };
 
@@ -703,13 +839,109 @@ function DesignForm({ onSuccess }: { onSuccess: () => void }) {
     }
   };
 
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* 文件上传区域 */}
+      <div className="space-y-3">
+        <Label>素材文件 *（支持压缩包：ZIP/RAR/7Z/GZ）</Label>
+        <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+          {uploadedFile ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-2">
+                <Package className="h-8 w-8 text-green-500" />
+                <div className="text-left">
+                  <div className="font-medium">{uploadedFile.fileName}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {formatFileSize(uploadedFile.fileSize)}
+                    <Badge variant="outline" className="ml-2 text-xs">
+                      {uploadedFile.fileType === 'compressed' ? '压缩包' : 
+                       uploadedFile.fileType === 'image' ? '图片' : 
+                       uploadedFile.fileType === 'video' ? '视频' : '其他'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setUploadedFile(null);
+                  setFormData(prev => ({ ...prev, file_key: '', file_name: '', file_size: 0 }));
+                }}
+              >
+                重新上传
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">点击或拖拽文件上传</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  支持 ZIP、RAR、7Z、GZ 压缩包，以及图片、视频格式
+                </p>
+                <p className="text-xs text-muted-foreground">最大 100MB</p>
+              </div>
+              <Input
+                type="file"
+                accept=".zip,.rar,.7z,.gz,.jpg,.jpeg,.png,.gif,.webp,.svg,.mp4,.webm"
+                onChange={(e) => handleFileUpload(e, false)}
+                disabled={uploading}
+                className="max-w-xs mx-auto"
+              />
+            </div>
+          )}
+        </div>
+        {uploadProgress && (
+          <p className="text-sm text-muted-foreground text-center">{uploadProgress}</p>
+        )}
+      </div>
+
+      {/* 缩略图上传 */}
+      <div className="space-y-2">
+        <Label>缩略图（可选，建议上传预览图）</Label>
+        <div className="flex gap-3 items-start">
+          {thumbnailFile ? (
+            <div className="flex items-center gap-2 p-2 border rounded-lg">
+              <Image className="h-5 w-5 text-blue-500" />
+              <span className="text-sm">{thumbnailFile.fileName}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setThumbnailFile(null);
+                  setFormData(prev => ({ ...prev, thumbnail_key: '' }));
+                }}
+              >
+                ×
+              </Button>
+            </div>
+          ) : (
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleFileUpload(e, true)}
+              disabled={uploading}
+              className="max-w-xs"
+            />
+          )}
+        </div>
+      </div>
+
       <div>
         <Label>素材名称 *</Label>
         <Input
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="输入素材名称"
           required
         />
       </div>
@@ -736,6 +968,7 @@ function DesignForm({ onSuccess }: { onSuccess: () => void }) {
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           rows={3}
+          placeholder="描述素材内容、用途等..."
         />
       </div>
 
@@ -763,7 +996,9 @@ function DesignForm({ onSuccess }: { onSuccess: () => void }) {
 
       <div className="flex justify-end gap-3">
         <Button type="button" variant="outline" onClick={onSuccess}>取消</Button>
-        <Button type="submit">提交</Button>
+        <Button type="submit" disabled={!formData.file_key || uploading}>
+          {uploading ? '上传中...' : '提交'}
+        </Button>
       </div>
     </form>
   );

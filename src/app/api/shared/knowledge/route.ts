@@ -1,0 +1,87 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { requireAuth } from '@/lib/api-auth';
+
+const supabaseUrl = process.env.COZE_SUPABASE_URL!;
+const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
+
+// 获取知识库列表
+export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const searchParams = request.nextUrl.searchParams;
+  const category = searchParams.get('category');
+  const position = searchParams.get('position');
+  const search = searchParams.get('search');
+  const page = parseInt(searchParams.get('page') || '1');
+  const limit = parseInt(searchParams.get('limit') || '20');
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+  try {
+    let query = supabase
+      .from('shared_knowledge')
+      .select('*, author:users(name, brand)')
+      .eq('status', 'published')
+      .order('created_at', { ascending: false });
+
+    if (category) query = query.eq('category', category);
+    if (position) query = query.contains('applicable_positions', [position]);
+    if (search) {
+      query = query.or(`title.ilike.%${search}%,summary.ilike.%${search}%`);
+    }
+
+    const from = (page - 1) * limit;
+    query = query.range(from, from + limit - 1);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+
+    return NextResponse.json({
+      success: true,
+      data,
+      pagination: { page, limit, total: count },
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// 创建知识文档
+export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const body = await request.json();
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+  try {
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, brand')
+      .eq('id', (authResult as any).userId)
+      .single();
+
+    const { data, error } = await supabase
+      .from('shared_knowledge')
+      .insert({
+        ...body,
+        author_id: user?.id,
+        author_brand: user?.brand,
+        status: 'published',
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({
+      success: true,
+      data,
+      message: '知识文档发布成功',
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

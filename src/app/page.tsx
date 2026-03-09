@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, Users, CheckCircle, AlertCircle, AlertTriangle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil, LogOut, User, Shield, Loader2, Settings, Search, Package, Building, ShoppingCart, MessageSquare, CheckSquare, Activity, FileText, BookOpen, FolderKanban, CalendarDays, ClipboardCheck, MessageCircle, Image as ImageIcon } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, AlertCircle, AlertTriangle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil, LogOut, User, Shield, Loader2, Settings, Search, Package, Building, ShoppingCart, MessageSquare, CheckSquare, Activity, FileText, BookOpen, FolderKanban, CalendarDays, ClipboardCheck, MessageCircle, Image as ImageIcon, KeyRound } from 'lucide-react';
 import { format, differenceInDays, isBefore, isAfter, isToday } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Slider } from '@/components/ui/slider';
@@ -2371,6 +2371,16 @@ function HomePageContent() {
                   </p>
                 </div>
               </div>
+              <Link href="/change-password">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0"
+                  title="修改密码"
+                >
+                  <KeyRound className="h-4 w-4 sm:h-5 sm:w-5" />
+                </Button>
+              </Link>
               <Button
                 variant="ghost"
                 size="icon"

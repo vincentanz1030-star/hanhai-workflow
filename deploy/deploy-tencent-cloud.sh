@@ -3,6 +3,7 @@
 #################################################################
 #  瀚海集团工作流程管理系统 - 一键部署脚本
 #  适用于：Ubuntu 22.04 LTS
+#  域名：hanhai.cloud
 #  执行方式：bash deploy.sh
 #################################################################
 
@@ -32,11 +33,14 @@ PROJECT_NAME="hanhai"
 PROJECT_DIR="/var/www/$PROJECT_NAME"
 GIT_REPO="https://github.com/vincentanz1030-star/hanhai-workflow.git"
 
-# 环境变量 - 请在部署前填写
-# ⚠️ 重要：请修改以下值为您的实际配置
+# 域名配置
+DOMAIN="hanhai.cloud"
+WWW_DOMAIN="www.hanhai.cloud"
+
+# 环境变量 - ⚠️ 请修改为您的实际配置
 SUPABASE_URL="https://YOUR-PROJECT.supabase.co"
 SUPABASE_ANON_KEY="YOUR-SUPABASE-ANON-KEY"
-JWT_SECRET="hanhai-jwt-secret-change-this-to-random-string-$(date +%s)"
+JWT_SECRET="hanhai-jwt-secret-$(openssl rand -hex 32 2>/dev/null || date +%s)"
 COZE_AK=""
 COZE_SK=""
 
@@ -103,7 +107,14 @@ fi
 info "Nginx 安装完成"
 
 # ==========================================
-# 7. 检查环境变量配置
+# 7. 安装 Certbot (Let's Encrypt SSL)
+# ==========================================
+info "安装 Certbot..."
+apt install -y certbot python3-certbot-nginx
+info "Certbot 安装完成"
+
+# ==========================================
+# 8. 检查环境变量配置
 # ==========================================
 warn "检查环境变量配置..."
 if [[ "$SUPABASE_URL" == *"YOUR-PROJECT"* ]] || [[ "$SUPABASE_ANON_KEY" == *"YOUR-SUPABASE"* ]]; then
@@ -111,7 +122,7 @@ if [[ "$SUPABASE_URL" == *"YOUR-PROJECT"* ]] || [[ "$SUPABASE_ANON_KEY" == *"YOU
 fi
 
 # ==========================================
-# 8. 克隆代码
+# 9. 克隆代码
 # ==========================================
 info "克隆代码仓库..."
 if [ -d "$PROJECT_DIR" ]; then
@@ -124,7 +135,7 @@ cd "$PROJECT_DIR"
 info "代码克隆完成"
 
 # ==========================================
-# 9. 创建环境变量文件
+# 10. 创建环境变量文件
 # ==========================================
 info "创建环境变量文件..."
 cat > "$PROJECT_DIR/.env.local" << EOF
@@ -142,7 +153,7 @@ EOF
 info "环境变量文件创建完成"
 
 # ==========================================
-# 10. 安装依赖
+# 11. 安装依赖
 # ==========================================
 info "安装项目依赖..."
 cd "$PROJECT_DIR"
@@ -150,14 +161,14 @@ pnpm install
 info "依赖安装完成"
 
 # ==========================================
-# 11. 构建项目
+# 12. 构建项目
 # ==========================================
 info "构建项目（可能需要几分钟）..."
 pnpm build
 info "项目构建完成"
 
 # ==========================================
-# 12. 配置 PM2
+# 13. 配置 PM2
 # ==========================================
 info "配置 PM2..."
 # 停止旧进程（如果存在）
@@ -175,19 +186,50 @@ pm2 startup systemd -u root --hp /root 2>/dev/null || true
 info "PM2 配置完成"
 
 # ==========================================
-# 13. 配置 Nginx
+# 14. 配置 Nginx (HTTP)
 # ==========================================
 info "配置 Nginx..."
 
-# 获取服务器 IP
-SERVER_IP=$(curl -s ifconfig.me || curl -s ip.sb || echo "YOUR_SERVER_IP")
-
-# 创建 Nginx 配置
+# 创建 Nginx 配置（先配置 HTTP，后续申请 SSL）
 cat > /etc/nginx/sites-available/$PROJECT_NAME << EOF
+# HTTP 重定向到 HTTPS
 server {
     listen 80;
-    server_name $SERVER_IP;
+    listen [::]:80;
+    server_name $DOMAIN $WWW_DOMAIN;
+    
+    # Let's Encrypt 验证路径
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    
+    # 其他请求重定向到 HTTPS
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
 
+# HTTPS 配置（SSL 申请后启用）
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name $DOMAIN $WWW_DOMAIN;
+    
+    # SSL 证书路径（Certbot 会自动配置）
+    # ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+    
+    # SSL 配置
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+    
+    # HSTS
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    
     location / {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
@@ -203,14 +245,20 @@ server {
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
+        
+        # 文件上传大小限制
+        client_max_body_size 100M;
     }
 }
 EOF
 
+# 创建 certbot 验证目录
+mkdir -p /var/www/certbot
+
 # 启用站点
 ln -sf /etc/nginx/sites-available/$PROJECT_NAME /etc/nginx/sites-enabled/
 
-# 删除默认站点（可选）
+# 删除默认站点
 rm -f /etc/nginx/sites-enabled/default
 
 # 测试 Nginx 配置
@@ -223,7 +271,7 @@ systemctl enable nginx
 info "Nginx 配置完成"
 
 # ==========================================
-# 14. 配置防火墙
+# 15. 配置防火墙
 # ==========================================
 info "配置防火墙..."
 if command -v ufw &> /dev/null; then
@@ -237,22 +285,65 @@ else
 fi
 
 # ==========================================
-# 15. 显示部署结果
+# 16. 申请 SSL 证书
+# ==========================================
+info "申请 SSL 证书..."
+warn "请确保域名 $DOMAIN 已解析到此服务器 IP"
+echo ""
+read -p "域名是否已解析？继续申请 SSL 证书？(y/n): " confirm_ssl
+
+if [[ "$confirm_ssl" == "y" || "$confirm_ssl" == "Y" ]]; then
+    info "申请 Let's Encrypt SSL 证书..."
+    
+    # 获取邮箱
+    read -p "请输入邮箱地址（用于 SSL 证书通知）: " email
+    
+    # 申请证书
+    certbot --nginx -d $DOMAIN -d $WWW_DOMAIN --non-interactive --agree-tos --email "$email" --redirect
+    
+    # 设置自动续期
+    systemctl enable certbot.timer 2>/dev/null || true
+    
+    # 测试续期
+    certbot renew --dry-run 2>/dev/null || true
+    
+    info "SSL 证书配置完成"
+else
+    warn "跳过 SSL 证书申请，稍后可手动执行："
+    echo "  certbot --nginx -d $DOMAIN -d $WWW_DOMAIN"
+fi
+
+# ==========================================
+# 17. 执行数据库迁移
+# ==========================================
+info "数据库配置提醒..."
+warn "请确保已在 Supabase 中执行以下 SQL 文件创建数据表："
+echo "  1. database/schema.sql"
+echo "  2. database/shared_resources.sql"
+echo ""
+
+# ==========================================
+# 18. 显示部署结果
 # ==========================================
 echo ""
 echo "=========================================="
 echo -e "${GREEN}  部署完成！${NC}"
 echo "=========================================="
 echo ""
-echo "访问地址: http://$SERVER_IP"
+echo "访问地址:"
+echo "  http://$DOMAIN"
+echo "  https://$DOMAIN"
 echo ""
 echo "常用命令:"
 echo "  查看状态: pm2 status"
 echo "  查看日志: pm2 logs $PROJECT_NAME"
 echo "  重启服务: pm2 restart $PROJECT_NAME"
-echo "  更新代码: cd $PROJECT_DIR && git pull && pnpm install && pnpm build && pm2 restart $PROJECT_NAME"
 echo ""
-echo "数据库配置:"
-echo "  请确保已执行 database/schema.sql 创建数据表"
+echo "更新代码:"
+echo "  cd $PROJECT_DIR && git pull && pnpm install && pnpm build && pm2 restart $PROJECT_NAME"
+echo ""
+echo "SSL 证书:"
+echo "  查看证书: certbot certificates"
+echo "  手动续期: certbot renew"
 echo ""
 echo "=========================================="

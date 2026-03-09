@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { 
   Building, Package, Image, TrendingUp, BookOpen, Wrench, Users, 
-  Star, Eye, Download, Search, Plus, Filter, ChevronRight, Upload 
+  Star, Eye, Download, Search, Plus, Filter, ChevronRight, Upload, Link2 
 } from 'lucide-react';
 
 interface SharedResourceStats {
@@ -569,16 +569,22 @@ function DesignTab() {
       const data = await response.json();
       
       if (data.success) {
-        // 使用 fetch + blob 模式下载
-        const fileResponse = await fetch(data.data.downloadUrl);
-        const blob = await fileResponse.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = data.data.fileName;
-        link.click();
-        window.URL.revokeObjectURL(blobUrl);
-        toast.success('下载成功');
+        if (data.data.isExternal) {
+          // 外部链接：直接在新窗口打开
+          window.open(data.data.downloadUrl, '_blank');
+          toast.success('已打开下载链接');
+        } else {
+          // 内部存储：使用 fetch + blob 模式下载
+          const fileResponse = await fetch(data.data.downloadUrl);
+          const blob = await fileResponse.blob();
+          const blobUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = data.data.fileName;
+          link.click();
+          window.URL.revokeObjectURL(blobUrl);
+          toast.success('下载成功');
+        }
       } else {
         toast.error(data.error || '下载失败');
       }
@@ -673,9 +679,17 @@ function DesignTab() {
             <CardContent className="p-3">
               <div className="font-medium truncate">{design.name || design.asset_name}</div>
               <div className="flex items-center justify-between mt-2 text-sm text-muted-foreground">
-                <Badge variant="outline" className="text-xs">
-                  {designTypes.find(t => t.value === design.asset_type)?.label || design.asset_type}
-                </Badge>
+                <div className="flex items-center gap-1">
+                  <Badge variant="outline" className="text-xs">
+                    {designTypes.find(t => t.value === design.asset_type)?.label || design.asset_type}
+                  </Badge>
+                  {design.download_url && (
+                    <Badge variant="secondary" className="text-xs">
+                      <Link2 className="h-3 w-3 mr-1" />
+                      外链
+                    </Badge>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                   <span className="flex items-center gap-1">
                     <Download className="h-3 w-3" />
@@ -683,11 +697,15 @@ function DesignTab() {
                   </span>
                 </div>
               </div>
-              {design.file_size && (
+              {design.file_size ? (
                 <div className="text-xs text-muted-foreground mt-1">
                   {formatFileSize(design.file_size)}
                 </div>
-              )}
+              ) : design.download_url ? (
+                <div className="text-xs text-blue-500 mt-1 truncate">
+                  {design.download_url.substring(0, 40)}...
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         ))}
@@ -704,6 +722,7 @@ function DesignTab() {
 
 // 设计素材表单
 function DesignForm({ onSuccess }: { onSuccess: () => void }) {
+  const [uploadMode, setUploadMode] = useState<'file' | 'link'>('file');
   const [formData, setFormData] = useState({
     name: '',
     asset_type: 'image',
@@ -714,6 +733,7 @@ function DesignForm({ onSuccess }: { onSuccess: () => void }) {
     file_name: '',
     file_size: 0,
     thumbnail_key: '',
+    download_url: '', // 外部下载链接
   });
   const [tagInput, setTagInput] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -758,6 +778,12 @@ function DesignForm({ onSuccess }: { onSuccess: () => void }) {
         body: uploadFormData,
       });
 
+      // 检查响应是否有效
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || '上传失败');
+      }
+
       const data = await response.json();
       if (data.success) {
         if (isThumbnail) {
@@ -790,9 +816,9 @@ function DesignForm({ onSuccess }: { onSuccess: () => void }) {
       } else {
         toast.error(data.error || '上传失败');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('上传失败:', error);
-      toast.error('上传失败，请重试');
+      toast.error(error.message || '上传失败，请重试');
     } finally {
       setUploading(false);
       setUploadProgress('');
@@ -804,8 +830,17 @@ function DesignForm({ onSuccess }: { onSuccess: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.file_key) {
+    // 验证：文件模式需要上传文件，链接模式需要输入链接
+    if (uploadMode === 'file' && !formData.file_key) {
       toast.error('请先上传素材文件');
+      return;
+    }
+    if (uploadMode === 'link' && !formData.download_url) {
+      toast.error('请输入下载链接');
+      return;
+    }
+    if (!formData.name) {
+      toast.error('请输入素材名称');
       return;
     }
 
@@ -840,6 +875,7 @@ function DesignForm({ onSuccess }: { onSuccess: () => void }) {
   };
 
   const formatFileSize = (bytes: number) => {
+    if (!bytes) return '';
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
@@ -847,62 +883,103 @@ function DesignForm({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* 上传模式切换 */}
+      <div className="flex gap-2 mb-4">
+        <Button
+          type="button"
+          variant={uploadMode === 'file' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setUploadMode('file')}
+        >
+          <Upload className="h-4 w-4 mr-1" />
+          上传文件
+        </Button>
+        <Button
+          type="button"
+          variant={uploadMode === 'link' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setUploadMode('link')}
+        >
+          <Link2 className="h-4 w-4 mr-1" />
+          外部链接
+        </Button>
+      </div>
+
       {/* 文件上传区域 */}
-      <div className="space-y-3">
-        <Label>素材文件 *（支持压缩包：ZIP/RAR/7Z/GZ）</Label>
-        <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-          {uploadedFile ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-center gap-2">
-                <Package className="h-8 w-8 text-green-500" />
-                <div className="text-left">
-                  <div className="font-medium">{uploadedFile.fileName}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {formatFileSize(uploadedFile.fileSize)}
-                    <Badge variant="outline" className="ml-2 text-xs">
-                      {uploadedFile.fileType === 'compressed' ? '压缩包' : 
-                       uploadedFile.fileType === 'image' ? '图片' : 
-                       uploadedFile.fileType === 'video' ? '视频' : '其他'}
-                    </Badge>
+      {uploadMode === 'file' ? (
+        <div className="space-y-3">
+          <Label>素材文件（支持压缩包：ZIP/RAR/7Z/GZ）</Label>
+          <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+            {uploadedFile ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-center gap-2">
+                  <Package className="h-8 w-8 text-green-500" />
+                  <div className="text-left">
+                    <div className="font-medium">{uploadedFile.fileName}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {formatFileSize(uploadedFile.fileSize)}
+                      <Badge variant="outline" className="ml-2 text-xs">
+                        {uploadedFile.fileType === 'compressed' ? '压缩包' : 
+                         uploadedFile.fileType === 'image' ? '图片' : 
+                         uploadedFile.fileType === 'video' ? '视频' : '其他'}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setUploadedFile(null);
+                    setFormData(prev => ({ ...prev, file_key: '', file_name: '', file_size: 0 }));
+                  }}
+                >
+                  重新上传
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setUploadedFile(null);
-                  setFormData(prev => ({ ...prev, file_key: '', file_name: '', file_size: 0 }));
-                }}
-              >
-                重新上传
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">点击或拖拽文件上传</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  支持 ZIP、RAR、7Z、GZ 压缩包，以及图片、视频格式
-                </p>
-                <p className="text-xs text-muted-foreground">最大 100MB</p>
+            ) : (
+              <div className="space-y-3">
+                <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">点击选择文件上传</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    支持 ZIP、RAR、7Z、GZ 压缩包，以及图片、视频格式
+                  </p>
+                  <p className="text-xs text-muted-foreground">最大 100MB</p>
+                </div>
+                <Input
+                  type="file"
+                  accept=".zip,.rar,.7z,.gz,.jpg,.jpeg,.png,.gif,.webp,.svg,.mp4,.webm"
+                  onChange={(e) => handleFileUpload(e, false)}
+                  disabled={uploading}
+                  className="max-w-xs mx-auto"
+                />
               </div>
-              <Input
-                type="file"
-                accept=".zip,.rar,.7z,.gz,.jpg,.jpeg,.png,.gif,.webp,.svg,.mp4,.webm"
-                onChange={(e) => handleFileUpload(e, false)}
-                disabled={uploading}
-                className="max-w-xs mx-auto"
-              />
-            </div>
+            )}
+          </div>
+          {uploadProgress && (
+            <p className="text-sm text-muted-foreground text-center">{uploadProgress}</p>
           )}
         </div>
-        {uploadProgress && (
-          <p className="text-sm text-muted-foreground text-center">{uploadProgress}</p>
-        )}
-      </div>
+      ) : (
+        /* 外部下载链接输入 */
+        <div className="space-y-2">
+          <Label>下载链接 *</Label>
+          <Input
+            value={formData.download_url}
+            onChange={(e) => setFormData({ ...formData, download_url: e.target.value })}
+            placeholder="输入网盘链接或其他下载地址"
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            支持：百度网盘、阿里云盘、蓝奏云、Google Drive 等分享链接
+          </p>
+          {formData.download_url && !formData.download_url.startsWith('http') && (
+            <p className="text-xs text-yellow-600">建议输入完整的 URL（以 http:// 或 https:// 开头）</p>
+          )}
+        </div>
+      )}
 
       {/* 缩略图上传 */}
       <div className="space-y-2">
@@ -996,7 +1073,7 @@ function DesignForm({ onSuccess }: { onSuccess: () => void }) {
 
       <div className="flex justify-end gap-3">
         <Button type="button" variant="outline" onClick={onSuccess}>取消</Button>
-        <Button type="submit" disabled={!formData.file_key || uploading}>
+        <Button type="submit" disabled={uploading}>
           {uploading ? '上传中...' : '提交'}
         </Button>
       </div>

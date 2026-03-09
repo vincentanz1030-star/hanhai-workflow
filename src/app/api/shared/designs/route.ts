@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     try {
       const { data: asset, error } = await supabase
         .from('shared_design_assets')
-        .select('id, asset_name, file_key, download_count')
+        .select('id, asset_name, file_key, download_url, download_count')
         .eq('id', downloadId)
         .single();
 
@@ -44,27 +44,41 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: '素材不存在' }, { status: 404 });
       }
 
-      if (!asset.file_key) {
-        return NextResponse.json({ error: '该素材没有关联文件' }, { status: 400 });
-      }
-
-      // 生成下载链接
-      const downloadUrl = await storage.generatePresignedUrl({
-        key: asset.file_key,
-        expireTime: 60 * 60, // 1小时
-      });
-
       // 更新下载次数
       await supabase
         .from('shared_design_assets')
         .update({ download_count: (asset.download_count || 0) + 1 })
         .eq('id', downloadId);
 
+      // 如果有外部链接，直接返回
+      if (asset.download_url) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            downloadUrl: asset.download_url,
+            fileName: asset.asset_name,
+            isExternal: true,
+          },
+        });
+      }
+
+      // 如果没有文件key，返回错误
+      if (!asset.file_key) {
+        return NextResponse.json({ error: '该素材没有可下载的文件或链接' }, { status: 400 });
+      }
+
+      // 生成内部存储的下载链接
+      const downloadUrl = await storage.generatePresignedUrl({
+        key: asset.file_key,
+        expireTime: 60 * 60, // 1小时
+      });
+
       return NextResponse.json({
         success: true,
         data: {
           downloadUrl,
           fileName: asset.asset_name,
+          isExternal: false,
         },
       });
     } catch (error: any) {
@@ -138,10 +152,11 @@ export async function POST(request: NextRequest) {
         asset_type: body.asset_type || 'other',
         description: body.description,
         tags: body.tags || [],
-        file_key: body.file_key,
-        file_name: body.file_name,
-        file_size: body.file_size,
-        thumbnail_key: body.thumbnail_key,
+        file_key: body.file_key || null,
+        file_name: body.file_name || null,
+        file_size: body.file_size || null,
+        thumbnail_key: body.thumbnail_key || null,
+        download_url: body.download_url || null,
         is_public: body.is_public ?? true,
         shared_by: user?.id,
         shared_brand: user?.brand,

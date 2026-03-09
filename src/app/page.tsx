@@ -41,6 +41,7 @@ import { ApprovalWorkflow } from '@/components/ApprovalWorkflow';
 import { InternalMessages } from '@/components/InternalMessages';
 import { ImageUploader, ImageUploadResult } from '@/components/ui/image-uploader';
 import { ImagePreview } from '@/components/ui/image-preview';
+import { SharedResourcePlatform } from '@/components/SharedResourcePlatform';
 
 // 类型定义
 interface Project {
@@ -2560,7 +2561,7 @@ function HomePageContent() {
             loadCriticalPath();
           }
         }} className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-11 gap-1 h-auto justify-items-center">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-12 gap-1 h-auto justify-items-center">
             <TabsTrigger value="dashboard" className="sm:text-base py-2 px-2">数据看板</TabsTrigger>
             <TabsTrigger value="projects" className="sm:text-base py-2 px-2">项目列表</TabsTrigger>
             <TabsTrigger value="timeline" className="sm:text-base py-2 px-2">时间线</TabsTrigger>
@@ -2568,6 +2569,7 @@ function HomePageContent() {
             <TabsTrigger value="product-center" className="sm:text-base py-2 px-2 text-blue-600 dark:text-blue-400">商品中心</TabsTrigger>
             <TabsTrigger value="marketing" className="sm:text-base py-2 px-2 text-purple-600 dark:text-purple-400">营销中台</TabsTrigger>
             <TabsTrigger value="collaboration" className="sm:text-base py-2 px-2 text-green-600 dark:text-green-400">协同平台</TabsTrigger>
+            <TabsTrigger value="shared-resource" className="sm:text-base py-2 px-2 text-orange-600 dark:text-orange-400">资源共享</TabsTrigger>
             <TabsTrigger value="analytics" className="sm:text-base py-2 px-2" asChild>
               <a href="/analytics">数据分析</a>
             </TabsTrigger>
@@ -4716,6 +4718,11 @@ function HomePageContent() {
                 </div>
               </TabsContent>
             </Tabs>
+          </TabsContent>
+
+          {/* 资源共享平台 */}
+          <TabsContent value="shared-resource" className="space-y-6">
+            <SharedResourcePlatform />
           </TabsContent>
 
           {/* 系统设置 */}

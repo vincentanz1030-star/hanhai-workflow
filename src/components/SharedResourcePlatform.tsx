@@ -515,67 +515,1045 @@ function SupplierForm({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-// 其他标签页组件（简化版）
+// 设计素材标签页
 function DesignTab() {
+  const [designs, setDesigns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    fetchDesigns();
+  }, [selectedType]);
+
+  const fetchDesigns = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const params = new URLSearchParams();
+      if (selectedType !== 'all') params.append('type', selectedType);
+      if (searchQuery) params.append('search', searchQuery);
+      
+      const response = await fetch(`/api/shared/designs?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setDesigns(data.data || []);
+      }
+    } catch (error) {
+      console.error('获取设计素材失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const designTypes = [
+    { value: 'all', label: '全部' },
+    { value: 'image', label: '图片素材' },
+    { value: 'icon', label: '图标资源' },
+    { value: 'template', label: '设计模板' },
+    { value: 'video', label: '视频素材' },
+    { value: 'other', label: '其他' },
+  ];
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>设计素材库</CardTitle>
-        <CardDescription>共享设计素材和模板资源</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="text-center py-12 text-muted-foreground">
-          设计素材功能开发中...
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">设计素材库</h3>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              上传素材
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>上传设计素材</DialogTitle>
+            </DialogHeader>
+            <DesignForm onSuccess={() => {
+              setDialogOpen(false);
+              fetchDesigns();
+            }} />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* 筛选栏 */}
+      <div className="flex gap-4">
+        <Select value={selectedType} onValueChange={setSelectedType}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="选择类型" />
+          </SelectTrigger>
+          <SelectContent>
+            {designTypes.map((type) => (
+              <SelectItem key={type.value} value={type.value}>
+                {type.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="搜索素材..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
         </div>
-      </CardContent>
-    </Card>
+        <Button variant="outline" onClick={fetchDesigns}>
+          搜索
+        </Button>
+      </div>
+
+      {/* 素材网格 */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {designs.map((design: any) => (
+          <Card key={design.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
+            <div className="aspect-square bg-muted relative">
+              {design.thumbnail_url ? (
+                <img 
+                  src={design.thumbnail_url} 
+                  alt={design.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Image className="h-12 w-12 text-muted-foreground/50" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <Button size="sm" variant="secondary">
+                  <Eye className="h-4 w-4 mr-1" />
+                  预览
+                </Button>
+                <Button size="sm" variant="secondary">
+                  <Download className="h-4 w-4 mr-1" />
+                  下载
+                </Button>
+              </div>
+            </div>
+            <CardContent className="p-3">
+              <div className="font-medium truncate">{design.name}</div>
+              <div className="flex items-center justify-between mt-2 text-sm text-muted-foreground">
+                <Badge variant="outline" className="text-xs">
+                  {designTypes.find(t => t.value === design.asset_type)?.label || design.asset_type}
+                </Badge>
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1">
+                    <Download className="h-3 w-3" />
+                    {design.download_count || 0}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {designs.length === 0 && !loading && (
+        <div className="text-center py-12 text-muted-foreground">
+          暂无设计素材，快来上传第一个吧！
+        </div>
+      )}
+    </div>
   );
 }
 
+// 设计素材表单
+function DesignForm({ onSuccess }: { onSuccess: () => void }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    asset_type: 'image',
+    description: '',
+    tags: [] as string[],
+    is_public: true,
+    file_url: '',
+  });
+  const [tagInput, setTagInput] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/shared/designs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
+      if (data.success) {
+        onSuccess();
+      }
+    } catch (error) {
+      console.error('提交失败:', error);
+    }
+  };
+
+  const addTag = () => {
+    if (tagInput && !formData.tags.includes(tagInput)) {
+      setFormData({ ...formData, tags: [...formData.tags, tagInput] });
+      setTagInput('');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label>素材名称 *</Label>
+        <Input
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          required
+        />
+      </div>
+      
+      <div>
+        <Label>素材类型</Label>
+        <Select value={formData.asset_type} onValueChange={(v) => setFormData({ ...formData, asset_type: v })}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="image">图片素材</SelectItem>
+            <SelectItem value="icon">图标资源</SelectItem>
+            <SelectItem value="template">设计模板</SelectItem>
+            <SelectItem value="video">视频素材</SelectItem>
+            <SelectItem value="other">其他</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label>描述</Label>
+        <Textarea
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          rows={3}
+        />
+      </div>
+
+      <div>
+        <Label>标签</Label>
+        <div className="flex gap-2">
+          <Input
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            placeholder="输入标签"
+            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+          />
+          <Button type="button" variant="outline" onClick={addTag}>添加</Button>
+        </div>
+        <div className="flex flex-wrap gap-1 mt-2">
+          {formData.tags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => 
+              setFormData({ ...formData, tags: formData.tags.filter(t => t !== tag) })
+            }>
+              {tag} ×
+            </Badge>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-3">
+        <Button type="button" variant="outline" onClick={onSuccess}>取消</Button>
+        <Button type="submit">提交</Button>
+      </div>
+    </form>
+  );
+}
+
+// 营销案例标签页
 function MarketingCaseTab() {
+  const [cases, setCases] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState<string>('all');
+
+  useEffect(() => {
+    fetchCases();
+  }, [selectedType]);
+
+  const fetchCases = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const params = selectedType !== 'all' ? `?type=${selectedType}` : '';
+      const response = await fetch(`/api/shared/marketing-cases${params}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setCases(data.data || []);
+      }
+    } catch (error) {
+      console.error('获取营销案例失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const caseTypes = [
+    { value: 'all', label: '全部' },
+    { value: 'promotion', label: '大促活动' },
+    { value: 'launch', label: '新品上市' },
+    { value: 'festival', label: '节日营销' },
+    { value: 'brand', label: '品牌活动' },
+    { value: 'daily', label: '日常促销' },
+  ];
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>营销案例库</CardTitle>
-        <CardDescription>成功营销案例和经验分享</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">营销案例库</h3>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              分享案例
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>分享营销案例</DialogTitle>
+            </DialogHeader>
+            <MarketingCaseForm onSuccess={() => {
+              setDialogOpen(false);
+              fetchCases();
+            }} />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* 筛选栏 */}
+      <div className="flex gap-2">
+        {caseTypes.map((type) => (
+          <Button
+            key={type.value}
+            variant={selectedType === type.value ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedType(type.value)}
+          >
+            {type.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* 案例列表 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {cases.map((caseItem: any) => (
+          <Card key={caseItem.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-lg">{caseItem.case_name}</CardTitle>
+                  <CardDescription className="mt-1">
+                    {caseItem.case_type} | {caseItem.brand}
+                  </CardDescription>
+                </div>
+                <Badge variant={caseItem.case_type === 'promotion' ? 'default' : 'secondary'}>
+                  {caseTypes.find(t => t.value === caseItem.case_type)?.label || caseItem.case_type}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                {caseItem.description}
+              </p>
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex gap-4 text-muted-foreground">
+                  {caseItem.gmv && (
+                    <span>GMV: ¥{(caseItem.gmv / 10000).toFixed(1)}万</span>
+                  )}
+                  {caseItem.roi && (
+                    <span>ROI: {caseItem.roi.toFixed(2)}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Star className="h-4 w-4 text-yellow-500" />
+                  <span>{caseItem.rating?.toFixed(1) || '-'}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {cases.length === 0 && !loading && (
         <div className="text-center py-12 text-muted-foreground">
-          营销案例功能开发中...
+          暂无营销案例，快来分享第一个成功案例吧！
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 }
 
+// 营销案例表单
+function MarketingCaseForm({ onSuccess }: { onSuccess: () => void }) {
+  const [formData, setFormData] = useState({
+    case_name: '',
+    case_type: 'promotion',
+    description: '',
+    start_date: '',
+    end_date: '',
+    gmv: '',
+    roi: '',
+    key_points: '',
+    lessons: '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/shared/marketing-cases', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...formData,
+          gmv: formData.gmv ? parseFloat(formData.gmv) : null,
+          roi: formData.roi ? parseFloat(formData.roi) : null,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        onSuccess();
+      }
+    } catch (error) {
+      console.error('提交失败:', error);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>案例名称 *</Label>
+          <Input
+            value={formData.case_name}
+            onChange={(e) => setFormData({ ...formData, case_name: e.target.value })}
+            required
+          />
+        </div>
+        <div>
+          <Label>案例类型</Label>
+          <Select value={formData.case_type} onValueChange={(v) => setFormData({ ...formData, case_type: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="promotion">大促活动</SelectItem>
+              <SelectItem value="launch">新品上市</SelectItem>
+              <SelectItem value="festival">节日营销</SelectItem>
+              <SelectItem value="brand">品牌活动</SelectItem>
+              <SelectItem value="daily">日常促销</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <Label>案例描述</Label>
+        <Textarea
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          rows={3}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>开始日期</Label>
+          <Input
+            type="date"
+            value={formData.start_date}
+            onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label>结束日期</Label>
+          <Input
+            type="date"
+            value={formData.end_date}
+            onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>GMV（元）</Label>
+          <Input
+            type="number"
+            value={formData.gmv}
+            onChange={(e) => setFormData({ ...formData, gmv: e.target.value })}
+            placeholder="输入销售额"
+          />
+        </div>
+        <div>
+          <Label>ROI</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={formData.roi}
+            onChange={(e) => setFormData({ ...formData, roi: e.target.value })}
+            placeholder="投入产出比"
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label>关键要点</Label>
+        <Textarea
+          value={formData.key_points}
+          onChange={(e) => setFormData({ ...formData, key_points: e.target.value })}
+          rows={2}
+          placeholder="分享成功的关键因素..."
+        />
+      </div>
+
+      <div>
+        <Label>经验教训</Label>
+        <Textarea
+          value={formData.lessons}
+          onChange={(e) => setFormData({ ...formData, lessons: e.target.value })}
+          rows={2}
+          placeholder="可以改进的地方..."
+        />
+      </div>
+
+      <div className="flex justify-end gap-3">
+        <Button type="button" variant="outline" onClick={onSuccess}>取消</Button>
+        <Button type="submit">提交</Button>
+      </div>
+    </form>
+  );
+}
+
+// 知识库标签页
 function KnowledgeTab() {
+  const [knowledge, setKnowledge] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  useEffect(() => {
+    fetchKnowledge();
+  }, [selectedCategory]);
+
+  const fetchKnowledge = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const params = selectedCategory !== 'all' ? `?category=${selectedCategory}` : '';
+      const response = await fetch(`/api/shared/knowledge${params}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setKnowledge(data.data || []);
+      }
+    } catch (error) {
+      console.error('获取知识文档失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const categories = [
+    { value: 'all', label: '全部' },
+    { value: 'training', label: '培训课程' },
+    { value: 'manual', label: '操作手册' },
+    { value: 'best_practice', label: '最佳实践' },
+    { value: 'troubleshooting', label: '问题解决' },
+    { value: 'experience', label: '经验分享' },
+  ];
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>知识库</CardTitle>
-        <CardDescription>培训课程、操作手册、最佳实践</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">知识库</h3>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              分享知识
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>分享知识文档</DialogTitle>
+            </DialogHeader>
+            <KnowledgeForm onSuccess={() => {
+              setDialogOpen(false);
+              fetchKnowledge();
+            }} />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* 分类筛选 */}
+      <div className="flex gap-2 flex-wrap">
+        {categories.map((cat) => (
+          <Button
+            key={cat.value}
+            variant={selectedCategory === cat.value ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedCategory(cat.value)}
+          >
+            {cat.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* 知识列表 */}
+      <div className="space-y-3">
+        {knowledge.map((item: any) => (
+          <Card key={item.id} className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="outline">
+                      {categories.find(c => c.value === item.category)?.label || item.category}
+                    </Badge>
+                    {item.difficulty && (
+                      <Badge variant={
+                        item.difficulty === 'beginner' ? 'secondary' :
+                        item.difficulty === 'intermediate' ? 'default' : 'destructive'
+                      }>
+                        {item.difficulty === 'beginner' ? '入门' :
+                         item.difficulty === 'intermediate' ? '进阶' : '高级'}
+                      </Badge>
+                    )}
+                  </div>
+                  <h4 className="font-medium text-lg">{item.title}</h4>
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                    {item.summary || item.content?.substring(0, 150)}
+                  </p>
+                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                    <span>作者: {item.author_name || '匿名'}</span>
+                    <span>浏览: {item.view_count || 0}</span>
+                    <span>点赞: {item.like_count || 0}</span>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {knowledge.length === 0 && !loading && (
         <div className="text-center py-12 text-muted-foreground">
-          知识库功能开发中...
+          暂无知识文档，快来分享你的经验吧！
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 }
 
-function ToolsTab() {
+// 知识库表单
+function KnowledgeForm({ onSuccess }: { onSuccess: () => void }) {
+  const [formData, setFormData] = useState({
+    title: '',
+    category: 'best_practice',
+    summary: '',
+    content: '',
+    tags: [] as string[],
+    difficulty: 'beginner',
+    target_roles: [] as string[],
+  });
+  const [tagInput, setTagInput] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/shared/knowledge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
+      if (data.success) {
+        onSuccess();
+      }
+    } catch (error) {
+      console.error('提交失败:', error);
+    }
+  };
+
+  const addTag = () => {
+    if (tagInput && !formData.tags.includes(tagInput)) {
+      setFormData({ ...formData, tags: [...formData.tags, tagInput] });
+      setTagInput('');
+    }
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>工具模板库</CardTitle>
-        <CardDescription>常用工具、模板、流程图</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="text-center py-12 text-muted-foreground">
-          工具模板功能开发中...
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>标题 *</Label>
+          <Input
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            required
+          />
         </div>
-      </CardContent>
-    </Card>
+        <div>
+          <Label>分类</Label>
+          <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="training">培训课程</SelectItem>
+              <SelectItem value="manual">操作手册</SelectItem>
+              <SelectItem value="best_practice">最佳实践</SelectItem>
+              <SelectItem value="troubleshooting">问题解决</SelectItem>
+              <SelectItem value="experience">经验分享</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <Label>摘要</Label>
+        <Textarea
+          value={formData.summary}
+          onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+          rows={2}
+          placeholder="简要描述这篇文档的主要内容..."
+        />
+      </div>
+
+      <div>
+        <Label>内容 *</Label>
+        <Textarea
+          value={formData.content}
+          onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+          rows={8}
+          required
+          placeholder="详细描述知识内容..."
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>难度等级</Label>
+          <Select value={formData.difficulty} onValueChange={(v) => setFormData({ ...formData, difficulty: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="beginner">入门</SelectItem>
+              <SelectItem value="intermediate">进阶</SelectItem>
+              <SelectItem value="advanced">高级</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>标签</Label>
+          <div className="flex gap-2">
+            <Input
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              placeholder="输入标签"
+              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+            />
+            <Button type="button" variant="outline" onClick={addTag}>添加</Button>
+          </div>
+          <div className="flex flex-wrap gap-1 mt-2">
+            {formData.tags.map((tag) => (
+              <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => 
+                setFormData({ ...formData, tags: formData.tags.filter(t => t !== tag) })
+              }>
+                {tag} ×
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-3">
+        <Button type="button" variant="outline" onClick={onSuccess}>取消</Button>
+        <Button type="submit">提交</Button>
+      </div>
+    </form>
+  );
+}
+
+// 工具库标签页
+function ToolsTab() {
+  const [tools, setTools] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState<string>('all');
+
+  useEffect(() => {
+    fetchTools();
+  }, [selectedType]);
+
+  const fetchTools = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const params = selectedType !== 'all' ? `?type=${selectedType}` : '';
+      const response = await fetch(`/api/shared/tools${params}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTools(data.data || []);
+      }
+    } catch (error) {
+      console.error('获取工具资源失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toolTypes = [
+    { value: 'all', label: '全部' },
+    { value: 'software', label: '软件工具' },
+    { value: 'template', label: '文档模板' },
+    { value: 'checklist', label: '检查清单' },
+    { value: 'workflow', label: '工作流程' },
+    { value: 'other', label: '其他' },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">工具模板库</h3>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              分享工具
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>分享工具/模板</DialogTitle>
+            </DialogHeader>
+            <ToolForm onSuccess={() => {
+              setDialogOpen(false);
+              fetchTools();
+            }} />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* 类型筛选 */}
+      <div className="flex gap-2">
+        {toolTypes.map((type) => (
+          <Button
+            key={type.value}
+            variant={selectedType === type.value ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedType(type.value)}
+          >
+            {type.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* 工具列表 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {tools.map((tool: any) => (
+          <Card key={tool.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Wrench className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">{tool.name}</CardTitle>
+                    <CardDescription className="text-xs">
+                      {toolTypes.find(t => t.value === tool.tool_type)?.label || tool.tool_type}
+                    </CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                {tool.description}
+              </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    v{tool.version || '1.0'}
+                  </Badge>
+                </div>
+                <Button size="sm" variant="secondary" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Download className="h-3 w-3 mr-1" />
+                  下载
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {tools.length === 0 && !loading && (
+        <div className="text-center py-12 text-muted-foreground">
+          暂无工具模板，快来分享你的高效工具吧！
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 工具表单
+function ToolForm({ onSuccess }: { onSuccess: () => void }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    tool_type: 'template',
+    description: '',
+    version: '1.0',
+    usage_guide: '',
+    download_url: '',
+    tags: [] as string[],
+  });
+  const [tagInput, setTagInput] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/shared/tools', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
+      if (data.success) {
+        onSuccess();
+      }
+    } catch (error) {
+      console.error('提交失败:', error);
+    }
+  };
+
+  const addTag = () => {
+    if (tagInput && !formData.tags.includes(tagInput)) {
+      setFormData({ ...formData, tags: [...formData.tags, tagInput] });
+      setTagInput('');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>工具名称 *</Label>
+          <Input
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+          />
+        </div>
+        <div>
+          <Label>类型</Label>
+          <Select value={formData.tool_type} onValueChange={(v) => setFormData({ ...formData, tool_type: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="software">软件工具</SelectItem>
+              <SelectItem value="template">文档模板</SelectItem>
+              <SelectItem value="checklist">检查清单</SelectItem>
+              <SelectItem value="workflow">工作流程</SelectItem>
+              <SelectItem value="other">其他</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <Label>描述</Label>
+        <Textarea
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          rows={2}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>版本号</Label>
+          <Input
+            value={formData.version}
+            onChange={(e) => setFormData({ ...formData, version: e.target.value })}
+            placeholder="如: 1.0"
+          />
+        </div>
+        <div>
+          <Label>下载链接</Label>
+          <Input
+            value={formData.download_url}
+            onChange={(e) => setFormData({ ...formData, download_url: e.target.value })}
+            placeholder="网盘链接或文件URL"
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label>使用指南</Label>
+        <Textarea
+          value={formData.usage_guide}
+          onChange={(e) => setFormData({ ...formData, usage_guide: e.target.value })}
+          rows={3}
+          placeholder="说明如何使用这个工具..."
+        />
+      </div>
+
+      <div>
+        <Label>标签</Label>
+        <div className="flex gap-2">
+          <Input
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            placeholder="输入标签"
+            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+          />
+          <Button type="button" variant="outline" onClick={addTag}>添加</Button>
+        </div>
+        <div className="flex flex-wrap gap-1 mt-2">
+          {formData.tags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => 
+              setFormData({ ...formData, tags: formData.tags.filter(t => t !== tag) })
+            }>
+              {tag} ×
+            </Badge>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-3">
+        <Button type="button" variant="outline" onClick={onSuccess}>取消</Button>
+        <Button type="submit">提交</Button>
+      </div>
+    </form>
   );
 }

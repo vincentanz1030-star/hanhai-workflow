@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { MessageSquare, Plus, Edit, Trash2, Search, Filter, Image, X, Calendar, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MessageSquare, Plus, Edit, Trash2, Search, Filter, Image, X, Calendar, Star, ChevronLeft, ChevronRight, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface WeeklyFeedback {
@@ -30,6 +30,14 @@ interface WeeklyFeedback {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface WeekGroup {
+  weekLabel: string;
+  weekStart: string;
+  weekEnd: string;
+  feedbacks: WeeklyFeedback[];
+  expanded: boolean;
 }
 
 const BRANDS = [
@@ -61,10 +69,49 @@ const PRIORITY_OPTIONS = [
   { value: 'urgent', label: '紧急' },
 ];
 
+// 获取自然周标签
+function getWeekLabel(dateStr: string): string {
+  const date = new Date(dateStr);
+  const year = date.getFullYear();
+  const oneJan = new Date(year, 0, 1);
+  const days = Math.floor((date.getTime() - oneJan.getTime()) / 86400000);
+  const weekNumber = Math.ceil((days + oneJan.getDay() + 1) / 7);
+  return `${year}年第${weekNumber}周`;
+}
+
+// 按周分组反馈
+function groupFeedbacksByWeek(feedbacks: WeeklyFeedback[]): WeekGroup[] {
+  const weekMap = new Map<string, WeekGroup>();
+  
+  // 按日期倒序排序
+  const sortedFeedbacks = [...feedbacks].sort((a, b) => 
+    new Date(b.week_start).getTime() - new Date(a.week_start).getTime()
+  );
+  
+  sortedFeedbacks.forEach(feedback => {
+    const weekKey = `${feedback.week_start}_${feedback.week_end}`;
+    
+    if (!weekMap.has(weekKey)) {
+      weekMap.set(weekKey, {
+        weekLabel: getWeekLabel(feedback.week_start),
+        weekStart: feedback.week_start,
+        weekEnd: feedback.week_end,
+        feedbacks: [],
+        expanded: true,
+      });
+    }
+    
+    weekMap.get(weekKey)!.feedbacks.push(feedback);
+  });
+  
+  return Array.from(weekMap.values());
+}
+
 export default function WeeklyFeedbacksPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [feedbacks, setFeedbacks] = useState<WeeklyFeedback[]>([]);
+  const [weekGroups, setWeekGroups] = useState<WeekGroup[]>([]);
   const [selectedBrand, setSelectedBrand] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -73,6 +120,7 @@ export default function WeeklyFeedbacksPage() {
   const [showFormDialog, setShowFormDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [currentFeedback, setCurrentFeedback] = useState<WeeklyFeedback | null>(null);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -97,6 +145,18 @@ export default function WeeklyFeedbacksPage() {
   useEffect(() => {
     loadFeedbacks();
   }, [selectedBrand, selectedStatus]);
+
+  useEffect(() => {
+    // 按周分组
+    const groups = groupFeedbacksByWeek(
+      feedbacks.filter(f => 
+        !searchKeyword || 
+        f.feedback_content.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        (f.customer_name && f.customer_name.toLowerCase().includes(searchKeyword.toLowerCase()))
+      )
+    );
+    setWeekGroups(groups);
+  }, [feedbacks, searchKeyword]);
 
   const loadFeedbacks = async () => {
     try {
@@ -135,10 +195,12 @@ export default function WeeklyFeedbacksPage() {
       });
     } else {
       setCurrentFeedback(null);
-      // 默认本周日期
+      // 默认本周日期（自然周：周一到周日）
       const today = new Date();
+      const dayOfWeek = today.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
       const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - today.getDay() + 1);
+      weekStart.setDate(today.getDate() + mondayOffset);
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6);
       
@@ -231,8 +293,9 @@ export default function WeeklyFeedbacksPage() {
         
         if (response.ok) {
           const data = await response.json();
-          if (data.url) {
-            uploadedUrls.push(data.url);
+          // 使用正确的字段名 imageUrl
+          if (data.imageUrl) {
+            uploadedUrls.push(data.imageUrl);
           }
         }
       }
@@ -259,6 +322,19 @@ export default function WeeklyFeedbacksPage() {
     setPreviewImages(images);
     setCurrentImageIndex(index);
     setShowImageDialog(true);
+  };
+
+  const handleViewDetail = (feedback: WeeklyFeedback) => {
+    setCurrentFeedback(feedback);
+    setShowDetailDialog(true);
+  };
+
+  const toggleWeekGroup = (weekStart: string) => {
+    setWeekGroups(groups => 
+      groups.map(g => 
+        g.weekStart === weekStart ? { ...g, expanded: !g.expanded } : g
+      )
+    );
   };
 
   const getBrandLabel = (brand: string) => {
@@ -299,11 +375,13 @@ export default function WeeklyFeedbacksPage() {
     );
   };
 
-  const filteredFeedbacks = feedbacks.filter(f => 
-    !searchKeyword || 
-    f.feedback_content.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-    (f.customer_name && f.customer_name.toLowerCase().includes(searchKeyword.toLowerCase()))
-  );
+  // 计算统计数据
+  const stats = {
+    total: feedbacks.length,
+    pending: feedbacks.filter(f => f.status === 'pending').length,
+    processing: feedbacks.filter(f => f.status === 'processing').length,
+    resolved: feedbacks.filter(f => f.status === 'resolved').length,
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -317,6 +395,34 @@ export default function WeeklyFeedbacksPage() {
           <Plus className="w-4 h-4 mr-2" />
           新增反馈
         </Button>
+      </div>
+
+      {/* 统计卡片 */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-sm text-muted-foreground">总反馈数</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+            <p className="text-sm text-muted-foreground">待处理</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold text-blue-600">{stats.processing}</div>
+            <p className="text-sm text-muted-foreground">处理中</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold text-green-600">{stats.resolved}</div>
+            <p className="text-sm text-muted-foreground">已解决</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* 筛选区域 */}
@@ -363,12 +469,12 @@ export default function WeeklyFeedbacksPage() {
         </CardContent>
       </Card>
 
-      {/* 反馈列表 */}
+      {/* 按自然周分组的反馈列表 */}
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
-      ) : filteredFeedbacks.length === 0 ? (
+      ) : weekGroups.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center h-64 text-muted-foreground">
             <MessageSquare className="w-12 h-12 mb-4" />
@@ -376,76 +482,106 @@ export default function WeeklyFeedbacksPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {filteredFeedbacks.map(feedback => (
-            <Card key={feedback.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="outline">{getBrandLabel(feedback.brand)}</Badge>
-                      {getStatusBadge(feedback.status)}
-                      {getPriorityBadge(feedback.priority)}
-                      <Badge variant="secondary">{getFeedbackTypeLabel(feedback.feedback_type)}</Badge>
+        <div className="space-y-4">
+          {weekGroups.map(group => (
+            <Card key={group.weekStart}>
+              <CardHeader className="pb-3">
+                <div 
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => toggleWeekGroup(group.weekStart)}
+                >
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    <div>
+                      <CardTitle className="text-lg">{group.weekLabel}</CardTitle>
+                      <CardDescription>
+                        {group.weekStart} 至 {group.weekEnd} · 共 {group.feedbacks.length} 条反馈
+                      </CardDescription>
                     </div>
-                    
-                    <p className="text-sm text-muted-foreground mb-2">
-                      <Calendar className="w-4 h-4 inline mr-1" />
-                      {feedback.week_start} 至 {feedback.week_end}
-                    </p>
-                    
-                    {feedback.customer_name && (
-                      <p className="text-sm mb-1">
-                        <span className="text-muted-foreground">客户：</span>
-                        {feedback.customer_name}
-                        {feedback.contact_info && <span className="text-muted-foreground ml-2">({feedback.contact_info})</span>}
-                      </p>
-                    )}
-                    
-                    <p className="text-sm mt-2 line-clamp-2">{feedback.feedback_content}</p>
-                    
-                    <div className="flex items-center gap-4 mt-3">
-                      <div className="flex items-center gap-1">
-                        <span className="text-sm text-muted-foreground">评分：</span>
-                        {renderStars(feedback.rating)}
-                      </div>
-                      
-                      {feedback.images && feedback.images.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <Image className="w-4 h-4 text-muted-foreground" />
-                          <div className="flex gap-1">
-                            {feedback.images.slice(0, 3).map((img, i) => (
-                              <img
-                                key={i}
-                                src={img}
-                                alt=""
-                                className="w-10 h-10 object-cover rounded cursor-pointer hover:opacity-80"
-                                onClick={() => handlePreviewImages(feedback.images, i)}
-                              />
-                            ))}
-                            {feedback.images.length > 3 && (
-                              <span className="text-xs text-muted-foreground">+{feedback.images.length - 3}</span>
+                  </div>
+                  <Button variant="ghost" size="icon">
+                    {group.expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </CardHeader>
+              
+              {group.expanded && (
+                <CardContent className="pt-0">
+                  <div className="space-y-3">
+                    {group.feedbacks.map(feedback => (
+                      <div 
+                        key={feedback.id} 
+                        className="border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                        onClick={() => handleViewDetail(feedback)}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline">{getBrandLabel(feedback.brand)}</Badge>
+                              {getStatusBadge(feedback.status)}
+                              {getPriorityBadge(feedback.priority)}
+                              <Badge variant="secondary">{getFeedbackTypeLabel(feedback.feedback_type)}</Badge>
+                            </div>
+                            
+                            {feedback.customer_name && (
+                              <p className="text-sm mb-1">
+                                <span className="text-muted-foreground">客户：</span>
+                                {feedback.customer_name}
+                                {feedback.contact_info && <span className="text-muted-foreground ml-2">({feedback.contact_info})</span>}
+                              </p>
                             )}
+                            
+                            <p className="text-sm mt-2 line-clamp-2">{feedback.feedback_content}</p>
+                            
+                            <div className="flex items-center gap-4 mt-3">
+                              <div className="flex items-center gap-1">
+                                <span className="text-sm text-muted-foreground">评分：</span>
+                                {renderStars(feedback.rating)}
+                              </div>
+                              
+                              {feedback.images && feedback.images.length > 0 && (
+                                <div className="flex items-center gap-2">
+                                  <Image className="w-4 h-4 text-muted-foreground" />
+                                  <div className="flex gap-1">
+                                    {feedback.images.slice(0, 3).map((img, i) => (
+                                      <img
+                                        key={i}
+                                        src={img}
+                                        alt=""
+                                        className="w-10 h-10 object-cover rounded cursor-pointer hover:opacity-80"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handlePreviewImages(feedback.images, i);
+                                        }}
+                                      />
+                                    ))}
+                                    {feedback.images.length > 3 && (
+                                      <span className="text-xs text-muted-foreground self-center">+{feedback.images.length - 3}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2 ml-4" onClick={e => e.stopPropagation()}>
+                            <Button variant="outline" size="sm" onClick={() => handleOpenForm(feedback)}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => { setCurrentFeedback(feedback); setShowDeleteDialog(true); }}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
                           </div>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                  
-                  <div className="flex gap-2 ml-4">
-                    <Button variant="outline" size="sm" onClick={() => handleOpenForm(feedback)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => { setCurrentFeedback(feedback); setShowDeleteDialog(true); }}
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
           ))}
         </div>
@@ -492,11 +628,11 @@ export default function WeeklyFeedbacksPage() {
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>周开始日期 <span className="text-red-500">*</span></Label>
+                <Label>周开始日期（周一）<span className="text-red-500">*</span></Label>
                 <Input type="date" value={formData.weekStart} onChange={e => setFormData(prev => ({ ...prev, weekStart: e.target.value }))} />
               </div>
               <div>
-                <Label>周结束日期 <span className="text-red-500">*</span></Label>
+                <Label>周结束日期（周日）<span className="text-red-500">*</span></Label>
                 <Input type="date" value={formData.weekEnd} onChange={e => setFormData(prev => ({ ...prev, weekEnd: e.target.value }))} />
               </div>
             </div>
@@ -572,6 +708,7 @@ export default function WeeklyFeedbacksPage() {
                     <div key={i} className="relative group">
                       <img src={img} alt="" className="w-20 h-20 object-cover rounded" />
                       <button
+                        type="button"
                         onClick={() => handleRemoveImage(i)}
                         className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                       >
@@ -588,6 +725,95 @@ export default function WeeklyFeedbacksPage() {
             <Button variant="outline" onClick={() => setShowFormDialog(false)}>取消</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? '保存中...' : '保存'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 详情预览弹窗 */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>反馈详情</DialogTitle>
+          </DialogHeader>
+          
+          {currentFeedback && (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{getBrandLabel(currentFeedback.brand)}</Badge>
+                {getStatusBadge(currentFeedback.status)}
+                {getPriorityBadge(currentFeedback.priority)}
+                <Badge variant="secondary">{getFeedbackTypeLabel(currentFeedback.feedback_type)}</Badge>
+              </div>
+              
+              <div className="text-sm text-muted-foreground">
+                <Calendar className="w-4 h-4 inline mr-1" />
+                {getWeekLabel(currentFeedback.week_start)} ({currentFeedback.week_start} 至 {currentFeedback.week_end})
+              </div>
+              
+              {currentFeedback.customer_name && (
+                <div>
+                  <Label className="text-muted-foreground">客户信息</Label>
+                  <p className="mt-1">{currentFeedback.customer_name}
+                    {currentFeedback.contact_info && <span className="text-muted-foreground ml-2">({currentFeedback.contact_info})</span>}
+                  </p>
+                </div>
+              )}
+              
+              <div>
+                <Label className="text-muted-foreground">反馈内容</Label>
+                <p className="mt-1 whitespace-pre-wrap">{currentFeedback.feedback_content}</p>
+              </div>
+              
+              <div>
+                <Label className="text-muted-foreground">满意度评分</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  {renderStars(currentFeedback.rating)}
+                  <span className="text-sm">{currentFeedback.rating} 分</span>
+                </div>
+              </div>
+              
+              {currentFeedback.images && currentFeedback.images.length > 0 && (
+                <div>
+                  <Label className="text-muted-foreground">相关图片</Label>
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    {currentFeedback.images.map((img, i) => (
+                      <img
+                        key={i}
+                        src={img}
+                        alt=""
+                        className="w-full h-24 object-cover rounded cursor-pointer hover:opacity-80"
+                        onClick={() => handlePreviewImages(currentFeedback.images, i)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {currentFeedback.response_content && (
+                <div>
+                  <Label className="text-muted-foreground">处理回复</Label>
+                  <p className="mt-1 whitespace-pre-wrap">{currentFeedback.response_content}</p>
+                </div>
+              )}
+              
+              <div className="text-xs text-muted-foreground pt-4 border-t">
+                创建时间：{new Date(currentFeedback.created_at).toLocaleString()}
+                {currentFeedback.updated_at && currentFeedback.updated_at !== currentFeedback.created_at && (
+                  <span className="ml-4">更新时间：{new Date(currentFeedback.updated_at).toLocaleString()}</span>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDetailDialog(false)}>关闭</Button>
+            <Button onClick={() => {
+              setShowDetailDialog(false);
+              handleOpenForm(currentFeedback!);
+            }}>
+              <Edit className="w-4 h-4 mr-2" />
+              编辑
             </Button>
           </DialogFooter>
         </DialogContent>

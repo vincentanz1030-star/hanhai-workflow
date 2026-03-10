@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
   try {
     const { data: user } = await supabase
       .from('users')
-      .select('id, brand, name')
+      .select('id, brand')
       .eq('id', (authResult as any).userId)
       .single();
 
@@ -150,17 +150,18 @@ export async function POST(request: NextRequest) {
       .insert({
         asset_name: body.name,
         asset_type: body.asset_type || 'other',
-        description: body.description,
+        category: body.category || 'design',
         tags: body.tags || [],
         file_key: body.file_key || null,
-        file_name: body.file_name || null,
+        file_url: body.download_url || null, // 外部链接
         file_size: body.file_size || null,
-        thumbnail_key: body.thumbnail_key || null,
-        download_url: body.download_url || null,
+        file_format: body.file_name ? body.file_name.split('.').pop() : null,
+        preview_key: body.thumbnail_key || null,
         is_public: body.is_public ?? true,
+        is_external_link: !!body.download_url,
+        external_link: body.download_url || null,
         shared_by: user?.id,
         shared_brand: user?.brand,
-        category: body.category || 'design',
       })
       .select()
       .single();
@@ -169,12 +170,16 @@ export async function POST(request: NextRequest) {
 
     // 更新用户贡献积分
     if (user?.id) {
-      await supabase.rpc('update_contribution_points', {
-        p_user_id: user.id,
-        p_brand: user.brand,
-        p_points: 5,
-        p_resource_type: 'design',
-      });
+      try {
+        await supabase.rpc('update_contribution_points', {
+          p_user_id: user.id,
+          p_brand: user.brand,
+          p_points: 5,
+          p_resource_type: 'design',
+        });
+      } catch {
+        // 忽略积分更新失败
+      }
     }
 
     return NextResponse.json({

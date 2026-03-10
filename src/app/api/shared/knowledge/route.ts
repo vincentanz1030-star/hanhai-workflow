@@ -59,16 +59,19 @@ export async function POST(request: NextRequest) {
   try {
     const { data: user } = await supabase
       .from('users')
-      .select('id, brand')
+      .select('id, name')
       .eq('id', (authResult as any).userId)
       .single();
 
     const { data, error } = await supabase
       .from('shared_knowledge')
       .insert({
-        ...body,
+        title: body.title,
+        category: body.category,
+        content: body.content,
+        tags: body.tags || [],
         author_id: user?.id,
-        author_brand: user?.brand,
+        author_name: user?.name || '匿名',
         status: 'published',
       })
       .select()

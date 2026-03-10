@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { 
   Building, Package, Image, TrendingUp, BookOpen, Wrench, Users, 
-  Star, Eye, Download, Search, Plus, Filter, ChevronRight, Upload, Link2 
+  Star, Eye, Download, Search, Plus, Filter, ChevronRight, Upload, Link2, Trash2 
 } from 'lucide-react';
 
 interface SharedResourceStats {
@@ -660,11 +660,11 @@ function DesignTab() {
       {/* 素材网格 */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {designs.map((design: any) => (
-          <Card key={design.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
+          <Card key={design.id} className="overflow-hidden hover:shadow-lg transition-shadow group relative">
             <div className="aspect-square bg-muted relative">
-              {design.thumbnail_url ? (
+              {design.preview_url || design.thumbnail_url ? (
                 <img 
-                  src={design.thumbnail_url} 
+                  src={design.preview_url || design.thumbnail_url} 
                   alt={design.name || design.asset_name}
                   className="w-full h-full object-cover"
                 />
@@ -679,6 +679,34 @@ function DesignTab() {
                   下载
                 </Button>
               </div>
+              {/* 删除按钮 */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute top-2 right-2 h-7 w-7 p-0 bg-black/50 hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={async () => {
+                  if (confirm('确定要删除此素材吗？')) {
+                    try {
+                      const token = localStorage.getItem('auth_token');
+                      const res = await fetch(`/api/shared/designs/${design.id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        toast.success('删除成功');
+                        fetchDesigns();
+                      } else {
+                        toast.error(data.error || '删除失败');
+                      }
+                    } catch {
+                      toast.error('删除失败');
+                    }
+                  }
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5 text-white hover:text-red-400" />
+              </Button>
             </div>
             <CardContent className="p-3">
               <div className="font-medium truncate">{design.name || design.asset_name}</div>
@@ -687,7 +715,7 @@ function DesignTab() {
                   <Badge variant="outline" className="text-xs">
                     {designTypes.find(t => t.value === design.asset_type)?.label || design.asset_type}
                   </Badge>
-                  {design.download_url && (
+                  {design.is_external_link && (
                     <Badge variant="secondary" className="text-xs">
                       <Link2 className="h-3 w-3 mr-1" />
                       外链
@@ -705,9 +733,9 @@ function DesignTab() {
                 <div className="text-xs text-muted-foreground mt-1">
                   {formatFileSize(design.file_size)}
                 </div>
-              ) : design.download_url ? (
+              ) : design.tool_url || design.external_link ? (
                 <div className="text-xs text-blue-500 mt-1 truncate">
-                  {design.download_url.substring(0, 40)}...
+                  {(design.tool_url || design.external_link).substring(0, 40)}...
                 </div>
               ) : null}
             </CardContent>
@@ -1164,7 +1192,7 @@ function MarketingCaseTab() {
       {/* 案例列表 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {cases.map((caseItem: any) => (
-          <Card key={caseItem.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card key={caseItem.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
@@ -1173,14 +1201,43 @@ function MarketingCaseTab() {
                     {caseItem.case_type} | {caseItem.brand}
                   </CardDescription>
                 </div>
-                <Badge variant={caseItem.case_type === 'promotion' ? 'default' : 'secondary'}>
-                  {caseTypes.find(t => t.value === caseItem.case_type)?.label || caseItem.case_type}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={caseItem.case_type === 'promotion' ? 'default' : 'secondary'}>
+                    {caseTypes.find(t => t.value === caseItem.case_type)?.label || caseItem.case_type}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={async () => {
+                      if (confirm('确定要删除此案例吗？')) {
+                        try {
+                          const token = localStorage.getItem('auth_token');
+                          const res = await fetch(`/api/shared/marketing-cases/${caseItem.id}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${token}` },
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            toast.success('删除成功');
+                            fetchCases();
+                          } else {
+                            toast.error(data.error || '删除失败');
+                          }
+                        } catch {
+                          toast.error('删除失败');
+                        }
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                {caseItem.description}
+                {caseItem.objective || caseItem.description}
               </p>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex gap-4 text-muted-foreground">
@@ -1438,7 +1495,7 @@ function KnowledgeTab() {
       {/* 知识列表 */}
       <div className="space-y-3">
         {knowledge.map((item: any) => (
-          <Card key={item.id} className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card key={item.id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -1466,7 +1523,36 @@ function KnowledgeTab() {
                     <span>点赞: {item.like_count || 0}</span>
                   </div>
                 </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={async () => {
+                      if (confirm('确定要删除此知识文档吗？')) {
+                        try {
+                          const token = localStorage.getItem('auth_token');
+                          const res = await fetch(`/api/shared/knowledge/${item.id}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${token}` },
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            toast.success('删除成功');
+                            fetchKnowledge();
+                          } else {
+                            toast.error(data.error || '删除失败');
+                          }
+                        } catch {
+                          toast.error('删除失败');
+                        }
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                  </Button>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1700,7 +1786,7 @@ function ToolsTab() {
       {/* 工具列表 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {tools.map((tool: any) => (
-          <Card key={tool.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
+          <Card key={tool.id} className="hover:shadow-lg transition-shadow group">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
@@ -1708,12 +1794,39 @@ function ToolsTab() {
                     <Wrench className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <CardTitle className="text-base">{tool.name}</CardTitle>
+                    <CardTitle className="text-base">{tool.tool_name || tool.name}</CardTitle>
                     <CardDescription className="text-xs">
                       {toolTypes.find(t => t.value === tool.tool_type)?.label || tool.tool_type}
                     </CardDescription>
                   </div>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
+                  onClick={async () => {
+                    if (confirm('确定要删除此工具吗？')) {
+                      try {
+                        const token = localStorage.getItem('auth_token');
+                        const res = await fetch(`/api/shared/tools/${tool.id}`, {
+                          method: 'DELETE',
+                          headers: { 'Authorization': `Bearer ${token}` },
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          toast.success('删除成功');
+                          fetchTools();
+                        } else {
+                          toast.error(data.error || '删除失败');
+                        }
+                      } catch {
+                        toast.error('删除失败');
+                      }
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                </Button>
               </div>
             </CardHeader>
             <CardContent>

@@ -56,16 +56,20 @@ export async function POST(request: NextRequest) {
   try {
     const { data: user } = await supabase
       .from('users')
-      .select('id, brand')
+      .select('id')
       .eq('id', (authResult as any).userId)
       .single();
 
     const { data, error } = await supabase
       .from('shared_tools')
       .insert({
-        ...body,
+        tool_name: body.name, // 数据库列名是 tool_name
+        tool_type: body.tool_type,
+        description: body.description,
+        usage_guide: body.usage_guide,
+        tool_url: body.download_url, // 数据库列名是 tool_url
+        tags: body.tags || [],
         shared_by: user?.id,
-        shared_brand: user?.brand,
       })
       .select()
       .single();

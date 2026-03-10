@@ -58,14 +58,23 @@ export async function POST(request: NextRequest) {
   try {
     const { data: user } = await supabase
       .from('users')
-      .select('id')
+      .select('id, brand')
       .eq('id', (authResult as any).userId)
       .single();
 
     const { data, error } = await supabase
       .from('shared_marketing_cases')
       .insert({
-        ...body,
+        case_name: body.case_name,
+        case_type: body.case_type,
+        brand: user?.brand,
+        start_date: body.start_date || null,
+        end_date: body.end_date || null,
+        objective: body.description || body.objective, // 使用 description 或 objective
+        strategy: body.key_points || body.strategy,
+        lessons: body.lessons,
+        roi: body.roi || null,
+        gmv: body.gmv || null,
         shared_by: user?.id,
       })
       .select()

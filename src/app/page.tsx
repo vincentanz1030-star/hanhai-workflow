@@ -2043,7 +2043,7 @@ function HomePageContent() {
     if (!confirm('确定要删除这个销售目标吗？')) return;
 
     try {
-      const response = await fetch(`/api/sales-targets/annual?id=${id}`, {
+      const response = await fetchWithAuth(`/api/sales-targets/annual?id=${id}`, {
         method: 'DELETE',
       });
 

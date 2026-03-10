@@ -425,10 +425,14 @@ function SupplierForm({ onSuccess }: { onSuccess: () => void }) {
       });
       const data = await response.json();
       if (data.success) {
+        toast.success('供应商分享成功');
         onSuccess();
+      } else {
+        toast.error(data.error || '提交失败');
       }
     } catch (error) {
       console.error('提交失败:', error);
+      toast.error('提交失败，请重试');
     }
   };
 
@@ -1238,10 +1242,14 @@ function MarketingCaseForm({ onSuccess }: { onSuccess: () => void }) {
       });
       const data = await response.json();
       if (data.success) {
+        toast.success('营销案例分享成功');
         onSuccess();
+      } else {
+        toast.error(data.error || '提交失败');
       }
     } catch (error) {
       console.error('提交失败:', error);
+      toast.error('提交失败，请重试');
     }
   };
 
@@ -1501,10 +1509,14 @@ function KnowledgeForm({ onSuccess }: { onSuccess: () => void }) {
       });
       const data = await response.json();
       if (data.success) {
+        toast.success('知识文档分享成功');
         onSuccess();
+      } else {
+        toast.error(data.error || '提交失败');
       }
     } catch (error) {
       console.error('提交失败:', error);
+      toast.error('提交失败，请重试');
     }
   };
 
@@ -1760,10 +1772,14 @@ function ToolForm({ onSuccess }: { onSuccess: () => void }) {
       });
       const data = await response.json();
       if (data.success) {
+        toast.success('工具模板分享成功');
         onSuccess();
+      } else {
+        toast.error(data.error || '提交失败');
       }
     } catch (error) {
       console.error('提交失败:', error);
+      toast.error('提交失败，请重试');
     }
   };
 

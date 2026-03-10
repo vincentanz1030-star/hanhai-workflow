@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     const offset = (page - 1) * limit;
 
-    // 构建查询
+    // 构建查询 - 不使用join，分开查询
     let query = supabase
       .from('products')
       .select(`
@@ -68,9 +68,33 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
+    // 获取供应商信息
+    let suppliers: Record<string, { id: string; name: string; supplier_code: string }> = {};
+    if (data && data.length > 0) {
+      const supplierIds = [...new Set(data.map(p => p.supplier_id).filter(Boolean))];
+      if (supplierIds.length > 0) {
+        const { data: supplierData } = await supabase
+          .from('suppliers')
+          .select('id, name, supplier_code')
+          .in('id', supplierIds);
+        
+        if (supplierData) {
+          supplierData.forEach(s => {
+            suppliers[s.id] = s;
+          });
+        }
+      }
+    }
+
+    // 合并供应商信息
+    const productsWithSuppliers = (data || []).map(product => ({
+      ...product,
+      suppliers: product.supplier_id ? suppliers[product.supplier_id] || null : null,
+    }));
+
     return NextResponse.json({
       success: true,
-      data: data || [],
+      data: productsWithSuppliers,
       pagination: {
         page,
         limit,
@@ -108,8 +132,17 @@ export async function POST(request: NextRequest) {
       attributes,
       tags,
       created_by,
+      // 新增字段
+      designer,
+      supplier_id,
+      spec_code,
+      color,
+      delivery_days,
+      remarks,
+      status,
       // 价格信息
       cost_price,
+      cost_with_tax_shipping,
       wholesale_price,
       retail_price,
     } = body;
@@ -160,6 +193,13 @@ export async function POST(request: NextRequest) {
         attributes,
         tags,
         created_by,
+        designer,
+        supplier_id,
+        spec_code,
+        color,
+        delivery_days,
+        remarks,
+        status: status || 'draft',
       })
       .select()
       .single();
@@ -167,12 +207,13 @@ export async function POST(request: NextRequest) {
     if (productError) throw productError;
 
     // 创建价格记录
-    if (cost_price || wholesale_price || retail_price) {
+    if (cost_price || cost_with_tax_shipping || wholesale_price || retail_price) {
       const { error: priceError } = await supabase
         .from('product_prices')
         .insert({
           product_id: product.id,
           cost_price,
+          cost_with_tax_shipping,
           wholesale_price,
           retail_price,
         });

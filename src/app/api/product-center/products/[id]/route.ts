@@ -49,8 +49,16 @@ export async function PUT(
       status,
       lifecycle_stage,
       updated_by,
+      // 新增字段
+      designer,
+      supplier_id,
+      spec_code,
+      color,
+      delivery_days,
+      remarks,
       // 价格信息
       cost_price,
+      cost_with_tax_shipping,
       wholesale_price,
       retail_price,
     } = body;
@@ -84,6 +92,12 @@ export async function PUT(
         lifecycle_stage,
         updated_by,
         updated_at: new Date().toISOString(),
+        designer,
+        supplier_id,
+        spec_code,
+        color,
+        delivery_days,
+        remarks,
       })
       .eq('id', id)
       .select()
@@ -92,12 +106,13 @@ export async function PUT(
     if (productError) throw productError;
 
     // 更新价格记录（如果存在）
-    if (cost_price || wholesale_price || retail_price) {
+    if (cost_price || cost_with_tax_shipping || wholesale_price || retail_price) {
       const { error: priceError } = await supabase
         .from('product_prices')
         .upsert({
           product_id: id,
           cost_price,
+          cost_with_tax_shipping,
           wholesale_price,
           retail_price,
           updated_at: new Date().toISOString(),

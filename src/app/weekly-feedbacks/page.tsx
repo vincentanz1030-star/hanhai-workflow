@@ -79,6 +79,46 @@ function getWeekLabel(dateStr: string): string {
   return `${year}年第${weekNumber}周`;
 }
 
+// 生成所有周选项（当前年份前后各一年）
+function generateWeekOptions(): { value: string; label: string; weekStart: string; weekEnd: string }[] {
+  const options: { value: string; label: string; weekStart: string; weekEnd: string }[] = [];
+  const currentYear = new Date().getFullYear();
+  
+  [currentYear - 1, currentYear, currentYear + 1].forEach(year => {
+    // 计算该年有多少周
+    const dec31 = new Date(year, 11, 31);
+    const oneJan = new Date(year, 0, 1);
+    const days = Math.floor((dec31.getTime() - oneJan.getTime()) / 86400000);
+    const totalWeeks = Math.ceil((days + oneJan.getDay() + 1) / 7);
+    
+    for (let week = 1; week <= totalWeeks; week++) {
+      // 计算该周的周一日期
+      const jan1 = new Date(year, 0, 1);
+      const jan1Day = jan1.getDay();
+      const firstMonday = new Date(jan1);
+      if (jan1Day !== 1) {
+        firstMonday.setDate(jan1.getDate() + (jan1Day === 0 ? 1 : 8 - jan1Day));
+      }
+      
+      const weekStart = new Date(firstMonday);
+      weekStart.setDate(firstMonday.getDate() + (week - 1) * 7);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      
+      const formatDate = (d: Date) => d.toISOString().split('T')[0];
+      
+      options.push({
+        value: `${year}-${week}`,
+        label: `${year}年第${week}周`,
+        weekStart: formatDate(weekStart),
+        weekEnd: formatDate(weekEnd),
+      });
+    }
+  });
+  
+  return options.sort((a, b) => b.value.localeCompare(a.value)); // 按时间倒序
+}
+
 // 按周分组反馈
 function groupFeedbacksByWeek(feedbacks: WeeklyFeedback[]): WeekGroup[] {
   const weekMap = new Map<string, WeekGroup>();
@@ -114,7 +154,9 @@ export default function WeeklyFeedbacksPage() {
   const [weekGroups, setWeekGroups] = useState<WeekGroup[]>([]);
   const [selectedBrand, setSelectedBrand] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedWeek, setSelectedWeek] = useState<string>('all');
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [weekOptions] = useState(generateWeekOptions);
   
   // 弹窗状态
   const [showFormDialog, setShowFormDialog] = useState(false);
@@ -144,19 +186,29 @@ export default function WeeklyFeedbacksPage() {
 
   useEffect(() => {
     loadFeedbacks();
-  }, [selectedBrand, selectedStatus]);
+  }, [selectedBrand, selectedStatus, selectedWeek]);
 
   useEffect(() => {
     // 按周分组
-    const groups = groupFeedbacksByWeek(
-      feedbacks.filter(f => 
-        !searchKeyword || 
-        f.feedback_content.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-        (f.customer_name && f.customer_name.toLowerCase().includes(searchKeyword.toLowerCase()))
-      )
+    let filtered = feedbacks.filter(f => 
+      !searchKeyword || 
+      f.feedback_content.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+      (f.customer_name && f.customer_name.toLowerCase().includes(searchKeyword.toLowerCase()))
     );
+    
+    // 如果选择了特定周，直接过滤
+    if (selectedWeek !== 'all') {
+      const weekOption = weekOptions.find(w => w.value === selectedWeek);
+      if (weekOption) {
+        filtered = filtered.filter(f => 
+          f.week_start === weekOption.weekStart && f.week_end === weekOption.weekEnd
+        );
+      }
+    }
+    
+    const groups = groupFeedbacksByWeek(filtered);
     setWeekGroups(groups);
-  }, [feedbacks, searchKeyword]);
+  }, [feedbacks, searchKeyword, selectedWeek, weekOptions]);
 
   const loadFeedbacks = async () => {
     try {
@@ -452,6 +504,18 @@ export default function WeeklyFeedbacksPage() {
                 <SelectItem value="all">全部状态</SelectItem>
                 {STATUS_OPTIONS.map(status => (
                   <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Select value={selectedWeek} onValueChange={setSelectedWeek}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="选择周" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部周</SelectItem>
+                {weekOptions.slice(0, 20).map(week => (
+                  <SelectItem key={week.value} value={week.value}>{week.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

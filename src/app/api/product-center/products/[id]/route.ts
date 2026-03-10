@@ -4,16 +4,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireAuth } from '@/lib/api-auth';
+
+const supabaseUrl = process.env.COZE_SUPABASE_URL!;
+const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
 
 function getSupabaseClient() {
-  const supabaseUrl = process.env.COZE_SUPABASE_URL;
-  const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables');
-  }
-
-  return createClient(supabaseUrl, supabaseKey);
+  return createClient(supabaseUrl, supabaseAnonKey);
 }
 
 // PUT - 更新商品
@@ -21,6 +18,10 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
   try {
     const { id } = await params;
 
@@ -129,6 +130,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
   try {
     const { id } = await params;
 
@@ -140,6 +145,11 @@ export async function DELETE(
     }
 
     const supabase = getSupabaseClient();
+
+    // 先删除关联的价格记录
+    await supabase.from('product_prices').delete().eq('product_id', id);
+
+    // 删除商品
     const { error } = await supabase
       .from('products')
       .delete()

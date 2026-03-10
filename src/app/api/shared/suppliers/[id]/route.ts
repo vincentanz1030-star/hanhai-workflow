@@ -16,16 +16,29 @@ export async function PUT(
   const { id } = await params;
   const body = await request.json();
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const currentUserId = (authResult as any).userId;
 
   try {
     // 检查是否是创建者
-    const { data: existing } = await supabase
+    const { data: existing, error: fetchError } = await supabase
       .from('shared_suppliers')
       .select('shared_by')
       .eq('id', id)
       .single();
 
-    if (!existing || existing.shared_by !== (authResult as any).userId) {
+    console.log('[Suppliers PUT] 检查权限:', {
+      id,
+      currentUserId,
+      sharedBy: existing?.shared_by,
+      fetchError: fetchError?.message
+    });
+
+    if (fetchError) {
+      return NextResponse.json({ error: '供应商不存在' }, { status: 404 });
+    }
+
+    // 允许创建者或无创建者的资源被编辑（兼容历史数据）
+    if (existing.shared_by && existing.shared_by !== currentUserId) {
       return NextResponse.json({ error: '无权限编辑此供应商' }, { status: 403 });
     }
 
@@ -61,6 +74,7 @@ export async function PUT(
       message: '供应商更新成功',
     });
   } catch (error: any) {
+    console.error('[Suppliers PUT] 错误:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -75,16 +89,29 @@ export async function DELETE(
 
   const { id } = await params;
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const currentUserId = (authResult as any).userId;
 
   try {
     // 检查是否是创建者
-    const { data: existing } = await supabase
+    const { data: existing, error: fetchError } = await supabase
       .from('shared_suppliers')
       .select('shared_by')
       .eq('id', id)
       .single();
 
-    if (!existing || existing.shared_by !== (authResult as any).userId) {
+    console.log('[Suppliers DELETE] 检查权限:', {
+      id,
+      currentUserId,
+      sharedBy: existing?.shared_by,
+      fetchError: fetchError?.message
+    });
+
+    if (fetchError) {
+      return NextResponse.json({ error: '供应商不存在' }, { status: 404 });
+    }
+
+    // 允许创建者或无创建者的资源被删除（兼容历史数据）
+    if (existing.shared_by && existing.shared_by !== currentUserId) {
       return NextResponse.json({ error: '无权限删除此供应商' }, { status: 403 });
     }
 
@@ -100,6 +127,7 @@ export async function DELETE(
       message: '供应商删除成功',
     });
   } catch (error: any) {
+    console.error('[Suppliers DELETE] 错误:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

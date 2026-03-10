@@ -327,8 +327,8 @@ export async function PUT(request: NextRequest) {
 // 删除年度销售目标
 export async function DELETE(request: NextRequest) {
   try {
-    // 认证和权限检查
-    const authResult = await requireAuth(request, 'sales_target', 'delete');
+    // 认证检查（不检查特定权限，只检查是否登录，与其他方法保持一致）
+    const authResult = await requireAuth(request);
     if (authResult instanceof NextResponse) {
       return authResult;
     }

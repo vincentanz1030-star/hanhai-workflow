@@ -16,16 +16,29 @@ export async function PUT(
   const { id } = await params;
   const body = await request.json();
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const currentUserId = (authResult as any).userId;
 
   try {
     // 检查是否是创建者
-    const { data: existing } = await supabase
+    const { data: existing, error: fetchError } = await supabase
       .from('shared_knowledge')
       .select('author_id')
       .eq('id', id)
       .single();
 
-    if (!existing || existing.author_id !== (authResult as any).userId) {
+    console.log('[Knowledge PUT] 检查权限:', {
+      id,
+      currentUserId,
+      authorId: existing?.author_id,
+      fetchError: fetchError?.message
+    });
+
+    if (fetchError) {
+      return NextResponse.json({ error: '文档不存在' }, { status: 404 });
+    }
+
+    // 允许创建者或无创建者的资源被编辑（兼容历史数据）
+    if (existing.author_id && existing.author_id !== currentUserId) {
       return NextResponse.json({ error: '无权限编辑此文档' }, { status: 403 });
     }
 
@@ -50,6 +63,7 @@ export async function PUT(
       message: '知识文档更新成功',
     });
   } catch (error: any) {
+    console.error('[Knowledge PUT] 错误:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -64,16 +78,29 @@ export async function DELETE(
 
   const { id } = await params;
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const currentUserId = (authResult as any).userId;
 
   try {
     // 检查是否是创建者
-    const { data: existing } = await supabase
+    const { data: existing, error: fetchError } = await supabase
       .from('shared_knowledge')
       .select('author_id')
       .eq('id', id)
       .single();
 
-    if (!existing || existing.author_id !== (authResult as any).userId) {
+    console.log('[Knowledge DELETE] 检查权限:', {
+      id,
+      currentUserId,
+      authorId: existing?.author_id,
+      fetchError: fetchError?.message
+    });
+
+    if (fetchError) {
+      return NextResponse.json({ error: '文档不存在' }, { status: 404 });
+    }
+
+    // 允许创建者或无创建者的资源被删除（兼容历史数据）
+    if (existing.author_id && existing.author_id !== currentUserId) {
       return NextResponse.json({ error: '无权限删除此文档' }, { status: 403 });
     }
 
@@ -89,6 +116,7 @@ export async function DELETE(
       message: '知识文档删除成功',
     });
   } catch (error: any) {
+    console.error('[Knowledge DELETE] 错误:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

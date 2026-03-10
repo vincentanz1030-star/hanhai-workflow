@@ -9,7 +9,11 @@ interface SupabaseCredentials {
 }
 
 function loadEnv(): void {
-  // 强制每次都重新加载环境变量，确保在 Next.js API Route 中能正确获取
+  // 如果已经加载过环境变量，直接返回（缓存机制）
+  if (envLoaded) {
+    return;
+  }
+
   try {
     try {
       require('dotenv').config();

@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // 允许开发环境的跨域请求
+  allowedDevOrigins: [
+    'bebfc9ed-0429-4050-b7ba-204ee62d731c.dev.coze.site',
+    '.dev.coze.site',
+    'localhost:5000',
+  ],
   // 添加缓存控制头
   async headers() {
     return [

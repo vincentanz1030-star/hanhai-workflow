@@ -17,9 +17,10 @@ export async function PUT(
   const body = await request.json();
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
   const currentUserId = (authResult as any).userId;
+  const isAdmin = (authResult as any).roles?.some((r: any) => r.role === 'admin');
 
   try {
-    // 检查是否是创建者
+    // 检查是否是创建者或管理员
     const { data: existing, error: fetchError } = await supabase
       .from('shared_suppliers')
       .select('shared_by')
@@ -30,6 +31,7 @@ export async function PUT(
       id,
       currentUserId,
       sharedBy: existing?.shared_by,
+      isAdmin,
       fetchError: fetchError?.message
     });
 
@@ -37,8 +39,8 @@ export async function PUT(
       return NextResponse.json({ error: '供应商不存在' }, { status: 404 });
     }
 
-    // 允许创建者或无创建者的资源被编辑（兼容历史数据）
-    if (existing.shared_by && existing.shared_by !== currentUserId) {
+    // 管理员可以编辑所有资源，创建者只能编辑自己的资源，无创建者的资源允许编辑（兼容历史数据）
+    if (!isAdmin && existing.shared_by && existing.shared_by !== currentUserId) {
       return NextResponse.json({ error: '无权限编辑此供应商' }, { status: 403 });
     }
 
@@ -90,9 +92,10 @@ export async function DELETE(
   const { id } = await params;
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
   const currentUserId = (authResult as any).userId;
+  const isAdmin = (authResult as any).roles?.some((r: any) => r.role === 'admin');
 
   try {
-    // 检查是否是创建者
+    // 检查是否是创建者或管理员
     const { data: existing, error: fetchError } = await supabase
       .from('shared_suppliers')
       .select('shared_by')
@@ -103,6 +106,7 @@ export async function DELETE(
       id,
       currentUserId,
       sharedBy: existing?.shared_by,
+      isAdmin,
       fetchError: fetchError?.message
     });
 
@@ -110,8 +114,8 @@ export async function DELETE(
       return NextResponse.json({ error: '供应商不存在' }, { status: 404 });
     }
 
-    // 允许创建者或无创建者的资源被删除（兼容历史数据）
-    if (existing.shared_by && existing.shared_by !== currentUserId) {
+    // 管理员可以删除所有资源，创建者只能删除自己的资源，无创建者的资源允许删除（兼容历史数据）
+    if (!isAdmin && existing.shared_by && existing.shared_by !== currentUserId) {
       return NextResponse.json({ error: '无权限删除此供应商' }, { status: 403 });
     }
 

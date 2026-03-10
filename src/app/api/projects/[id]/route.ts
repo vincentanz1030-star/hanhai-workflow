@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 
 // 将蛇形命名转换为驼峰命名
 function toCamelCase(obj: any): any {
@@ -36,6 +37,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
   try {
     const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
     const { id } = await params;
@@ -81,6 +86,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
   try {
     const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
     const { id } = await params;
@@ -113,6 +122,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
   try {
     const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
     const { id } = await params;

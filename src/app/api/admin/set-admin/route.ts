@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
+import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
 const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY || '';
@@ -8,7 +9,7 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Supabase credentials are not set');
 }
 
-// POST - 设置用户为管理员
+// POST - 设置用户为管理员（仅限管理员操作）
 export async function POST(request: NextRequest) {
   try {
     // 验证请求者是否为管理员
@@ -21,6 +22,18 @@ export async function POST(request: NextRequest) {
     const decoded = verifyToken(token);
     if (!decoded) {
       return NextResponse.json({ error: 'Token 无效' }, { status: 401 });
+    }
+
+    // 检查当前用户是否是管理员
+    const client = createClient(supabaseUrl, supabaseKey);
+    const { data: currentUserRoles, error: roleError } = await client
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', decoded.userId);
+
+    if (roleError || !currentUserRoles?.some(r => r.role === 'admin')) {
+      console.log(`[设置管理员] 非管理员用户 ${decoded.email} 尝试设置管理员`);
+      return NextResponse.json({ error: '无权限执行此操作，仅限管理员' }, { status: 403 });
     }
 
     // 获取要设置的用户邮箱

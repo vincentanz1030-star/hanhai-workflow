@@ -1,0 +1,3 @@
+id,email,password_hash,name,brand,is_active,status,created_at,updated_at
+35df1a37-78d3-4489-8704-cc530629488a,hhwenhua@outlook.com,$2b$10$YYkUzvSZrwlyrO8Pio3BwOsg5eHqqA54piCuQi72D6AaFxXJtzk9K,贾伟,all,true,active,2026-03-09 07:10:58.271085+00,2026-03-09 07:10:58.271085+00
+576e73fe-7b3d-4559-b238-4af02f349042,346640172@qq.com,$2b$10$YYkUzvSZrwlyrO8Pio3BwOsg5eHqqA54piCuQi72D6AaFxXJtzk9K,任,bao_deng_yuan,true,active,2026-03-09 07:10:58.271085+00,2026-03-09 07:10:58.271085+00

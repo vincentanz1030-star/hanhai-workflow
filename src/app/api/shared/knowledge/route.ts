@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   try {
     let query = supabase
       .from('shared_knowledge')
-      .select('*, author:users(name, brand)')
+      .select('*')
       .eq('status', 'published')
       .order('created_at', { ascending: false });
 

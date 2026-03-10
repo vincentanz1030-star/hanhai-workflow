@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         email,
         name,
         password_hash: passwordHash,
-        brand: '瀚海集团',
+        brand: 'all',
         status: 'active',
         is_active: true,
       })

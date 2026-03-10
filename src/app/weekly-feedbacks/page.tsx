@@ -154,9 +154,12 @@ export default function WeeklyFeedbacksPage() {
   const [weekGroups, setWeekGroups] = useState<WeekGroup[]>([]);
   const [selectedBrand, setSelectedBrand] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [selectedWeek, setSelectedWeek] = useState<string>('all');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [weekOptions] = useState(generateWeekOptions);
+  
+  // 日期筛选
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   
   // 弹窗状态
   const [showFormDialog, setShowFormDialog] = useState(false);
@@ -186,7 +189,7 @@ export default function WeeklyFeedbacksPage() {
 
   useEffect(() => {
     loadFeedbacks();
-  }, [selectedBrand, selectedStatus, selectedWeek]);
+  }, [selectedBrand, selectedStatus, startDate, endDate]);
 
   useEffect(() => {
     // 按周分组
@@ -196,19 +199,17 @@ export default function WeeklyFeedbacksPage() {
       (f.customer_name && f.customer_name.toLowerCase().includes(searchKeyword.toLowerCase()))
     );
     
-    // 如果选择了特定周，直接过滤
-    if (selectedWeek !== 'all') {
-      const weekOption = weekOptions.find(w => w.value === selectedWeek);
-      if (weekOption) {
-        filtered = filtered.filter(f => 
-          f.week_start === weekOption.weekStart && f.week_end === weekOption.weekEnd
-        );
-      }
+    // 按日期范围筛选
+    if (startDate) {
+      filtered = filtered.filter(f => f.week_start >= startDate || f.created_at >= startDate);
+    }
+    if (endDate) {
+      filtered = filtered.filter(f => f.week_end <= endDate || f.created_at <= endDate + 'T23:59:59');
     }
     
     const groups = groupFeedbacksByWeek(filtered);
     setWeekGroups(groups);
-  }, [feedbacks, searchKeyword, selectedWeek, weekOptions]);
+  }, [feedbacks, searchKeyword, startDate, endDate]);
 
   const loadFeedbacks = async () => {
     try {
@@ -508,17 +509,29 @@ export default function WeeklyFeedbacksPage() {
               </SelectContent>
             </Select>
             
-            <Select value={selectedWeek} onValueChange={setSelectedWeek}>
-              <SelectTrigger className="w-36">
-                <SelectValue placeholder="选择周" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部周</SelectItem>
-                {weekOptions.slice(0, 20).map(week => (
-                  <SelectItem key={week.value} value={week.value}>{week.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">日期：</span>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="w-36"
+                placeholder="开始日期"
+              />
+              <span className="text-muted-foreground">至</span>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                className="w-36"
+                placeholder="结束日期"
+              />
+              {(startDate || endDate) && (
+                <Button variant="ghost" size="sm" onClick={() => { setStartDate(''); setEndDate(''); }}>
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
             
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <Search className="w-4 h-4 text-muted-foreground" />

@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     try {
       const { data: asset, error } = await supabase
         .from('shared_design_assets')
-        .select('id, asset_name, file_key, download_url, download_count')
+        .select('id, asset_name, file_key, external_link, download_count')
         .eq('id', downloadId)
         .single();
 
@@ -51,11 +51,11 @@ export async function GET(request: NextRequest) {
         .eq('id', downloadId);
 
       // 如果有外部链接，直接返回
-      if (asset.download_url) {
+      if (asset.external_link) {
         return NextResponse.json({
           success: true,
           data: {
-            downloadUrl: asset.download_url,
+            downloadUrl: asset.external_link,
             fileName: asset.asset_name,
             isExternal: true,
           },
@@ -104,18 +104,23 @@ export async function GET(request: NextRequest) {
     const { data, error, count } = await query;
     if (error) throw error;
 
-    // 为有缩略图的素材生成预览URL
+    // 为有预览图/缩略图的素材生成预览URL
     const assetsWithUrls = await Promise.all((data || []).map(async (asset: any) => {
-      if (asset.thumbnail_key) {
+      // 使用 preview_key 生成预览URL
+      if (asset.preview_key) {
         try {
-          const thumbnailUrl = await storage.generatePresignedUrl({
-            key: asset.thumbnail_key,
+          const previewUrl = await storage.generatePresignedUrl({
+            key: asset.preview_key,
             expireTime: 24 * 60 * 60, // 24小时
           });
-          return { ...asset, thumbnail_url: thumbnailUrl };
+          return { ...asset, preview_url: previewUrl };
         } catch {
           return asset;
         }
+      }
+      // 如果有 preview_url（外部链接），直接使用
+      if (asset.preview_url) {
+        return asset;
       }
       return asset;
     }));

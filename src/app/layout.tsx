@@ -5,34 +5,31 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: '新应用 | 扣子编程',
-    template: '%s | 扣子编程',
+    default: '瀚海集团工作流程管理系统',
+    template: '%s | 瀚海集团',
   },
   description:
-    '扣子编程是一款一站式云端 Vibe Coding 开发平台。通过对话轻松构建智能体、工作流和网站，实现从创意到上线的无缝衔接。',
+    '瀚海集团工作流程管理系统，集成项目管理、商品中心、营销中台、企业协同平台等核心模块，助力企业数字化转型升级。',
   keywords: [
-    '扣子编程',
-    'Coze Code',
-    'Vibe Coding',
-    'AI 编程',
-    '智能体搭建',
-    '工作流搭建',
-    '网站搭建',
-    '网站部署',
-    '全栈开发',
-    'AI 工程师',
+    '瀚海集团',
+    '工作流程管理',
+    '项目管理',
+    '商品中心',
+    '营销中台',
+    '企业协同',
+    '资源共享',
+    '数字化管理',
   ],
-  authors: [{ name: 'Coze Code Team', url: 'https://code.coze.cn' }],
-  generator: 'Coze Code',
+  authors: [{ name: '瀚海集团' }],
+  generator: '瀚海集团',
   // icons: {
   //   icon: '',
   // },
   openGraph: {
-    title: '扣子编程 | 你的 AI 工程师已就位',
+    title: '瀚海集团工作流程管理系统',
     description:
-      '我正在使用扣子编程 Vibe Coding，让创意瞬间上线。告别拖拽，拥抱心流。',
-    url: 'https://code.coze.cn',
-    siteName: '扣子编程',
+      '瀚海集团工作流程管理系统，集成项目管理、商品中心、营销中台、企业协同平台等核心模块。',
+    siteName: '瀚海集团',
     locale: 'zh_CN',
     type: 'website',
     // images: [

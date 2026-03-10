@@ -2580,6 +2580,9 @@ function HomePageContent() {
             <TabsTrigger value="marketing" className="sm:text-base py-2 px-2 text-purple-600 dark:text-purple-400">营销中台</TabsTrigger>
             <TabsTrigger value="collaboration" className="sm:text-base py-2 px-2 text-green-600 dark:text-green-400">协同平台</TabsTrigger>
             <TabsTrigger value="shared-resource" className="sm:text-base py-2 px-2 text-orange-600 dark:text-orange-400">资源共享</TabsTrigger>
+            <TabsTrigger value="weekly-feedbacks" className="sm:text-base py-2 px-2 text-cyan-600 dark:text-cyan-400" asChild>
+              <a href="/weekly-feedbacks">客户反馈</a>
+            </TabsTrigger>
             <TabsTrigger value="analytics" className="sm:text-base py-2 px-2" asChild>
               <a href="/analytics">数据分析</a>
             </TabsTrigger>

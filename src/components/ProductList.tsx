@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { Plus, Search, Edit, Trash2, Eye, Package, X, Image as ImageIcon, Upload, Loader2 } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, Package, X, Image as ImageIcon, Upload, Loader2, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const BRANDS = [
   { value: 'he_zhe', label: '禾哲' },
@@ -62,7 +62,10 @@ export function ProductList() {
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showFormDialog, setShowFormDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showImagePreview, setShowImagePreview] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -257,6 +260,16 @@ export function ProductList() {
     return ((retail - cost) / retail * 100).toFixed(1) + '%';
   };
 
+  // 图片预览
+  const openImagePreview = (images: string[], index: number = 0) => {
+    setPreviewImages(images);
+    setPreviewIndex(index);
+    setShowImagePreview(true);
+  };
+
+  const prevImage = () => setPreviewIndex(i => (i > 0 ? i - 1 : previewImages.length - 1));
+  const nextImage = () => setPreviewIndex(i => (i < previewImages.length - 1 ? i + 1 : 0));
+
   const getBrandLabel = (brand: string) => BRANDS.find(b => b.value === brand)?.label || brand;
   
   const getSupplierName = (supplierId?: string) => {
@@ -358,7 +371,15 @@ export function ProductList() {
                       <tr key={p.id} className="border-b hover:bg-muted/30">
                         <td className="p-2">
                           {p.main_image || p.images?.length ? (
-                            <img src={p.main_image || p.images![0]} alt="" className="w-10 h-10 object-cover rounded" />
+                            <div 
+                              className="relative group cursor-pointer" 
+                              onClick={() => openImagePreview(p.images?.length ? p.images : [p.main_image!], 0)}
+                            >
+                              <img src={p.main_image || p.images![0]} alt="" className="w-10 h-10 object-cover rounded" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
+                                <ZoomIn className="w-4 h-4 text-white" />
+                              </div>
+                            </div>
                           ) : (
                             <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
                               <ImageIcon className="w-4 h-4 text-muted-foreground" />
@@ -407,7 +428,15 @@ export function ProductList() {
           {currentProduct && (
             <div className="space-y-3 text-sm">
               {currentProduct.main_image && (
-                <img src={currentProduct.main_image} alt="" className="w-full max-h-48 object-contain rounded" />
+                <div 
+                  className="relative group cursor-pointer"
+                  onClick={() => openImagePreview(currentProduct.images?.length ? currentProduct.images : [currentProduct.main_image!], 0)}
+                >
+                  <img src={currentProduct.main_image} alt="" className="w-full max-h-48 object-contain rounded mx-auto" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
+                    <ZoomIn className="w-6 h-6 text-white" />
+                  </div>
+                </div>
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div><Label className="text-muted-foreground">货品编号</Label><p className="font-mono">{currentProduct.sku_code}</p></div>
@@ -541,8 +570,16 @@ export function ProductList() {
                 <div className="flex flex-wrap gap-2 mt-2">
                   {formData.images.map((img, i) => (
                     <div key={i} className="relative group">
-                      <img src={img} alt="" className="w-16 h-16 object-cover rounded" />
-                      <button onClick={() => setFormData(p => ({ ...p, images: p.images.filter((_, j) => j !== i) }))} className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center">
+                      <img 
+                        src={img} 
+                        alt="" 
+                        className="w-16 h-16 object-cover rounded cursor-pointer hover:ring-2 hover:ring-primary" 
+                        onClick={() => openImagePreview(formData.images, i)}
+                      />
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setFormData(p => ({ ...p, images: p.images.filter((_, j) => j !== i) })); }} 
+                        className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center"
+                      >
                         <X className="w-3 h-3" />
                       </button>
                     </div>
@@ -571,6 +608,61 @@ export function ProductList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* 图片预览弹窗 */}
+      <Dialog open={showImagePreview} onOpenChange={setShowImagePreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 bg-black/90 border-none">
+          <button 
+            onClick={() => setShowImagePreview(false)}
+            className="absolute top-2 right-2 z-10 w-8 h-8 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          
+          {previewImages.length > 1 && (
+            <>
+              <button 
+                onClick={prevImage}
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button 
+                onClick={nextImage}
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </>
+          )}
+          
+          <div className="flex items-center justify-center min-h-[300px] max-h-[80vh] p-4">
+            <img 
+              src={previewImages[previewIndex]} 
+              alt="" 
+              className="max-w-full max-h-full object-contain rounded"
+            />
+          </div>
+          
+          {previewImages.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+              {previewImages.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setPreviewIndex(i)}
+                  className={`w-2 h-2 rounded-full transition-all ${i === previewIndex ? 'bg-white w-4' : 'bg-white/50'}`}
+                />
+              ))}
+            </div>
+          )}
+          
+          {previewImages.length > 1 && (
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/70 text-sm">
+              {previewIndex + 1} / {previewImages.length}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

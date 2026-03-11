@@ -74,6 +74,9 @@ export async function PUT(
       );
     }
 
+    // 处理空字符串的 supplier_id，转为 null
+    const normalizedSupplierId = supplier_id && supplier_id.trim() !== '' ? supplier_id : null;
+
     // 更新商品
     const { data: product, error: productError } = await supabase
       .from('products')
@@ -93,7 +96,7 @@ export async function PUT(
         updated_by,
         updated_at: new Date().toISOString(),
         designer,
-        supplier_id,
+        supplier_id: normalizedSupplierId,
         spec_code,
         color,
         delivery_days,
@@ -188,8 +191,14 @@ export async function DELETE(
 
     const supabase = getSupabaseClient();
 
-    // 先删除关联的价格记录
+    // 先删除关联的销售统计数据
+    await supabase.from('sales_statistics').delete().eq('product_id', id);
+
+    // 删除关联的价格记录
     await supabase.from('product_prices').delete().eq('product_id', id);
+
+    // 删除关联的库存记录
+    await supabase.from('product_inventory').delete().eq('product_id', id);
 
     // 删除商品
     const { error } = await supabase

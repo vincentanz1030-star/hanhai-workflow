@@ -158,6 +158,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 处理空字符串的 supplier_id，转为 null
+    const normalizedSupplierId = supplier_id && supplier_id.trim() !== '' ? supplier_id : null;
+
     // 构建查询
     let query = supabase
       .from('products')
@@ -178,7 +181,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 创建商品（使用事务）
+    // 创建商品
     const { data: product, error: productError } = await supabase
       .from('products')
       .insert({
@@ -194,7 +197,7 @@ export async function POST(request: NextRequest) {
         tags,
         created_by,
         designer,
-        supplier_id,
+        supplier_id: normalizedSupplierId,
         spec_code,
         color,
         delivery_days,

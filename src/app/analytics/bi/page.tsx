@@ -33,6 +33,7 @@ import {
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import Link from 'next/link';
+import { getAllBrands, getBrandName } from '@/lib/config';
 
 interface BIDashboardData {
   overview: {
@@ -847,10 +848,11 @@ export default function BIDashboardPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部品牌</SelectItem>
-                  <SelectItem value="brand_a">品牌A</SelectItem>
-                  <SelectItem value="brand_b">品牌B</SelectItem>
-                  <SelectItem value="brand_c">品牌C</SelectItem>
+                  {getAllBrands().map(brand => (
+                    <SelectItem key={brand.key} value={brand.key}>
+                      {brand.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 

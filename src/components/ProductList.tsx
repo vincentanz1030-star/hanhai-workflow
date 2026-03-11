@@ -612,6 +612,9 @@ export function ProductList() {
       {/* 图片预览弹窗 */}
       <Dialog open={showImagePreview} onOpenChange={setShowImagePreview}>
         <DialogContent className="max-w-4xl max-h-[90vh] p-0 bg-black/90 border-none">
+          <DialogHeader className="sr-only">
+            <DialogTitle>图片预览</DialogTitle>
+          </DialogHeader>
           <button 
             onClick={() => setShowImagePreview(false)}
             className="absolute top-2 right-2 z-10 w-8 h-8 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white"

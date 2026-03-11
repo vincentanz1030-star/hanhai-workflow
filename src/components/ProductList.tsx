@@ -468,10 +468,10 @@ export function ProductList() {
               </div>
               <div>
                 <Label>主供应商</Label>
-                <Select value={formData.supplier_id} onValueChange={v => setFormData(p => ({ ...p, supplier_id: v }))}>
+                <Select value={formData.supplier_id || 'none'} onValueChange={v => setFormData(p => ({ ...p, supplier_id: v === 'none' ? '' : v }))}>
                   <SelectTrigger><SelectValue placeholder="选择" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">无</SelectItem>
+                    <SelectItem value="none">无</SelectItem>
                     {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>

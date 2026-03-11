@@ -123,6 +123,33 @@ export async function PUT(
       if (priceError) throw priceError;
     }
 
+    // 更新库存记录
+    const quantity = body.quantity;
+    if (quantity !== undefined) {
+      // 先检查是否存在库存记录
+      const { data: existingInventory } = await supabase
+        .from('product_inventory')
+        .select('id')
+        .eq('product_id', id)
+        .limit(1);
+
+      if (existingInventory && existingInventory.length > 0) {
+        // 更新现有记录
+        await supabase
+          .from('product_inventory')
+          .update({ quantity })
+          .eq('id', existingInventory[0].id);
+      } else if (quantity > 0) {
+        // 创建新记录
+        await supabase
+          .from('product_inventory')
+          .insert({
+            product_id: id,
+            quantity,
+          });
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: product,

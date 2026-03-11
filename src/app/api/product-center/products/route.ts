@@ -221,6 +221,23 @@ export async function POST(request: NextRequest) {
       if (priceError) throw priceError;
     }
 
+    // 创建库存记录
+    const quantity = body.quantity || 0;
+    if (quantity > 0) {
+      const { error: inventoryError } = await supabase
+        .from('product_inventory')
+        .insert({
+          product_id: product.id,
+          quantity,
+          warehouse_id: null,
+          batch_no: null,
+        });
+
+      if (inventoryError) {
+        console.warn('创建库存记录失败:', inventoryError);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: product,

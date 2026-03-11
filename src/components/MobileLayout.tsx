@@ -21,7 +21,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
         <div className="container flex h-14 items-center px-4">
           <MobileMenu currentPath={pathname} />
           <div className="flex-1 flex justify-center">
-            <h1 className="text-lg font-semibold">Ai数据云</h1>
+            <h1 className="text-lg font-semibold">Ai数据助手</h1>
           </div>
           {user && <NotificationBell />}
         </div>

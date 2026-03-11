@@ -12,7 +12,7 @@ const baseEmailTemplate = (content: string) => `
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ai数据云平台</title>
+    <title>Ai数据助手平台</title>
     <style>
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -85,7 +85,7 @@ const baseEmailTemplate = (content: string) => `
   <body>
     <div class="container">
       <div class="header">
-        <h1>Ai数据云平台</h1>
+        <h1>Ai数据助手平台</h1>
       </div>
       <div class="content">
         ${content}

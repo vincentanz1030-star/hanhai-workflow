@@ -2343,7 +2343,7 @@ function HomePageContent() {
                 <FolderOpen className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Ai数据云平台</h1>
+                <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Ai数据助手平台</h1>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">以销售为驱动的项目进度管理</p>
               </div>
             </div>

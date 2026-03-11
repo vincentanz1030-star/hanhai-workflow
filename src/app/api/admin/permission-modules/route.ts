@@ -23,7 +23,20 @@ export async function GET(request: NextRequest) {
       .select('*')
       .order('sort_order');
 
-    if (error) throw error;
+    // 如果表不存在，返回空数组而不是报错
+    if (error) {
+      if (error.code === '42P01' || 
+          error.message?.includes('does not exist') ||
+          error.message?.includes('not find the table')) {
+        return NextResponse.json({ 
+          success: true, 
+          data: [], 
+          notInitialized: true,
+          message: '权限系统数据表尚未创建' 
+        });
+      }
+      throw error;
+    }
 
     // 获取每个模块的权限数量
     const { data: permCounts } = await supabase

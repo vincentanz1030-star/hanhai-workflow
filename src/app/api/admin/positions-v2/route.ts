@@ -22,7 +22,13 @@ export async function GET(request: NextRequest) {
       .select('*')
       .order('sort_order');
 
-    if (error) throw error;
+    // 表不存在时返回空数据
+    if (error) {
+      if (error.code === '42P01' || error.message.includes('does not exist')) {
+        return NextResponse.json({ success: true, data: [], notInitialized: true });
+      }
+      throw error;
+    }
 
     // 获取每个岗位的权限数量
     const { data: permCounts } = await supabase

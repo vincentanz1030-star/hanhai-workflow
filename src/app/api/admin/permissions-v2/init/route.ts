@@ -15,6 +15,27 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseKey);
 }
 
+// 检查表是否存在
+async function checkTablesExist(supabase: any): Promise<boolean> {
+  const { error } = await supabase
+    .from('permission_modules')
+    .select('id')
+    .limit(1);
+  
+  // 如果没有错误，表存在
+  if (!error) return true;
+  
+  // 如果错误代码是表不存在，返回 false
+  if (error.code === '42P01' || 
+      error.message?.includes('does not exist') ||
+      error.message?.includes('not find the table')) {
+    return false;
+  }
+  
+  // 其他错误情况，假设表存在（可能是权限问题等其他原因）
+  return true;
+}
+
 // 预设权限模块
 const DEFAULT_MODULES = [
   { code: 'system', name: '系统管理', icon: 'Shield', sort_order: 0, is_system: true },
@@ -207,17 +228,31 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabaseClient();
 
     // 检查表是否存在
+    const tablesExist = await checkTablesExist(supabase);
+
+    if (!tablesExist) {
+      return NextResponse.json({
+        success: true,
+        initialized: false,
+        tablesExist: false,
+        message: '权限系统数据表尚未创建，请先执行SQL脚本创建表',
+        sqlPath: 'sql/permission-system-tables.sql',
+      });
+    }
+
+    // 检查是否有数据
     const { data: modules, error } = await supabase
       .from('permission_modules')
       .select('id')
       .limit(1);
 
-    const initialized = !error && modules !== null;
+    const initialized = !error && modules && modules.length > 0;
 
     return NextResponse.json({
       success: true,
       initialized,
-      message: initialized ? '权限系统已初始化' : '权限系统未初始化',
+      tablesExist: true,
+      message: initialized ? '权限系统已初始化' : '权限系统未初始化，请点击初始化按钮',
     });
   } catch (error) {
     return NextResponse.json({
@@ -234,6 +269,17 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseClient();
     const body = await request.json().catch(() => ({}));
     const force = body.force === true; // 强制重新初始化
+
+    // 检查表是否存在
+    const tablesExist = await checkTablesExist(supabase);
+    if (!tablesExist) {
+      return NextResponse.json({
+        success: false,
+        error: '权限系统数据表尚未创建',
+        message: '请先在数据库中执行 sql/permission-system-tables.sql 脚本创建数据表',
+        sqlPath: 'sql/permission-system-tables.sql',
+      }, { status: 400 });
+    }
 
     console.log('[权限初始化] 开始初始化...');
 

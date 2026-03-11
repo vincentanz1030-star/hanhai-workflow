@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { 
-  Plus, Search, Edit, Trash2, Eye, Filter, Package, X, Image as ImageIcon, ChevronLeft, ChevronRight, Download, Upload
+  Plus, Search, Edit, Trash2, Eye, Filter, Package, X, Image as ImageIcon, Upload
 } from 'lucide-react';
 
 interface Product {
@@ -68,13 +67,13 @@ const STATUS_OPTIONS = [
 ];
 
 export default function ProductsPage() {
-  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [brandFilter, setBrandFilter] = useState('all');
+  const [supplierFilter, setSupplierFilter] = useState('all');
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -86,10 +85,7 @@ export default function ProductsPage() {
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showFormDialog, setShowFormDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showImageDialog, setShowImageDialog] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
-  const [previewImages, setPreviewImages] = useState<string[]>([]);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -115,7 +111,7 @@ export default function ProductsPage() {
   useEffect(() => {
     loadProducts();
     loadSuppliers();
-  }, [pagination.page, statusFilter, brandFilter]);
+  }, [pagination.page, statusFilter, brandFilter, supplierFilter]);
 
   const loadProducts = async () => {
     try {
@@ -164,11 +160,13 @@ export default function ProductsPage() {
     loadProducts();
   };
 
+  // 预览商品详情
   const handleViewDetail = (product: Product) => {
     setCurrentProduct(product);
     setShowDetailDialog(true);
   };
 
+  // 打开编辑/新增表单
   const handleOpenForm = (product?: Product) => {
     if (product) {
       setCurrentProduct(product);
@@ -212,6 +210,7 @@ export default function ProductsPage() {
     setShowFormDialog(true);
   };
 
+  // 保存商品
   const handleSave = async () => {
     if (!formData.sku_code || !formData.name || !formData.brand) {
       alert('请填写必填项：货品编号、货品名称、品牌');
@@ -245,6 +244,7 @@ export default function ProductsPage() {
     }
   };
 
+  // 删除商品
   const handleDelete = async () => {
     if (!currentProduct) return;
 
@@ -266,6 +266,7 @@ export default function ProductsPage() {
     }
   };
 
+  // 图片上传
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -314,12 +315,6 @@ export default function ProductsPage() {
     });
   };
 
-  const handlePreviewImages = (images: string[], index: number = 0) => {
-    setPreviewImages(images);
-    setCurrentImageIndex(index);
-    setShowImageDialog(true);
-  };
-
   // 计算毛利率
   const calculateProfitMargin = (cost: number, retail: number) => {
     if (!retail || retail === 0) return '-';
@@ -332,13 +327,13 @@ export default function ProductsPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; color: string }> = {
-      active: { label: '上架', color: 'bg-green-100 text-green-700' },
-      inactive: { label: '下架', color: 'bg-red-100 text-red-700' },
-      draft: { label: '草稿', color: 'bg-gray-100 text-gray-700' },
+    const statusMap: Record<string, { label: string; className: string }> = {
+      active: { label: '上架', className: 'bg-green-100 text-green-700' },
+      inactive: { label: '下架', className: 'bg-red-100 text-red-700' },
+      draft: { label: '草稿', className: 'bg-gray-100 text-gray-700' },
     };
-    const { label, color } = statusMap[status] || { label: status, color: 'bg-gray-100' };
-    return <span className={`px-2 py-1 rounded text-xs ${color}`}>{label}</span>;
+    const { label, className } = statusMap[status] || { label: status, className: 'bg-gray-100' };
+    return <span className={`px-2 py-1 rounded text-xs ${className}`}>{label}</span>;
   };
 
   const getSupplierName = (supplierId?: string) => {
@@ -352,8 +347,8 @@ export default function ProductsPage() {
       {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">商品管理</h1>
-          <p className="text-muted-foreground">管理所有商品信息</p>
+          <h1 className="text-3xl font-bold">商品列表</h1>
+          <p className="text-muted-foreground">查看和管理所有商品</p>
         </div>
         <Button onClick={() => handleOpenForm()}>
           <Plus className="h-4 w-4 mr-2" />
@@ -387,6 +382,17 @@ export default function ProductsPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="供应商" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部供应商</SelectItem>
+                {suppliers.map(supplier => (
+                  <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-32">
                 <SelectValue placeholder="状态" />
@@ -405,7 +411,7 @@ export default function ProductsPage() {
         </CardContent>
       </Card>
 
-      {/* 商品列表 - 表格视图 */}
+      {/* 商品列表 */}
       <Card>
         <CardHeader>
           <CardTitle>商品列表</CardTitle>
@@ -430,21 +436,20 @@ export default function ProductsPage() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 text-sm font-medium">图片</th>
-                    <th className="text-left p-3 text-sm font-medium">货品编号</th>
-                    <th className="text-left p-3 text-sm font-medium">货品名称</th>
-                    <th className="text-left p-3 text-sm font-medium">品牌</th>
-                    <th className="text-left p-3 text-sm font-medium">设计师</th>
-                    <th className="text-left p-3 text-sm font-medium">主供应商</th>
-                    <th className="text-left p-3 text-sm font-medium">规格码</th>
-                    <th className="text-left p-3 text-sm font-medium">颜色</th>
-                    <th className="text-right p-3 text-sm font-medium">数量</th>
-                    <th className="text-right p-3 text-sm font-medium">含税运成本</th>
-                    <th className="text-right p-3 text-sm font-medium">零售价</th>
-                    <th className="text-right p-3 text-sm font-medium">毛利率</th>
-                    <th className="text-center p-3 text-sm font-medium">货期</th>
-                    <th className="text-center p-3 text-sm font-medium">状态</th>
-                    <th className="text-center p-3 text-sm font-medium">操作</th>
+                    <th className="text-left p-3 text-sm font-medium whitespace-nowrap">图片</th>
+                    <th className="text-left p-3 text-sm font-medium whitespace-nowrap">货品编号</th>
+                    <th className="text-left p-3 text-sm font-medium whitespace-nowrap">货品名称</th>
+                    <th className="text-left p-3 text-sm font-medium whitespace-nowrap">设计师</th>
+                    <th className="text-left p-3 text-sm font-medium whitespace-nowrap">主供应商</th>
+                    <th className="text-left p-3 text-sm font-medium whitespace-nowrap">规格码</th>
+                    <th className="text-left p-3 text-sm font-medium whitespace-nowrap">颜色</th>
+                    <th className="text-right p-3 text-sm font-medium whitespace-nowrap">数量</th>
+                    <th className="text-right p-3 text-sm font-medium whitespace-nowrap">含税运成本</th>
+                    <th className="text-right p-3 text-sm font-medium whitespace-nowrap">零售价</th>
+                    <th className="text-right p-3 text-sm font-medium whitespace-nowrap">毛利率</th>
+                    <th className="text-center p-3 text-sm font-medium whitespace-nowrap">货期</th>
+                    <th className="text-center p-3 text-sm font-medium whitespace-nowrap">状态</th>
+                    <th className="text-center p-3 text-sm font-medium whitespace-nowrap">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -466,10 +471,6 @@ export default function ProductsPage() {
                               src={product.main_image || product.images![0]}
                               alt={product.name}
                               className="w-12 h-12 object-cover rounded"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePreviewImages(product.images || [product.main_image!], 0);
-                              }}
                             />
                           ) : (
                             <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
@@ -479,16 +480,15 @@ export default function ProductsPage() {
                         </td>
                         <td className="p-3 text-sm font-mono">{product.sku_code}</td>
                         <td className="p-3 text-sm font-medium">{product.name}</td>
-                        <td className="p-3 text-sm">{getBrandLabel(product.brand)}</td>
                         <td className="p-3 text-sm">{product.designer || '-'}</td>
-                        <td className="p-3 text-sm">{getSupplierName(product.supplier_id)}</td>
+                        <td className="p-3 text-sm">{product.suppliers?.name || getSupplierName(product.supplier_id)}</td>
                         <td className="p-3 text-sm font-mono">{product.spec_code || '-'}</td>
                         <td className="p-3 text-sm">{product.color || '-'}</td>
                         <td className="p-3 text-sm text-right">{totalQuantity}</td>
                         <td className="p-3 text-sm text-right">{cost ? `¥${cost.toFixed(2)}` : '-'}</td>
                         <td className="p-3 text-sm text-right">{retail ? `¥${retail.toFixed(2)}` : '-'}</td>
                         <td className="p-3 text-sm text-right">
-                          <span className={profitMargin !== '-' && parseFloat(profitMargin) < 20 ? 'text-red-600' : ''}>
+                          <span className={profitMargin !== '-' && parseFloat(profitMargin) < 20 ? 'text-red-600 font-medium' : ''}>
                             {profitMargin}
                           </span>
                         </td>
@@ -496,16 +496,17 @@ export default function ProductsPage() {
                         <td className="p-3 text-center">{getStatusBadge(product.status)}</td>
                         <td className="p-3">
                           <div className="flex gap-1 justify-center" onClick={e => e.stopPropagation()}>
-                            <Button variant="ghost" size="sm" onClick={() => handleViewDetail(product)}>
+                            <Button variant="ghost" size="sm" onClick={() => handleViewDetail(product)} title="预览">
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleOpenForm(product)}>
+                            <Button variant="ghost" size="sm" onClick={() => handleOpenForm(product)} title="编辑">
                               <Edit className="w-4 h-4" />
                             </Button>
                             <Button 
                               variant="ghost" 
                               size="sm" 
                               onClick={() => { setCurrentProduct(product); setShowDeleteDialog(true); }}
+                              title="删除"
                             >
                               <Trash2 className="w-4 h-4 text-red-500" />
                             </Button>
@@ -518,39 +519,10 @@ export default function ProductsPage() {
               </table>
             </div>
           )}
-
-          {/* 分页 */}
-          {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <p className="text-sm text-muted-foreground">
-                第 {pagination.page} 页，共 {pagination.totalPages} 页
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={pagination.page <= 1}
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  上一页
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={pagination.page >= pagination.totalPages}
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                >
-                  下一页
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* 详情弹窗 */}
+      {/* 预览详情弹窗 */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -569,11 +541,7 @@ export default function ProductsPage() {
                         key={i}
                         src={img}
                         alt=""
-                        className="w-full h-24 object-cover rounded cursor-pointer hover:opacity-80"
-                        onClick={() => handlePreviewImages(
-                          [currentProduct.main_image, ...(currentProduct.images || [])].filter(Boolean) as string[], 
-                          i
-                        )}
+                        className="w-full h-24 object-cover rounded"
                       />
                     ))}
                   </div>
@@ -593,23 +561,12 @@ export default function ProductsPage() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-muted-foreground">品牌</Label>
-                  <p>{getBrandLabel(currentProduct.brand)}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">状态</Label>
-                  <p>{getStatusBadge(currentProduct.status)}</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
                   <Label className="text-muted-foreground">设计师</Label>
                   <p>{currentProduct.designer || '-'}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">主供应商</Label>
-                  <p>{getSupplierName(currentProduct.supplier_id)}</p>
+                  <p>{currentProduct.suppliers?.name || getSupplierName(currentProduct.supplier_id)}</p>
                 </div>
               </div>
               
@@ -662,15 +619,15 @@ export default function ProductsPage() {
                   <p>{currentProduct.delivery_days ? `${currentProduct.delivery_days}天` : '-'}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">创建时间</Label>
-                  <p className="text-sm">{new Date(currentProduct.created_at).toLocaleString()}</p>
+                  <Label className="text-muted-foreground">状态</Label>
+                  <p>{getStatusBadge(currentProduct.status)}</p>
                 </div>
               </div>
               
               {currentProduct.remarks && (
                 <div>
                   <Label className="text-muted-foreground">备注</Label>
-                  <p className="whitespace-pre-wrap">{currentProduct.remarks}</p>
+                  <p className="whitespace-pre-wrap bg-muted/50 p-2 rounded">{currentProduct.remarks}</p>
                 </div>
               )}
             </div>
@@ -689,7 +646,7 @@ export default function ProductsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* 新增/编辑弹窗 */}
+      {/* 编辑/新增弹窗 */}
       <Dialog open={showFormDialog} onOpenChange={setShowFormDialog}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -912,47 +869,17 @@ export default function ProductsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除</AlertDialogTitle>
             <AlertDialogDescription>
-              确定要删除商品"{currentProduct?.name}"吗？此操作无法撤销。
+              确定要删除商品 "{currentProduct?.name}" 吗？此操作无法撤销。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">删除</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
+              删除
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* 图片预览弹窗 */}
-      <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>图片预览 ({currentImageIndex + 1} / {previewImages.length})</DialogTitle>
-          </DialogHeader>
-          <div className="relative">
-            <img src={previewImages[currentImageIndex]} alt="" className="w-full max-h-[70vh] object-contain" />
-            {previewImages.length > 1 && (
-              <>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="absolute left-2 top-1/2 -translate-y-1/2"
-                  onClick={() => setCurrentImageIndex((currentImageIndex - 1 + previewImages.length) % previewImages.length)}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2"
-                  onClick={() => setCurrentImageIndex((currentImageIndex + 1) % previewImages.length)}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

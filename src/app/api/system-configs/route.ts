@@ -182,8 +182,8 @@ export async function PATCH(request: NextRequest) {
     // 默认配置
     const defaultConfigs = [
       // 通用配置
-      { key: 'system_name', value: '瀚海云平台', category: 'general', description: '系统名称', type: 'string' },
-      { key: 'company_name', value: '瀚海集团', category: 'general', description: '公司名称', type: 'string' },
+      { key: 'system_name', value: 'Ai数据云平台', category: 'general', description: '系统名称', type: 'string' },
+      { key: 'company_name', value: 'Ai数据云集团', category: 'general', description: '公司名称', type: 'string' },
       { key: 'system_version', value: '2.0.0', category: 'general', description: '系统版本', type: 'string' },
       { key: 'enable_registration', value: 'true', category: 'general', description: '是否允许注册', type: 'boolean' },
       { key: 'default_timezone', value: 'Asia/Shanghai', category: 'general', description: '默认时区', type: 'string' },

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BarChart3, TrendingUp, PieChart, FileText, Download, RefreshCw, Calendar, Filter, ArrowUp, ArrowDown, Activity } from 'lucide-react';
+import { BarChart3, TrendingUp, PieChart, FileText, Download, RefreshCw, Calendar, Filter, ArrowUp, ArrowDown, Activity, LayoutDashboard } from 'lucide-react';
 import TrendChart from '@/components/analytics/TrendChart';
 import BrandDistributionChart from '@/components/analytics/BrandDistributionChart';
 import PositionEfficiencyChart from '@/components/analytics/PositionEfficiencyChart';
@@ -137,10 +137,14 @@ export default function AnalyticsPage() {
       {/* 主要内容 */}
       <div className="container mx-auto px-4 py-6">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">
+          <TabsList className="grid w-full grid-cols-4 lg:w-[800px]">
             <TabsTrigger value="dashboard">
               <BarChart3 className="mr-2 h-4 w-4" />
               数据概览
+            </TabsTrigger>
+            <TabsTrigger value="bi">
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              BI分析
             </TabsTrigger>
             <TabsTrigger value="kpi">
               <TrendingUp className="mr-2 h-4 w-4" />
@@ -286,6 +290,56 @@ export default function AnalyticsPage() {
                     <RefreshCw className="mr-2 h-4 w-4" />
                     刷新数据
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* BI数据分析 */}
+          <TabsContent value="bi" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <LayoutDashboard className="h-5 w-5" />
+                  BI数据分析中心
+                </CardTitle>
+                <CardDescription>多维度数据洞察与可视化分析，支持自定义仪表盘和丰富的图表类型</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-12">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+                      <CardContent className="pt-6">
+                        <BarChart3 className="h-8 w-8 text-blue-500 mx-auto mb-3" />
+                        <h3 className="font-semibold mb-2">项目分析</h3>
+                        <p className="text-sm text-muted-foreground">项目状态、品牌分布、趋势分析</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+                      <CardContent className="pt-6">
+                        <TrendingUp className="h-8 w-8 text-green-500 mx-auto mb-3" />
+                        <h3 className="font-semibold mb-2">任务分析</h3>
+                        <p className="text-sm text-muted-foreground">任务效率、岗位效能、完成趋势</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800">
+                      <CardContent className="pt-6">
+                        <PieChart className="h-8 w-8 text-purple-500 mx-auto mb-3" />
+                        <h3 className="font-semibold mb-2">产品&营销</h3>
+                        <p className="text-sm text-muted-foreground">产品销量、库存状态、营销ROI</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  <a
+                    href="/analytics/bi"
+                    className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:opacity-90 transition-opacity text-lg font-medium"
+                  >
+                    <LayoutDashboard className="mr-2 h-5 w-5" />
+                    进入BI数据分析中心
+                  </a>
+                  <p className="text-muted-foreground mt-4 text-sm">
+                    支持5大分析模块：项目分析、任务分析、产品分析、营销分析、团队效能
+                  </p>
                 </div>
               </CardContent>
             </Card>

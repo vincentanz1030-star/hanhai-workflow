@@ -5,14 +5,14 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Ai数据助手平台',
+    default: 'Ai数据助手',
     template: '%s | Ai数据助手',
   },
   description:
-    'Ai数据助手平台，集成项目管理、商品中心、营销中台、企业协同平台等核心模块，助力企业数字化转型升级。',
+    'Ai数据助手，集成项目管理、商品中心、营销中台、企业协同平台等核心模块，助力企业数字化转型升级。',
   keywords: [
     'Ai数据助手',
-    'Ai数据助手平台',
+    'Ai数据助手',
     '工作流程管理',
     '项目管理',
     '商品中心',
@@ -27,9 +27,9 @@ export const metadata: Metadata = {
   //   icon: '',
   // },
   openGraph: {
-    title: 'Ai数据助手平台',
+    title: 'Ai数据助手',
     description:
-      'Ai数据助手平台，集成项目管理、商品中心、营销中台、企业协同平台等核心模块。',
+      'Ai数据助手，集成项目管理、商品中心、营销中台、企业协同平台等核心模块。',
     siteName: 'Ai数据助手',
     locale: 'zh_CN',
     type: 'website',

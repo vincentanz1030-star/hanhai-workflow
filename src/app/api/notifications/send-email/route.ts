@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
     const client = createClient(supabaseUrl, supabaseAnonKey);
 
     // 发送测试邮件
-    const subject = '测试邮件 - Ai数据助手平台';
+    const subject = '测试邮件 - Ai数据助手';
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #333;">测试邮件</h1>
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
         <p>发送时间：${new Date().toLocaleString('zh-CN')}</p>
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
         <p style="color: #666; font-size: 12px;">
-          此邮件由Ai数据助手平台自动发送，请勿回复。
+          此邮件由Ai数据助手自动发送，请勿回复。
         </p>
       </div>
     `;

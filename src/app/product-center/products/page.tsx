@@ -1,24 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { 
-  Plus, Search, Edit, Trash2, Eye, Filter, Package, X, Image as ImageIcon, Upload
-} from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, Package, X, Image as ImageIcon, Upload } from 'lucide-react';
 
+// 商品接口
 interface Product {
   id: string;
   sku_code: string;
   name: string;
-  description?: string;
   brand: string;
   status: string;
   main_image?: string;
@@ -30,26 +27,18 @@ interface Product {
   delivery_days?: number;
   remarks?: string;
   created_at: string;
-  updated_at?: string;
-  suppliers?: {
-    id: string;
-    name: string;
-  };
+  suppliers?: { id: string; name: string };
   product_prices?: {
-    cost_price?: number;
     cost_with_tax_shipping?: number;
-    wholesale_price?: number;
     retail_price?: number;
   };
-  product_inventory?: {
-    quantity: number;
-  }[];
+  product_inventory?: { quantity: number }[];
 }
 
+// 供应商接口
 interface Supplier {
   id: string;
   name: string;
-  supplier_code: string;
 }
 
 const BRANDS = [
@@ -59,27 +48,13 @@ const BRANDS = [
   { value: 'bao_deng_yuan', label: '宝登源' },
 ];
 
-const STATUS_OPTIONS = [
-  { value: 'all', label: '全部状态' },
-  { value: 'active', label: '上架' },
-  { value: 'inactive', label: '下架' },
-  { value: 'draft', label: '草稿' },
-];
-
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [brandFilter, setBrandFilter] = useState('all');
-  const [supplierFilter, setSupplierFilter] = useState('all');
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-  });
+  const [statusFilter, setStatusFilter] = useState('all');
 
   // 弹窗状态
   const [showDetailDialog, setShowDetailDialog] = useState(false);
@@ -109,405 +84,315 @@ export default function ProductsPage() {
   });
 
   useEffect(() => {
-    loadProducts();
-    loadSuppliers();
-  }, [pagination.page, statusFilter, brandFilter, supplierFilter]);
+    loadData();
+  }, [brandFilter, statusFilter]);
 
-  const loadProducts = async () => {
+  const loadData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-      });
-      if (statusFilter !== 'all') params.append('status', statusFilter);
+      // 加载商品
+      const params = new URLSearchParams();
       if (brandFilter !== 'all') params.append('brand', brandFilter);
+      if (statusFilter !== 'all') params.append('status', statusFilter);
       if (searchQuery) params.append('search', searchQuery);
 
-      const response = await fetch(`/api/product-center/products?${params}`);
-      const data = await response.json();
+      const [productsRes, suppliersRes] = await Promise.all([
+        fetch(`/api/product-center/products?${params}`),
+        fetch('/api/product-center/suppliers'),
+      ]);
 
-      if (data.success) {
-        setProducts(data.data || []);
-        setPagination(prev => ({
-          ...prev,
-          total: data.pagination?.total || 0,
-          totalPages: data.pagination?.totalPages || 0,
-        }));
-      }
+      const productsData = await productsRes.json();
+      const suppliersData = await suppliersRes.json();
+
+      if (productsData.success) setProducts(productsData.data || []);
+      if (suppliersData.success) setSuppliers(suppliersData.data || []);
     } catch (error) {
-      console.error('加载商品失败:', error);
+      console.error('加载失败:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadSuppliers = async () => {
-    try {
-      const response = await fetch('/api/product-center/suppliers');
-      const data = await response.json();
-      if (data.success) {
-        setSuppliers(data.data || []);
-      }
-    } catch (error) {
-      console.error('加载供应商失败:', error);
-    }
-  };
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setPagination(prev => ({ ...prev, page: 1 }));
-    loadProducts();
+    loadData();
   };
 
-  // 预览商品详情
-  const handleViewDetail = (product: Product) => {
+  // 预览
+  const handlePreview = (product: Product) => {
     setCurrentProduct(product);
     setShowDetailDialog(true);
   };
 
-  // 打开编辑/新增表单
-  const handleOpenForm = (product?: Product) => {
-    if (product) {
-      setCurrentProduct(product);
-      setFormData({
-        sku_code: product.sku_code || '',
-        name: product.name || '',
-        brand: product.brand || '',
-        designer: product.designer || '',
-        supplier_id: product.supplier_id || '',
-        spec_code: product.spec_code || '',
-        color: product.color || '',
-        quantity: product.product_inventory?.[0]?.quantity || 0,
-        cost_with_tax_shipping: product.product_prices?.cost_with_tax_shipping || 0,
-        retail_price: product.product_prices?.retail_price || 0,
-        delivery_days: product.delivery_days || 0,
-        remarks: product.remarks || '',
-        main_image: product.main_image || '',
-        images: product.images || [],
-        status: product.status || 'draft',
-      });
-    } else {
-      setCurrentProduct(null);
-      setFormData({
-        sku_code: '',
-        name: '',
-        brand: '',
-        designer: '',
-        supplier_id: '',
-        spec_code: '',
-        color: '',
-        quantity: 0,
-        cost_with_tax_shipping: 0,
-        retail_price: 0,
-        delivery_days: 0,
-        remarks: '',
-        main_image: '',
-        images: [],
-        status: 'draft',
-      });
-    }
+  // 编辑
+  const handleEdit = (product: Product) => {
+    setCurrentProduct(product);
+    setFormData({
+      sku_code: product.sku_code || '',
+      name: product.name || '',
+      brand: product.brand || '',
+      designer: product.designer || '',
+      supplier_id: product.supplier_id || '',
+      spec_code: product.spec_code || '',
+      color: product.color || '',
+      quantity: product.product_inventory?.[0]?.quantity || 0,
+      cost_with_tax_shipping: product.product_prices?.cost_with_tax_shipping || 0,
+      retail_price: product.product_prices?.retail_price || 0,
+      delivery_days: product.delivery_days || 0,
+      remarks: product.remarks || '',
+      main_image: product.main_image || '',
+      images: product.images || [],
+      status: product.status || 'draft',
+    });
     setShowFormDialog(true);
   };
 
-  // 保存商品
+  // 新增
+  const handleAdd = () => {
+    setCurrentProduct(null);
+    setFormData({
+      sku_code: '',
+      name: '',
+      brand: '',
+      designer: '',
+      supplier_id: '',
+      spec_code: '',
+      color: '',
+      quantity: 0,
+      cost_with_tax_shipping: 0,
+      retail_price: 0,
+      delivery_days: 0,
+      remarks: '',
+      main_image: '',
+      images: [],
+      status: 'draft',
+    });
+    setShowFormDialog(true);
+  };
+
+  // 保存
   const handleSave = async () => {
     if (!formData.sku_code || !formData.name || !formData.brand) {
       alert('请填写必填项：货品编号、货品名称、品牌');
       return;
     }
 
+    setSaving(true);
     try {
-      setSaving(true);
       const url = currentProduct 
         ? `/api/product-center/products/${currentProduct.id}`
         : '/api/product-center/products';
       const method = currentProduct ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      const data = await res.json();
       if (data.success) {
         setShowFormDialog(false);
-        loadProducts();
+        loadData();
       } else {
         alert(data.error || '保存失败');
       }
     } catch (error) {
-      console.error('保存失败:', error);
+      alert('保存失败');
     } finally {
       setSaving(false);
     }
   };
 
-  // 删除商品
+  // 删除
   const handleDelete = async () => {
     if (!currentProduct) return;
 
     try {
-      const response = await fetch(`/api/product-center/products/${currentProduct.id}`, {
-        method: 'DELETE',
-      });
-
-      const data = await response.json();
+      const res = await fetch(`/api/product-center/products/${currentProduct.id}`, { method: 'DELETE' });
+      const data = await res.json();
       if (data.success) {
         setShowDeleteDialog(false);
         setCurrentProduct(null);
-        loadProducts();
+        loadData();
       } else {
         alert(data.error || '删除失败');
       }
     } catch (error) {
-      console.error('删除失败:', error);
+      alert('删除失败');
     }
   };
 
-  // 图片上传
+  // 上传图片
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
+    if (!files?.length) return;
 
+    setUploading(true);
     try {
-      setUploading(true);
-      const uploadedUrls: string[] = [];
-
+      const urls: string[] = [];
       for (const file of Array.from(files)) {
-        const formDataUpload = new FormData();
-        formDataUpload.append('file', file);
-
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formDataUpload,
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.imageUrl) {
-            uploadedUrls.push(data.imageUrl);
-          }
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.imageUrl) urls.push(data.imageUrl);
         }
       }
-
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...uploadedUrls],
-        main_image: prev.main_image || uploadedUrls[0] || '',
+        images: [...prev.images, ...urls],
+        main_image: prev.main_image || urls[0] || '',
       }));
-    } catch (error) {
-      console.error('上传失败:', error);
     } finally {
       setUploading(false);
     }
   };
 
-  const handleRemoveImage = (index: number) => {
-    setFormData(prev => {
-      const newImages = prev.images.filter((_, i) => i !== index);
-      return {
-        ...prev,
-        images: newImages,
-        main_image: index === 0 ? (newImages[0] || '') : prev.main_image,
-      };
-    });
-  };
-
   // 计算毛利率
-  const calculateProfitMargin = (cost: number, retail: number) => {
-    if (!retail || retail === 0) return '-';
-    const margin = ((retail - cost) / retail) * 100;
-    return margin.toFixed(1) + '%';
+  const calcMargin = (cost: number, retail: number) => {
+    if (!retail) return '-';
+    return ((retail - cost) / retail * 100).toFixed(1) + '%';
   };
 
-  const getBrandLabel = (brand: string) => {
-    return BRANDS.find(b => b.value === brand)?.label || brand;
+  const getBrandLabel = (brand: string) => BRANDS.find(b => b.value === brand)?.label || brand;
+  
+  const getSupplierName = (supplierId?: string) => {
+    if (!supplierId) return '-';
+    return suppliers.find(s => s.id === supplierId)?.name || '-';
   };
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; className: string }> = {
-      active: { label: '上架', className: 'bg-green-100 text-green-700' },
-      inactive: { label: '下架', className: 'bg-red-100 text-red-700' },
-      draft: { label: '草稿', className: 'bg-gray-100 text-gray-700' },
+    const map: Record<string, string> = {
+      active: 'bg-green-100 text-green-700',
+      inactive: 'bg-red-100 text-red-700',
+      draft: 'bg-gray-100 text-gray-700',
     };
-    const { label, className } = statusMap[status] || { label: status, className: 'bg-gray-100' };
-    return <span className={`px-2 py-1 rounded text-xs ${className}`}>{label}</span>;
-  };
-
-  const getSupplierName = (supplierId?: string) => {
-    if (!supplierId) return '-';
-    const supplier = suppliers.find(s => s.id === supplierId);
-    return supplier?.name || '-';
+    const labels: Record<string, string> = { active: '上架', inactive: '下架', draft: '草稿' };
+    return <span className={`px-2 py-1 rounded text-xs ${map[status] || map.draft}`}>{labels[status] || status}</span>;
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
+    <div className="p-6 space-y-6">
+      {/* 头部 */}
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">商品列表</h1>
-          <p className="text-muted-foreground">查看和管理所有商品</p>
+          <h1 className="text-2xl font-bold">商品列表</h1>
+          <p className="text-muted-foreground text-sm">管理所有商品信息</p>
         </div>
-        <Button onClick={() => handleOpenForm()}>
-          <Plus className="h-4 w-4 mr-2" />
-          新建商品
+        <Button onClick={handleAdd}>
+          <Plus className="w-4 h-4 mr-2" />新增商品
         </Button>
       </div>
 
-      {/* 搜索和筛选 */}
+      {/* 筛选 */}
       <Card>
-        <CardContent className="pt-6">
-          <form onSubmit={handleSearch} className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="搜索货品名称或编号..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+        <CardContent className="pt-4">
+          <form onSubmit={handleSearch} className="flex flex-wrap gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="搜索货品名称或编号..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
             </div>
             <Select value={brandFilter} onValueChange={setBrandFilter}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="品牌" />
-              </SelectTrigger>
+              <SelectTrigger className="w-28"><SelectValue placeholder="品牌" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部品牌</SelectItem>
-                {BRANDS.map(brand => (
-                  <SelectItem key={brand.value} value={brand.value}>{brand.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="供应商" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部供应商</SelectItem>
-                {suppliers.map(supplier => (
-                  <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
-                ))}
+                {BRANDS.map(b => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="状态" />
-              </SelectTrigger>
+              <SelectTrigger className="w-28"><SelectValue placeholder="状态" /></SelectTrigger>
               <SelectContent>
-                {STATUS_OPTIONS.map(status => (
-                  <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
-                ))}
+                <SelectItem value="all">全部状态</SelectItem>
+                <SelectItem value="active">上架</SelectItem>
+                <SelectItem value="inactive">下架</SelectItem>
+                <SelectItem value="draft">草稿</SelectItem>
               </SelectContent>
             </Select>
-            <Button type="submit">
-              <Filter className="h-4 w-4 mr-2" />
-              筛选
-            </Button>
+            <Button type="submit">筛选</Button>
           </form>
         </CardContent>
       </Card>
 
-      {/* 商品列表 */}
+      {/* 列表 */}
       <Card>
         <CardHeader>
-          <CardTitle>商品列表</CardTitle>
-          <CardDescription>共 {pagination.total} 个商品</CardDescription>
+          <CardTitle className="text-base">商品列表 <span className="text-muted-foreground font-normal">({products.length}个)</span></CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            </div>
+            <div className="text-center py-8"><div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto" /></div>
           ) : products.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <div className="text-center py-8 text-muted-foreground">
+              <Package className="w-10 h-10 mx-auto mb-2 opacity-50" />
               <p>暂无商品</p>
-              <Button onClick={() => handleOpenForm()} variant="outline" className="mt-4">
-                <Plus className="h-4 w-4 mr-2" />
-                创建第一个商品
-              </Button>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 text-sm font-medium whitespace-nowrap">图片</th>
-                    <th className="text-left p-3 text-sm font-medium whitespace-nowrap">货品编号</th>
-                    <th className="text-left p-3 text-sm font-medium whitespace-nowrap">货品名称</th>
-                    <th className="text-left p-3 text-sm font-medium whitespace-nowrap">设计师</th>
-                    <th className="text-left p-3 text-sm font-medium whitespace-nowrap">主供应商</th>
-                    <th className="text-left p-3 text-sm font-medium whitespace-nowrap">规格码</th>
-                    <th className="text-left p-3 text-sm font-medium whitespace-nowrap">颜色</th>
-                    <th className="text-right p-3 text-sm font-medium whitespace-nowrap">数量</th>
-                    <th className="text-right p-3 text-sm font-medium whitespace-nowrap">含税运成本</th>
-                    <th className="text-right p-3 text-sm font-medium whitespace-nowrap">零售价</th>
-                    <th className="text-right p-3 text-sm font-medium whitespace-nowrap">毛利率</th>
-                    <th className="text-center p-3 text-sm font-medium whitespace-nowrap">货期</th>
-                    <th className="text-center p-3 text-sm font-medium whitespace-nowrap">状态</th>
-                    <th className="text-center p-3 text-sm font-medium whitespace-nowrap">操作</th>
+                  <tr className="border-b bg-muted/50 text-left">
+                    <th className="p-2 font-medium">图片</th>
+                    <th className="p-2 font-medium">货品编号</th>
+                    <th className="p-2 font-medium">货品名称</th>
+                    <th className="p-2 font-medium">设计师</th>
+                    <th className="p-2 font-medium">主供应商</th>
+                    <th className="p-2 font-medium">规格码</th>
+                    <th className="p-2 font-medium">颜色</th>
+                    <th className="p-2 font-medium text-right">数量</th>
+                    <th className="p-2 font-medium text-right">含税运成本</th>
+                    <th className="p-2 font-medium text-right">零售价</th>
+                    <th className="p-2 font-medium text-right">毛利率</th>
+                    <th className="p-2 font-medium text-center">货期</th>
+                    <th className="p-2 font-medium text-center">状态</th>
+                    <th className="p-2 font-medium text-center">操作</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((product) => {
-                    const totalQuantity = product.product_inventory?.reduce((sum, inv) => sum + inv.quantity, 0) || 0;
-                    const cost = product.product_prices?.cost_with_tax_shipping || 0;
-                    const retail = product.product_prices?.retail_price || 0;
-                    const profitMargin = calculateProfitMargin(cost, retail);
-                    
+                  {products.map(p => {
+                    const qty = p.product_inventory?.reduce((s, i) => s + i.quantity, 0) || 0;
+                    const cost = p.product_prices?.cost_with_tax_shipping || 0;
+                    const retail = p.product_prices?.retail_price || 0;
+                    const margin = calcMargin(cost, retail);
+
                     return (
-                      <tr 
-                        key={product.id} 
-                        className="border-b hover:bg-muted/30 cursor-pointer"
-                        onClick={() => handleViewDetail(product)}
-                      >
-                        <td className="p-3">
-                          {product.main_image || (product.images && product.images.length > 0) ? (
-                            <img
-                              src={product.main_image || product.images![0]}
-                              alt={product.name}
-                              className="w-12 h-12 object-cover rounded"
-                            />
+                      <tr key={p.id} className="border-b hover:bg-muted/30">
+                        <td className="p-2">
+                          {p.main_image || p.images?.length ? (
+                            <img src={p.main_image || p.images![0]} alt="" className="w-10 h-10 object-cover rounded" />
                           ) : (
-                            <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
-                              <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                            <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
+                              <ImageIcon className="w-4 h-4 text-muted-foreground" />
                             </div>
                           )}
                         </td>
-                        <td className="p-3 text-sm font-mono">{product.sku_code}</td>
-                        <td className="p-3 text-sm font-medium">{product.name}</td>
-                        <td className="p-3 text-sm">{product.designer || '-'}</td>
-                        <td className="p-3 text-sm">{product.suppliers?.name || getSupplierName(product.supplier_id)}</td>
-                        <td className="p-3 text-sm font-mono">{product.spec_code || '-'}</td>
-                        <td className="p-3 text-sm">{product.color || '-'}</td>
-                        <td className="p-3 text-sm text-right">{totalQuantity}</td>
-                        <td className="p-3 text-sm text-right">{cost ? `¥${cost.toFixed(2)}` : '-'}</td>
-                        <td className="p-3 text-sm text-right">{retail ? `¥${retail.toFixed(2)}` : '-'}</td>
-                        <td className="p-3 text-sm text-right">
-                          <span className={profitMargin !== '-' && parseFloat(profitMargin) < 20 ? 'text-red-600 font-medium' : ''}>
-                            {profitMargin}
-                          </span>
-                        </td>
-                        <td className="p-3 text-sm text-center">{product.delivery_days ? `${product.delivery_days}天` : '-'}</td>
-                        <td className="p-3 text-center">{getStatusBadge(product.status)}</td>
-                        <td className="p-3">
-                          <div className="flex gap-1 justify-center" onClick={e => e.stopPropagation()}>
-                            <Button variant="ghost" size="sm" onClick={() => handleViewDetail(product)} title="预览">
+                        <td className="p-2 font-mono">{p.sku_code}</td>
+                        <td className="p-2 font-medium">{p.name}</td>
+                        <td className="p-2">{p.designer || '-'}</td>
+                        <td className="p-2">{p.suppliers?.name || getSupplierName(p.supplier_id)}</td>
+                        <td className="p-2 font-mono">{p.spec_code || '-'}</td>
+                        <td className="p-2">{p.color || '-'}</td>
+                        <td className="p-2 text-right">{qty}</td>
+                        <td className="p-2 text-right">{cost ? `¥${cost.toFixed(2)}` : '-'}</td>
+                        <td className="p-2 text-right">{retail ? `¥${retail.toFixed(2)}` : '-'}</td>
+                        <td className="p-2 text-right">{margin}</td>
+                        <td className="p-2 text-center">{p.delivery_days ? `${p.delivery_days}天` : '-'}</td>
+                        <td className="p-2 text-center">{getStatusBadge(p.status)}</td>
+                        <td className="p-2">
+                          <div className="flex justify-center gap-1">
+                            <Button size="icon" variant="ghost" onClick={() => handlePreview(p)} title="预览">
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleOpenForm(product)} title="编辑">
+                            <Button size="icon" variant="ghost" onClick={() => handleEdit(p)} title="编辑">
                               <Edit className="w-4 h-4" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => { setCurrentProduct(product); setShowDeleteDialog(true); }}
-                              title="删除"
-                            >
+                            <Button size="icon" variant="ghost" onClick={() => { setCurrentProduct(p); setShowDeleteDialog(true); }} title="删除">
                               <Trash2 className="w-4 h-4 text-red-500" />
                             </Button>
                           </div>
@@ -522,274 +407,120 @@ export default function ProductsPage() {
         </CardContent>
       </Card>
 
-      {/* 预览详情弹窗 */}
+      {/* 预览弹窗 */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>商品详情</DialogTitle>
-          </DialogHeader>
-          
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>商品详情</DialogTitle></DialogHeader>
           {currentProduct && (
-            <div className="space-y-4">
-              {/* 图片 */}
-              {(currentProduct.main_image || (currentProduct.images && currentProduct.images.length > 0)) && (
-                <div>
-                  <Label className="text-muted-foreground">商品图片</Label>
-                  <div className="grid grid-cols-4 gap-2 mt-2">
-                    {[currentProduct.main_image, ...(currentProduct.images || [])].filter(Boolean).map((img, i) => (
-                      <img
-                        key={i}
-                        src={img}
-                        alt=""
-                        className="w-full h-24 object-cover rounded"
-                      />
-                    ))}
-                  </div>
-                </div>
+            <div className="space-y-3 text-sm">
+              {currentProduct.main_image && (
+                <img src={currentProduct.main_image} alt="" className="w-full max-h-48 object-contain rounded" />
               )}
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">货品编号</Label>
-                  <p className="font-mono">{currentProduct.sku_code}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">货品名称</Label>
-                  <p className="font-medium">{currentProduct.name}</p>
-                </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-muted-foreground">货品编号</Label><p className="font-mono">{currentProduct.sku_code}</p></div>
+                <div><Label className="text-muted-foreground">货品名称</Label><p className="font-medium">{currentProduct.name}</p></div>
+                <div><Label className="text-muted-foreground">设计师</Label><p>{currentProduct.designer || '-'}</p></div>
+                <div><Label className="text-muted-foreground">主供应商</Label><p>{currentProduct.suppliers?.name || getSupplierName(currentProduct.supplier_id)}</p></div>
+                <div><Label className="text-muted-foreground">规格码</Label><p className="font-mono">{currentProduct.spec_code || '-'}</p></div>
+                <div><Label className="text-muted-foreground">颜色</Label><p>{currentProduct.color || '-'}</p></div>
+                <div><Label className="text-muted-foreground">数量</Label><p>{currentProduct.product_inventory?.reduce((s, i) => s + i.quantity, 0) || 0}</p></div>
+                <div><Label className="text-muted-foreground">含税运成本</Label><p className="font-medium">{currentProduct.product_prices?.cost_with_tax_shipping ? `¥${currentProduct.product_prices.cost_with_tax_shipping.toFixed(2)}` : '-'}</p></div>
+                <div><Label className="text-muted-foreground">零售价</Label><p className="font-medium">{currentProduct.product_prices?.retail_price ? `¥${currentProduct.product_prices.retail_price.toFixed(2)}` : '-'}</p></div>
+                <div><Label className="text-muted-foreground">毛利率</Label><p>{calcMargin(currentProduct.product_prices?.cost_with_tax_shipping || 0, currentProduct.product_prices?.retail_price || 0)}</p></div>
+                <div><Label className="text-muted-foreground">货期</Label><p>{currentProduct.delivery_days ? `${currentProduct.delivery_days}天` : '-'}</p></div>
+                <div><Label className="text-muted-foreground">状态</Label><p>{getStatusBadge(currentProduct.status)}</p></div>
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">设计师</Label>
-                  <p>{currentProduct.designer || '-'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">主供应商</Label>
-                  <p>{currentProduct.suppliers?.name || getSupplierName(currentProduct.supplier_id)}</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">规格码</Label>
-                  <p className="font-mono">{currentProduct.spec_code || '-'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">颜色</Label>
-                  <p>{currentProduct.color || '-'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">数量</Label>
-                  <p>{currentProduct.product_inventory?.reduce((sum, inv) => sum + inv.quantity, 0) || 0}</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">含税运成本</Label>
-                  <p className="font-medium">
-                    {currentProduct.product_prices?.cost_with_tax_shipping 
-                      ? `¥${currentProduct.product_prices.cost_with_tax_shipping.toFixed(2)}` 
-                      : '-'}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">零售价</Label>
-                  <p className="font-medium">
-                    {currentProduct.product_prices?.retail_price 
-                      ? `¥${currentProduct.product_prices.retail_price.toFixed(2)}` 
-                      : '-'}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">毛利率</Label>
-                  <p className="font-medium">
-                    {calculateProfitMargin(
-                      currentProduct.product_prices?.cost_with_tax_shipping || 0,
-                      currentProduct.product_prices?.retail_price || 0
-                    )}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">货期</Label>
-                  <p>{currentProduct.delivery_days ? `${currentProduct.delivery_days}天` : '-'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">状态</Label>
-                  <p>{getStatusBadge(currentProduct.status)}</p>
-                </div>
-              </div>
-              
               {currentProduct.remarks && (
-                <div>
-                  <Label className="text-muted-foreground">备注</Label>
-                  <p className="whitespace-pre-wrap bg-muted/50 p-2 rounded">{currentProduct.remarks}</p>
-                </div>
+                <div><Label className="text-muted-foreground">备注</Label><p className="whitespace-pre-wrap bg-muted/50 p-2 rounded">{currentProduct.remarks}</p></div>
               )}
             </div>
           )}
-          
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDetailDialog(false)}>关闭</Button>
-            <Button onClick={() => {
-              setShowDetailDialog(false);
-              handleOpenForm(currentProduct!);
-            }}>
-              <Edit className="w-4 h-4 mr-2" />
-              编辑
-            </Button>
+            <Button onClick={() => { setShowDetailDialog(false); handleEdit(currentProduct!); }}>编辑</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* 编辑/新增弹窗 */}
       <Dialog open={showFormDialog} onOpenChange={setShowFormDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{currentProduct ? '编辑商品' : '新建商品'}</DialogTitle>
-            <DialogDescription>填写商品信息</DialogDescription>
+            <DialogTitle>{currentProduct ? '编辑商品' : '新增商品'}</DialogTitle>
           </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-3 gap-4">
+          <div className="grid gap-3 py-2">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label>货品编号 <span className="text-red-500">*</span></Label>
-                <Input 
-                  placeholder="SKU编码" 
-                  value={formData.sku_code} 
-                  onChange={e => setFormData(prev => ({ ...prev, sku_code: e.target.value }))} 
-                />
+                <Input value={formData.sku_code} onChange={e => setFormData(p => ({ ...p, sku_code: e.target.value }))} />
               </div>
               <div className="col-span-2">
                 <Label>货品名称 <span className="text-red-500">*</span></Label>
-                <Input 
-                  placeholder="商品名称" 
-                  value={formData.name} 
-                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))} 
-                />
+                <Input value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} />
               </div>
             </div>
-            
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label>品牌 <span className="text-red-500">*</span></Label>
-                <Select value={formData.brand} onValueChange={v => setFormData(prev => ({ ...prev, brand: v }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择品牌" />
-                  </SelectTrigger>
+                <Select value={formData.brand} onValueChange={v => setFormData(p => ({ ...p, brand: v }))}>
+                  <SelectTrigger><SelectValue placeholder="选择" /></SelectTrigger>
                   <SelectContent>
-                    {BRANDS.map(brand => (
-                      <SelectItem key={brand.value} value={brand.value}>{brand.label}</SelectItem>
-                    ))}
+                    {BRANDS.map(b => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>设计师</Label>
-                <Input 
-                  placeholder="设计师名称" 
-                  value={formData.designer} 
-                  onChange={e => setFormData(prev => ({ ...prev, designer: e.target.value }))} 
-                />
+                <Input value={formData.designer} onChange={e => setFormData(p => ({ ...p, designer: e.target.value }))} />
               </div>
               <div>
                 <Label>主供应商</Label>
-                <Select value={formData.supplier_id} onValueChange={v => setFormData(prev => ({ ...prev, supplier_id: v }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择供应商" />
-                  </SelectTrigger>
+                <Select value={formData.supplier_id} onValueChange={v => setFormData(p => ({ ...p, supplier_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder="选择" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">无</SelectItem>
-                    {suppliers.map(supplier => (
-                      <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
-                    ))}
+                    {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label>规格码</Label>
-                <Input 
-                  placeholder="规格编码" 
-                  value={formData.spec_code} 
-                  onChange={e => setFormData(prev => ({ ...prev, spec_code: e.target.value }))} 
-                />
+                <Input value={formData.spec_code} onChange={e => setFormData(p => ({ ...p, spec_code: e.target.value }))} />
               </div>
               <div>
                 <Label>颜色</Label>
-                <Input 
-                  placeholder="颜色" 
-                  value={formData.color} 
-                  onChange={e => setFormData(prev => ({ ...prev, color: e.target.value }))} 
-                />
+                <Input value={formData.color} onChange={e => setFormData(p => ({ ...p, color: e.target.value }))} />
               </div>
               <div>
                 <Label>数量</Label>
-                <Input 
-                  type="number" 
-                  placeholder="库存数量" 
-                  value={formData.quantity} 
-                  onChange={e => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 0 }))} 
-                />
+                <Input type="number" value={formData.quantity} onChange={e => setFormData(p => ({ ...p, quantity: +e.target.value || 0 }))} />
               </div>
             </div>
-            
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label>含税运成本</Label>
-                <Input 
-                  type="number" 
-                  step="0.01"
-                  placeholder="成本价" 
-                  value={formData.cost_with_tax_shipping} 
-                  onChange={e => setFormData(prev => ({ ...prev, cost_with_tax_shipping: parseFloat(e.target.value) || 0 }))} 
-                />
+                <Input type="number" step="0.01" value={formData.cost_with_tax_shipping} onChange={e => setFormData(p => ({ ...p, cost_with_tax_shipping: +e.target.value || 0 }))} />
               </div>
               <div>
                 <Label>零售价</Label>
-                <Input 
-                  type="number" 
-                  step="0.01"
-                  placeholder="零售价" 
-                  value={formData.retail_price} 
-                  onChange={e => setFormData(prev => ({ ...prev, retail_price: parseFloat(e.target.value) || 0 }))} 
-                />
+                <Input type="number" step="0.01" value={formData.retail_price} onChange={e => setFormData(p => ({ ...p, retail_price: +e.target.value || 0 }))} />
               </div>
               <div>
                 <Label>毛利率</Label>
-                <p className="h-10 flex items-center text-sm text-muted-foreground">
-                  {calculateProfitMargin(formData.cost_with_tax_shipping, formData.retail_price)}
-                  {formData.cost_with_tax_shipping > 0 && formData.retail_price > 0 && (
-                    <span className="ml-2 text-xs">
-                      (利润: ¥{((formData.retail_price - formData.cost_with_tax_shipping) || 0).toFixed(2)})
-                    </span>
-                  )}
-                </p>
+                <p className="h-9 flex items-center text-muted-foreground">{calcMargin(formData.cost_with_tax_shipping, formData.retail_price)}</p>
               </div>
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>货期（天）</Label>
-                <Input 
-                  type="number" 
-                  placeholder="交货天数" 
-                  value={formData.delivery_days} 
-                  onChange={e => setFormData(prev => ({ ...prev, delivery_days: parseInt(e.target.value) || 0 }))} 
-                />
+                <Label>货期(天)</Label>
+                <Input type="number" value={formData.delivery_days} onChange={e => setFormData(p => ({ ...p, delivery_days: +e.target.value || 0 }))} />
               </div>
               <div>
                 <Label>状态</Label>
-                <Select value={formData.status} onValueChange={v => setFormData(prev => ({ ...prev, status: v }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择状态" />
-                  </SelectTrigger>
+                <Select value={formData.status} onValueChange={v => setFormData(p => ({ ...p, status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="draft">草稿</SelectItem>
                     <SelectItem value="active">上架</SelectItem>
@@ -798,53 +529,27 @@ export default function ProductsPage() {
                 </Select>
               </div>
             </div>
-            
             <div>
               <Label>备注</Label>
-              <Textarea 
-                placeholder="商品备注..." 
-                rows={2}
-                value={formData.remarks} 
-                onChange={e => setFormData(prev => ({ ...prev, remarks: e.target.value }))} 
-              />
+              <Textarea rows={2} value={formData.remarks} onChange={e => setFormData(p => ({ ...p, remarks: e.target.value }))} />
             </div>
-            
             <div>
-              <Label>商品图片</Label>
-              <div className="mt-2">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="product-image-upload"
-                  disabled={uploading}
-                />
-                <label htmlFor="product-image-upload" className="cursor-pointer">
-                  <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary transition-colors">
-                    {uploading ? (
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                    ) : (
-                      <>
-                        <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground">点击上传图片</p>
-                      </>
-                    )}
-                  </div>
-                </label>
-              </div>
-              
+              <Label>图片</Label>
+              <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" id="img-upload" disabled={uploading} />
+              <label htmlFor="img-upload" className="cursor-pointer">
+                <div className="border-2 border-dashed rounded p-3 text-center hover:border-primary">
+                  {uploading ? <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full mx-auto" /> : <>
+                    <Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" />
+                    <p className="text-xs text-muted-foreground">点击上传</p>
+                  </>}
+                </div>
+              </label>
               {formData.images.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
+                <div className="flex flex-wrap gap-2 mt-2">
                   {formData.images.map((img, i) => (
                     <div key={i} className="relative group">
-                      <img src={img} alt="" className="w-20 h-20 object-cover rounded" />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveImage(i)}
-                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                      >
+                      <img src={img} alt="" className="w-16 h-16 object-cover rounded" />
+                      <button onClick={() => setFormData(p => ({ ...p, images: p.images.filter((_, j) => j !== i) }))} className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center">
                         <X className="w-3 h-3" />
                       </button>
                     </div>
@@ -853,30 +558,23 @@ export default function ProductsPage() {
               )}
             </div>
           </div>
-          
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowFormDialog(false)}>取消</Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? '保存中...' : '保存'}
-            </Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? '保存中...' : '保存'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* 删除确认弹窗 */}
+      {/* 删除确认 */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除</AlertDialogTitle>
-            <AlertDialogDescription>
-              确定要删除商品 "{currentProduct?.name}" 吗？此操作无法撤销。
-            </AlertDialogDescription>
           </AlertDialogHeader>
+          <p className="text-sm text-muted-foreground">确定要删除商品「{currentProduct?.name}」吗？此操作无法撤销。</p>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
-              删除
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">删除</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

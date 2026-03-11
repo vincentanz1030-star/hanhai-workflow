@@ -1,60 +1,96 @@
-# Ai数据助手 - 细粒度权限系统设计
+# Ai数据助手 - 高度自定义权限系统设计
 
-## 一、权限模型设计
+## 一、核心设计理念
 
-### 1.1 三层权限架构
+### 1.1 高度自定义能力
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     用户最终权限                              │
-│  = 用户个人权限 ∪ 岗位权限 ∪ 角色权限（并集，优先级递增）        │
-└─────────────────────────────────────────────────────────────┘
-                              ▲
-                              │ 合并计算
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-   ┌────┴────┐          ┌────┴────┐          ┌────┴────┐
-   │ 用户权限 │          │ 岗位权限 │          │ 角色权限 │
-   │ (最高)   │          │ (中等)   │          │ (基础)   │
-   └─────────┘          └─────────┘          └─────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                        权限系统架构                               │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │ 自定义模块   │  │ 自定义权限   │  │ 自定义角色   │              │
+│  │ Module      │  │ Permission  │  │ Role        │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │ 自定义岗位   │  │ 权限模板    │  │ 批量授权    │              │
+│  │ Position    │  │ Template    │  │ Batch Grant │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-**优先级规则**：
-1. 用户个人权限 > 岗位权限 > 角色权限
-2. "拒绝"权限优先于"允许"权限
-3. 特殊权限（如超级管理员）覆盖所有规则
+### 1.2 自定义维度
 
-### 1.2 权限粒度
-
-每个功能模块支持 5 种操作权限：
-
-| 操作 | 说明 | 示例 |
-|------|------|------|
-| `view` | 查看 | 查看商品列表、详情 |
-| `create` | 新增 | 创建新商品 |
-| `edit` | 编辑 | 修改商品信息 |
-| `delete` | 删除 | 删除商品 |
-| `approve` | 审批/特殊操作 | 审批采购订单、导出数据 |
+| 维度 | 自定义内容 | 说明 |
+|------|-----------|------|
+| 模块 | 增删改查权限模块 | 如新增"会员管理"模块 |
+| 权限 | 增删改查具体权限 | 如新增"导出报表"权限 |
+| 操作 | 自定义操作类型 | 默认5种，可扩展如"审批"、"发布" |
+| 角色 | 完全自定义角色 | 名称、描述、权限组合 |
+| 岗位 | 完全自定义岗位 | 名称、部门、权限组合 |
+| 模板 | 保存权限配置为模板 | 快速复用权限配置 |
 
 ---
 
 ## 二、数据库表结构
 
-### 2.1 权限资源表 `permissions`
+### 2.1 权限模块表 `permission_modules`
+
+```sql
+CREATE TABLE permission_modules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code VARCHAR(50) UNIQUE NOT NULL,      -- 模块代码：product, project
+  name VARCHAR(100) NOT NULL,            -- 模块名称：商品中心、项目管理
+  icon VARCHAR(50),                      -- 图标：Package, FolderOpen
+  sort_order INT DEFAULT 0,              -- 排序
+  is_active BOOLEAN DEFAULT true,        -- 是否启用
+  is_system BOOLEAN DEFAULT false,       -- 是否系统模块（不可删除）
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### 2.2 权限操作类型表 `permission_actions`
+
+```sql
+CREATE TABLE permission_actions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code VARCHAR(30) UNIQUE NOT NULL,      -- 操作代码：view, create, edit
+  name VARCHAR(50) NOT NULL,             -- 操作名称：查看、新增、编辑
+  description TEXT,                      -- 描述
+  icon VARCHAR(50),                      -- 图标：Eye, Plus, Edit
+  color VARCHAR(20),                     -- 颜色：blue, green, orange
+  sort_order INT DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  is_system BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### 2.3 权限表 `permissions`
 
 ```sql
 CREATE TABLE permissions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  module VARCHAR(50) NOT NULL,           -- 模块名：product, project, campaign...
-  resource VARCHAR(50) NOT NULL,         -- 资源名：product, supplier, order...
-  action VARCHAR(20) NOT NULL,           -- 操作：view, create, edit, delete, approve
+  module_id UUID REFERENCES permission_modules(id) ON DELETE CASCADE,
+  code VARCHAR(100) UNIQUE NOT NULL,     -- 权限代码：product:view, product:create
   name VARCHAR(100) NOT NULL,            -- 权限名称：查看商品、创建商品
   description TEXT,                      -- 权限描述
-  UNIQUE(module, resource, action)
+  action_id UUID REFERENCES permission_actions(id),
+  resource VARCHAR(50),                  -- 资源名称（用于API权限检查）
+  is_active BOOLEAN DEFAULT true,
+  is_system BOOLEAN DEFAULT false,
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
 );
+
+-- 创建索引
+CREATE INDEX idx_permissions_module ON permissions(module_id);
+CREATE INDEX idx_permissions_code ON permissions(code);
 ```
 
-### 2.2 角色表 `roles`
+### 2.4 角色表 `roles`
 
 ```sql
 CREATE TABLE roles (
@@ -62,413 +98,396 @@ CREATE TABLE roles (
   code VARCHAR(50) UNIQUE NOT NULL,      -- 角色代码：admin, product_manager
   name VARCHAR(100) NOT NULL,            -- 角色名称：管理员、产品经理
   description TEXT,                      -- 角色描述
+  color VARCHAR(20) DEFAULT 'blue',      -- 标签颜色
+  icon VARCHAR(50),                      -- 图标
+  is_active BOOLEAN DEFAULT true,        -- 是否启用
   is_system BOOLEAN DEFAULT false,       -- 是否系统角色（不可删除）
-  created_at TIMESTAMP DEFAULT NOW()
+  sort_order INT DEFAULT 0,
+  user_count INT DEFAULT 0,              -- 关联用户数（缓存字段）
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
 );
 ```
 
-### 2.3 岗位表 `positions`
+### 2.5 岗位表 `positions`
 
 ```sql
 CREATE TABLE positions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   code VARCHAR(50) UNIQUE NOT NULL,      -- 岗位代码：illustration, procurement
   name VARCHAR(100) NOT NULL,            -- 岗位名称：插画、采购
-  department VARCHAR(100),               -- 所属部门：设计部、采购部
+  department VARCHAR(100),               -- 所属部门
   description TEXT,
-  created_at TIMESTAMP DEFAULT NOW()
+  color VARCHAR(20) DEFAULT 'green',     -- 标签颜色
+  icon VARCHAR(50),
+  is_active BOOLEAN DEFAULT true,
+  is_system BOOLEAN DEFAULT false,
+  sort_order INT DEFAULT 0,
+  user_count INT DEFAULT 0,              -- 关联用户数（缓存字段）
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
 );
 ```
 
-### 2.4 角色权限关联表 `role_permissions`
+### 2.6 权限模板表 `permission_templates`
+
+```sql
+CREATE TABLE permission_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code VARCHAR(50) UNIQUE NOT NULL,      -- 模板代码
+  name VARCHAR(100) NOT NULL,            -- 模板名称
+  description TEXT,                      -- 模板描述
+  type VARCHAR(20) NOT NULL,             -- 类型：role, position, user
+  permission_ids JSONB,                  -- 权限ID列表 ["uuid1", "uuid2"]
+  is_public BOOLEAN DEFAULT false,       -- 是否公开模板
+  created_by UUID,                       -- 创建人
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### 2.7 角色权限关联表 `role_permissions`
 
 ```sql
 CREATE TABLE role_permissions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   role_id UUID REFERENCES roles(id) ON DELETE CASCADE,
   permission_id UUID REFERENCES permissions(id) ON DELETE CASCADE,
-  created_at TIMESTAMP DEFAULT NOW(),
+  granted_by UUID,                       -- 授权人
+  granted_at TIMESTAMP DEFAULT NOW(),
   UNIQUE(role_id, permission_id)
 );
 ```
 
-### 2.5 岗位权限关联表 `position_permissions`
+### 2.8 岗位权限关联表 `position_permissions`
 
 ```sql
 CREATE TABLE position_permissions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   position_id UUID REFERENCES positions(id) ON DELETE CASCADE,
   permission_id UUID REFERENCES permissions(id) ON DELETE CASCADE,
-  created_at TIMESTAMP DEFAULT NOW(),
+  granted_by UUID,
+  granted_at TIMESTAMP DEFAULT NOW(),
   UNIQUE(position_id, permission_id)
 );
 ```
 
-### 2.6 用户角色关联表 `user_roles`
+### 2.9 用户角色关联表 `user_roles`
 
 ```sql
 CREATE TABLE user_roles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL,                 -- 用户ID
+  user_id UUID NOT NULL,
   role_id UUID REFERENCES roles(id) ON DELETE CASCADE,
-  is_primary BOOLEAN DEFAULT false,      -- 是否主角色
-  created_at TIMESTAMP DEFAULT NOW(),
+  is_primary BOOLEAN DEFAULT false,      -- 主角色
+  granted_by UUID,
+  granted_at TIMESTAMP DEFAULT NOW(),
   UNIQUE(user_id, role_id)
 );
 ```
 
-### 2.7 用户岗位关联表 `user_positions`
+### 2.10 用户岗位关联表 `user_positions`
 
 ```sql
 CREATE TABLE user_positions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL,                 -- 用户ID
+  user_id UUID NOT NULL,
   position_id UUID REFERENCES positions(id) ON DELETE CASCADE,
-  is_primary BOOLEAN DEFAULT false,      -- 是否主岗位
-  created_at TIMESTAMP DEFAULT NOW(),
+  is_primary BOOLEAN DEFAULT false,
+  granted_by UUID,
+  granted_at TIMESTAMP DEFAULT NOW(),
   UNIQUE(user_id, position_id)
 );
 ```
 
-### 2.8 用户个人权限表 `user_permissions`
+### 2.11 用户个人权限表 `user_permissions`
 
 ```sql
 CREATE TABLE user_permissions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL,                 -- 用户ID
+  user_id UUID NOT NULL,
   permission_id UUID REFERENCES permissions(id) ON DELETE CASCADE,
   is_granted BOOLEAN DEFAULT true,       -- true=授权, false=拒绝
-  granted_by UUID,                       -- 授权人ID
+  granted_by UUID,
   granted_at TIMESTAMP DEFAULT NOW(),
-  expires_at TIMESTAMP,                  -- 过期时间（可选）
-  remark TEXT,                           -- 备注
+  expires_at TIMESTAMP,                  -- 过期时间
+  remark TEXT,
   UNIQUE(user_id, permission_id)
+);
+```
+
+### 2.12 权限变更日志表 `permission_audit_logs`
+
+```sql
+CREATE TABLE permission_audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  operator_id UUID NOT NULL,             -- 操作人
+  target_type VARCHAR(20) NOT NULL,      -- 目标类型：role, position, user
+  target_id UUID,                        -- 目标ID
+  action VARCHAR(20) NOT NULL,           -- 操作：grant, revoke, create, delete
+  permission_id UUID,                    -- 权限ID
+  permission_code VARCHAR(100),          -- 权限代码（冗余）
+  old_value JSONB,                       -- 旧值
+  new_value JSONB,                       -- 新值
+  remark TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
 );
 ```
 
 ---
 
-## 三、权限资源清单
+## 三、API 接口设计
 
-### 3.1 完整权限列表
-
-#### 🔐 系统管理模块 (system)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| system | manage_users | 用户管理 | 增删改查用户 |
-| system | manage_roles | 角色管理 | 管理角色和权限 |
-| system | manage_permissions | 权限管理 | 分配权限 |
-| system | view_logs | 查看日志 | 查看操作日志 |
-| system | manage_config | 系统配置 | 修改系统设置 |
-| system | data_backup | 数据备份 | 备份和恢复数据 |
-
-#### 📁 项目管理模块 (project)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| project | view | 查看项目 | 查看项目列表和详情 |
-| project | create | 创建项目 | 新建项目 |
-| project | edit | 编辑项目 | 修改项目信息 |
-| project | delete | 删除项目 | 删除项目 |
-| project | export | 导出项目 | 导出项目数据 |
-
-#### ✅ 任务管理模块 (task)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| task | view | 查看任务 | 查看任务列表和详情 |
-| task | create | 创建任务 | 新建任务 |
-| task | edit | 编辑任务 | 修改任务信息 |
-| task | delete | 删除任务 | 删除任务 |
-| task | assign | 分配任务 | 分配任务给他人 |
-| task | complete | 完成任务 | 标记任务完成 |
-
-#### 📦 商品中心模块 (product)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| product | view | 查看商品 | 查看商品列表和详情 |
-| product | create | 创建商品 | 新建商品 |
-| product | edit | 编辑商品 | 修改商品信息 |
-| product | delete | 删除商品 | 删除商品 |
-| product | manage_price | 管理价格 | 设置商品价格 |
-| product | manage_inventory | 管理库存 | 管理库存数量 |
-| product | export | 导出商品 | 导出商品数据 |
-| product | import | 导入商品 | 批量导入商品 |
-
-#### 🏭 供应商模块 (supplier)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| supplier | view | 查看供应商 | 查看供应商列表和详情 |
-| supplier | create | 创建供应商 | 新建供应商 |
-| supplier | edit | 编辑供应商 | 修改供应商信息 |
-| supplier | delete | 删除供应商 | 删除供应商 |
-
-#### 🛒 采购订单模块 (purchase_order)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| purchase_order | view | 查看采购单 | 查看采购订单列表 |
-| purchase_order | create | 创建采购单 | 新建采购订单 |
-| purchase_order | edit | 编辑采购单 | 修改采购订单 |
-| purchase_order | approve | 审批采购单 | 审批采购订单 |
-| purchase_order | cancel | 取消采购单 | 取消采购订单 |
-
-#### 📊 销售统计模块 (sales_stats)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| sales_stats | view | 查看销售统计 | 查看销售数据 |
-| sales_stats | create | 录入销售数据 | 录入销售统计 |
-| sales_stats | edit | 编辑销售数据 | 修改销售统计 |
-| sales_stats | export | 导出销售数据 | 导出销售报表 |
-
-#### 💬 商品反馈模块 (product_feedback)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| product_feedback | view | 查看反馈 | 查看商品反馈 |
-| product_feedback | create | 创建反馈 | 提交商品反馈 |
-| product_feedback | handle | 处理反馈 | 处理反馈问题 |
-| product_feedback | delete | 删除反馈 | 删除反馈记录 |
-
-#### 📢 营销活动模块 (campaign)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| campaign | view | 查看活动 | 查看营销活动 |
-| campaign | create | 创建活动 | 新建营销活动 |
-| campaign | edit | 编辑活动 | 修改活动信息 |
-| campaign | delete | 删除活动 | 删除营销活动 |
-| campaign | approve | 审批活动 | 审批营销活动 |
-
-#### 📝 活动任务模块 (campaign_task)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| campaign_task | view | 查看任务 | 查看活动任务 |
-| campaign_task | create | 创建任务 | 新建活动任务 |
-| campaign_task | edit | 编辑任务 | 修改活动任务 |
-| campaign_task | assign | 分配任务 | 分配活动任务 |
-| campaign_task | complete | 完成任务 | 标记任务完成 |
-
-#### 🤝 协同项目模块 (collaboration)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| collaboration | view | 查看协同项目 | 查看协同项目 |
-| collaboration | create | 创建协同项目 | 新建协同项目 |
-| collaboration | edit | 编辑协同项目 | 修改协同项目 |
-| collaboration | delete | 删除协同项目 | 删除协同项目 |
-| collaboration | manage_members | 管理成员 | 添加/移除项目成员 |
-
-#### 📚 知识库模块 (knowledge)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| knowledge | view | 查看知识库 | 查看知识文章 |
-| knowledge | create | 创建文章 | 新建知识文章 |
-| knowledge | edit | 编辑文章 | 修改知识文章 |
-| knowledge | delete | 删除文章 | 删除知识文章 |
-
-#### 📅 日程管理模块 (schedule)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| schedule | view | 查看日程 | 查看日程安排 |
-| schedule | create | 创建日程 | 新建日程 |
-| schedule | edit | 编辑日程 | 修改日程 |
-| schedule | delete | 删除日程 | 删除日程 |
-
-#### ✅ 审批流程模块 (approval)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| approval | view | 查看审批 | 查看审批记录 |
-| approval | create | 发起审批 | 发起审批申请 |
-| approval | approve | 审批通过 | 审批通过 |
-| approval | reject | 审批拒绝 | 审批拒绝 |
-
-#### 💬 内部消息模块 (message)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| message | view | 查看消息 | 查看消息 |
-| message | send | 发送消息 | 发送消息 |
-| message | delete | 删除消息 | 删除消息 |
-
-#### 📂 资源共享模块 (shared_resource)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| shared_resource | view | 查看资源 | 查看共享资源 |
-| shared_resource | create | 上传资源 | 上传共享资源 |
-| shared_resource | edit | 编辑资源 | 修改共享资源 |
-| shared_resource | delete | 删除资源 | 删除共享资源 |
-
-#### 💬 客户反馈模块 (feedback)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| feedback | view | 查看反馈 | 查看客户反馈 |
-| feedback | create | 创建反馈 | 提交客户反馈 |
-| feedback | handle | 处理反馈 | 处理客户反馈 |
-| feedback | delete | 删除反馈 | 删除反馈记录 |
-
-#### 📈 数据分析模块 (analytics)
-| 资源 | 操作 | 权限名称 | 说明 |
-|------|------|---------|------|
-| analytics | view | 查看分析 | 查看数据分析 |
-| analytics | export | 导出数据 | 导出分析数据 |
-
----
-
-## 四、预设角色权限
-
-### 4.1 超级管理员 (super_admin)
-- **全部权限**
-
-### 4.2 管理员 (admin)
-- 系统管理：用户管理、查看日志
-- 业务模块：全部 CRUD 权限
-- 审批权限：全部审批权限
-
-### 4.3 运营经理 (operations_manager)
-| 模块 | 权限 |
-|------|------|
-| 项目管理 | view, create, edit, export |
-| 商品中心 | view, create, edit |
-| 营销活动 | 全部权限 |
-| 数据分析 | view, export |
-| 审批 | view, approve, reject |
-
-### 4.4 商品经理 (product_manager)
-| 模块 | 权限 |
-|------|------|
-| 商品中心 | 全部权限 |
-| 供应商 | 全部权限 |
-| 采购订单 | view, create, edit |
-| 销售统计 | 全部权限 |
-| 商品反馈 | 全部权限 |
-
-### 4.5 采购专员 (purchaser)
-| 模块 | 权限 |
-|------|------|
-| 供应商 | view, create, edit |
-| 采购订单 | view, create, edit |
-| 商品中心 | view |
-
-### 4.6 设计师 (designer)
-| 模块 | 权限 |
-|------|------|
-| 项目管理 | view |
-| 任务 | view, edit, complete |
-| 商品中心 | view |
-| 资源共享 | 全部权限 |
-| 知识库 | view, create, edit |
-
-### 4.7 客服 (customer_service)
-| 模块 | 权限 |
-|------|------|
-| 商品中心 | view |
-| 客户反馈 | 全部权限 |
-| 商品反馈 | view, create |
-
-### 4.8 普通员工 (employee)
-| 模块 | 权限 |
-|------|------|
-| 项目管理 | view |
-| 任务 | view, complete |
-| 日程 | 全部权限 |
-| 消息 | 全部权限 |
-| 知识库 | view |
-
----
-
-## 五、预设岗位权限
-
-| 岗位 | 专属权限 |
-|------|---------|
-| 插画 | task:view, task:complete, shared_resource:all |
-| 产品设计 | task:view, task:complete, product:view |
-| 详情设计 | task:view, task:complete, product:view, product:edit |
-| 文案撰写 | task:view, task:complete, knowledge:create, knowledge:edit |
-| 采购管理 | supplier:all, purchase_order:all |
-| 包装设计 | task:view, task:complete, shared_resource:all |
-| 财务管理 | sales_stats:view, purchase_order:view, approval:approve |
-| 客服培训 | feedback:all, product_feedback:view |
-| 仓储管理 | product:view, product:manage_inventory |
-| 运营管理 | campaign:all, analytics:view |
-
----
-
-## 六、权限检查逻辑
-
-```typescript
-async function checkUserPermission(userId: string, module: string, resource: string, action: string): Promise<boolean> {
-  // 1. 检查是否超级管理员
-  if (await isSuperAdmin(userId)) return true;
-
-  // 2. 检查用户个人权限（最高优先级）
-  const userPerm = await getUserPermission(userId, resource, action);
-  if (userPerm !== null) return userPerm; // 明确授权或拒绝
-
-  // 3. 检查岗位权限
-  const positionPerm = await getPositionPermission(userId, resource, action);
-  if (positionPerm) return true;
-
-  // 4. 检查角色权限
-  const rolePerm = await getRolePermission(userId, resource, action);
-  if (rolePerm) return true;
-
-  // 5. 默认拒绝
-  return false;
-}
-```
-
----
-
-## 七、API 接口设计
-
-### 7.1 权限管理 API
+### 3.1 权限模块管理
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/api/admin/permissions` | GET | 获取所有权限列表 |
-| `/api/admin/roles` | GET/POST | 角色 CRUD |
-| `/api/admin/roles/[id]/permissions` | GET/PUT | 角色权限配置 |
-| `/api/admin/positions` | GET/POST | 岗位 CRUD |
-| `/api/admin/positions/[id]/permissions` | GET/PUT | 岗位权限配置 |
-| `/api/admin/users/[id]/permissions` | GET/PUT | 用户个人权限配置 |
-| `/api/admin/users/[id]/roles` | GET/PUT | 用户角色分配 |
-| `/api/admin/users/[id]/positions` | GET/PUT | 用户岗位分配 |
+| `/api/admin/permission-modules` | GET | 获取所有模块列表 |
+| `/api/admin/permission-modules` | POST | 创建新模块 |
+| `/api/admin/permission-modules/[id]` | PUT | 更新模块 |
+| `/api/admin/permission-modules/[id]` | DELETE | 删除模块 |
 
-### 7.2 权限查询 API
+### 3.2 权限操作类型管理
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/api/auth/my-permissions` | GET | 获取当前用户所有权限 |
-| `/api/auth/check-permission` | POST | 检查是否有某权限 |
+| `/api/admin/permission-actions` | GET | 获取所有操作类型 |
+| `/api/admin/permission-actions` | POST | 创建新操作类型 |
+| `/api/admin/permission-actions/[id]` | PUT | 更新操作类型 |
+| `/api/admin/permission-actions/[id]` | DELETE | 删除操作类型 |
+
+### 3.3 权限管理
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/admin/permissions` | GET | 获取所有权限（支持按模块筛选） |
+| `/api/admin/permissions` | POST | 创建新权限 |
+| `/api/admin/permissions/[id]` | PUT | 更新权限 |
+| `/api/admin/permissions/[id]` | DELETE | 删除权限 |
+| `/api/admin/permissions/batch` | POST | 批量创建权限 |
+
+### 3.4 角色管理
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/admin/roles` | GET | 获取所有角色 |
+| `/api/admin/roles` | POST | 创建角色 |
+| `/api/admin/roles/[id]` | PUT | 更新角色 |
+| `/api/admin/roles/[id]` | DELETE | 删除角色 |
+| `/api/admin/roles/[id]/permissions` | GET | 获取角色权限 |
+| `/api/admin/roles/[id]/permissions` | PUT | 设置角色权限（全量替换） |
+| `/api/admin/roles/[id]/permissions` | PATCH | 增量更新角色权限 |
+| `/api/admin/roles/[id]/users` | GET | 获取角色下的用户列表 |
+
+### 3.5 岗位管理
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/admin/positions` | GET | 获取所有岗位 |
+| `/api/admin/positions` | POST | 创建岗位 |
+| `/api/admin/positions/[id]` | PUT | 更新岗位 |
+| `/api/admin/positions/[id]` | DELETE | 删除岗位 |
+| `/api/admin/positions/[id]/permissions` | GET | 获取岗位权限 |
+| `/api/admin/positions/[id]/permissions` | PUT | 设置岗位权限 |
+| `/api/admin/positions/[id]/users` | GET | 获取岗位下的用户列表 |
+
+### 3.6 用户权限管理
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/admin/users/[id]/permissions` | GET | 获取用户所有权限（合并角色+岗位+个人） |
+| `/api/admin/users/[id]/permissions` | PUT | 设置用户个人权限 |
+| `/api/admin/users/[id]/permissions/[permId]` | DELETE | 移除用户个人权限 |
+| `/api/admin/users/[id]/roles` | GET/PUT | 用户角色管理 |
+| `/api/admin/users/[id]/positions` | GET/PUT | 用户岗位管理 |
+
+### 3.7 权限模板管理
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/admin/permission-templates` | GET | 获取权限模板列表 |
+| `/api/admin/permission-templates` | POST | 创建权限模板 |
+| `/api/admin/permission-templates/[id]` | PUT | 更新模板 |
+| `/api/admin/permission-templates/[id]` | DELETE | 删除模板 |
+| `/api/admin/permission-templates/[id]/apply` | POST | 应用模板到角色/岗位/用户 |
+
+### 3.8 批量操作
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/admin/permissions/batch-grant` | POST | 批量授权 |
+| `/api/admin/permissions/batch-revoke` | POST | 批量撤销 |
+| `/api/admin/permissions/copy-from` | POST | 从角色/岗位复制权限 |
+
+### 3.9 权限检查
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/auth/my-permissions` | GET | 获取当前用户权限列表 |
+| `/api/auth/check-permission` | POST | 检查单个权限 |
+| `/api/auth/check-permissions` | POST | 批量检查权限 |
 
 ---
 
-## 八、前端权限控制
+## 四、前端界面设计
 
-### 8.1 权限组件
+### 4.1 权限管理主界面
 
-```tsx
-// 根据权限显示/隐藏内容
-<PermissionGuard module="product" action="create">
-  <Button>新建商品</Button>
-</PermissionGuard>
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  权限管理                                                        │
+├─────────────────────────────────────────────────────────────────┤
+│  [模块管理] [操作类型] [权限列表] [角色管理] [岗位管理] [模板]    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  左侧：模块树                      右侧：权限矩阵                 │
+│  ┌───────────────┐               ┌─────────────────────────────┐│
+│  │ ▼ 商品中心    │               │ 权限      │查看│新增│编辑│删除││
+│  │   ├ 商品管理  │──────────────▶ │ 商品管理  │ ✓ │ ✓ │ ✓ │ ✓ ││
+│  │   ├ 供应商    │               │ 供应商    │ ✓ │ ✓ │ ✓ │ ✗ ││
+│  │   └ 采购订单  │               │ 采购订单  │ ✓ │ ✓ │ ✗ │ ✗ ││
+│  │ ▼ 项目管理    │               │ ...       │...│...│...│...││
+│  │   ├ 项目      │               └─────────────────────────────┘│
+│  │   └ 任务      │                                             │
+│  │ ▼ 营销中台    │               [全选] [反选] [保存] [另存模板] │
+│  └───────────────┘                                             │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### 8.2 权限 Hook
+### 4.2 角色管理界面
 
-```tsx
-const { hasPermission, permissions } = usePermissions();
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  角色管理                                      [+ 新建角色]      │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ 管理员          [编辑] [复制] [删除]  用户数: 5           │  │
+│  │ 拥有系统所有权限                                          │  │
+│  │ 权限数: 80/80  ████████████████████ 100%                 │  │
+│  ├──────────────────────────────────────────────────────────┤  │
+│  │ 商品经理        [编辑] [复制] [删除]  用户数: 3           │  │
+│  │ 负责商品和供应链管理                                      │  │
+│  │ 权限数: 25/80  ████████░░░░░░░░░░░░ 31%                  │  │
+│  ├──────────────────────────────────────────────────────────┤  │
+│  │ ...                                                       │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-if (hasPermission('product', 'create')) {
-  // 显示创建按钮
-}
+### 4.3 用户权限配置界面
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  用户权限配置 - 张三 (zhangsan@example.com)                      │
+├─────────────────────────────────────────────────────────────────┤
+│  [基本信息] [角色分配] [岗位分配] [个人权限] [权限预览]           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  当前角色: 商品经理 (主), 采购专员                               │
+│  当前岗位: 采购管理 (主)                                        │
+│                                                                 │
+│  个人权限覆盖:                                                   │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ 权限           │状态 │ 来源    │过期时间  │操作         │   │
+│  │ 项目:删除      │授权 │ 个人    │永久     │[撤销]        │   │
+│  │ 商品:导出      │拒绝 │ 个人    │永久     │[撤销]        │   │
+│  │ 报表:查看      │授权 │ 个人    │2024-12-31│[撤销]       │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  [+ 添加个人权限]                                               │
+│                                                                 │
+│  最终权限预览:                                                   │
+│  商品中心: 查看✓ 新增✓ 编辑✓ 删除✓ 价格✓ 库存✓ 导出✗        │
+│  项目管理: 查看✓ 新增✓ 编辑✓ 删除✓ (个人授权)                 │
+│  ...                                                            │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 九、实施步骤
+## 五、核心功能特性
 
-1. **数据库迁移**：创建新的权限相关表
-2. **初始化数据**：插入预设权限、角色、岗位数据
-3. **后端实现**：实现权限检查逻辑和 API
-4. **前端适配**：添加权限控制和权限管理界面
-5. **数据迁移**：迁移现有权限数据到新系统
-6. **测试验证**：全面测试权限功能
+### 5.1 高度自定义
+
+| 功能 | 说明 |
+|------|------|
+| 自定义模块 | 可添加/修改/删除权限模块 |
+| 自定义操作 | 可添加新的操作类型（如"发布"、"审批"） |
+| 自定义权限 | 可为任意模块添加任意操作的权限 |
+| 自定义角色 | 完全自定义角色名称、描述、权限组合 |
+| 自定义岗位 | 完全自定义岗位名称、部门、权限组合 |
+
+### 5.2 批量操作
+
+| 功能 | 说明 |
+|------|------|
+| 批量授权 | 一键为多个用户/角色/岗位授权 |
+| 批量撤销 | 一键撤销多个权限 |
+| 权限复制 | 从一个角色/岗位复制权限到另一个 |
+| 模板应用 | 使用模板快速配置权限 |
+
+### 5.3 权限继承与覆盖
+
+```
+用户最终权限计算：
+1. 合并所有角色的权限（并集）
+2. 合并所有岗位的权限（并集）
+3. 应用用户个人权限覆盖（授权或拒绝）
+4. 检查过期时间，过滤已过期权限
+```
+
+### 5.4 权限模板
+
+| 模板类型 | 说明 |
+|---------|------|
+| 系统模板 | 预置的权限配置模板 |
+| 自定义模板 | 管理员创建的模板 |
+| 部门模板 | 按部门预设的权限配置 |
+| 项目模板 | 按项目类型预设的权限配置 |
+
+### 5.5 审计与追溯
+
+| 功能 | 说明 |
+|------|------|
+| 权限变更日志 | 记录所有权限变更 |
+| 操作人追溯 | 记录谁在何时做了什么操作 |
+| 变更对比 | 显示变更前后的差异 |
+| 定期报告 | 权限变更统计报告 |
 
 ---
 
-需要我开始实现这个权限系统吗？
+## 六、实现步骤
+
+### Phase 1: 数据库层
+- [ ] 创建所有权限相关表
+- [ ] 初始化预设数据（模块、操作、权限）
+- [ ] 创建必要的索引和约束
+
+### Phase 2: 后端 API
+- [ ] 实现权限模块管理 API
+- [ ] 实现权限操作类型管理 API
+- [ ] 实现权限 CRUD API
+- [ ] 实现角色管理 API
+- [ ] 实现岗位管理 API
+- [ ] 实现用户权限管理 API
+- [ ] 实现权限检查逻辑
+- [ ] 实现权限模板 API
+- [ ] 实现批量操作 API
+
+### Phase 3: 前端界面
+- [ ] 权限管理主界面
+- [ ] 模块管理界面
+- [ ] 角色管理界面
+- [ ] 岗位管理界面
+- [ ] 用户权限配置界面
+- [ ] 权限模板界面
+
+### Phase 4: 集成与测试
+- [ ] 权限检查中间件
+- [ ] 前端权限组件
+- [ ] API 权限保护
+- [ ] 全面测试
+
+---
+
+需要我开始实现吗？

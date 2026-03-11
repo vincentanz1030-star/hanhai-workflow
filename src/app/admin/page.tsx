@@ -5,6 +5,7 @@ import SystemConfigManager from '@/components/SystemConfigManager';
 import BackupManager from '@/components/BackupManager';
 import DataImportManager from '@/components/DataImportManager';
 import PermissionManager from '@/components/PermissionManager';
+import PermissionManagerV2 from '@/components/PermissionManagerV2';
 import { LayoutDashboard, Shield, Settings, Activity, Database, Upload, UserCog } from 'lucide-react';
 
 export default function AdminPage() {
@@ -81,6 +82,7 @@ export default function AdminPage() {
           <TabsTrigger value="backups" className="text-xs md:text-sm">数据备份</TabsTrigger>
           <TabsTrigger value="import" className="text-xs md:text-sm">数据导入</TabsTrigger>
           <TabsTrigger value="permissions" className="text-xs md:text-sm">权限管理</TabsTrigger>
+          <TabsTrigger value="permissions-v2" className="text-xs md:text-sm">权限系统V2</TabsTrigger>
           <TabsTrigger value="reports" className="text-xs md:text-sm">报表统计</TabsTrigger>
         </TabsList>
 
@@ -112,6 +114,10 @@ export default function AdminPage() {
 
         <TabsContent value="permissions" className="space-y-4">
           <PermissionManager />
+        </TabsContent>
+
+        <TabsContent value="permissions-v2" className="space-y-4">
+          <PermissionManagerV2 />
         </TabsContent>
 
         <TabsContent value="reports" className="space-y-4">

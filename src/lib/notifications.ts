@@ -1,14 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-// 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
-function getSupabaseClient() {
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    db: { schema: 'public' as const }
-  });
-}
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 /**
  * 创建通知

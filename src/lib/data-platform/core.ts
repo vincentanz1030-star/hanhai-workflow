@@ -3,8 +3,6 @@
  * 提供统一的数据访问、聚合、缓存能力
  */
 
-import { createClient } from '@supabase/supabase-js';
-
 // 数据源配置
 const DATA_SOURCES = {
   projects: '/api/projects',

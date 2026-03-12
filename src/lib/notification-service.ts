@@ -1,8 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.COZE_SUPABASE_URL!;
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
-const client = createClient(supabaseUrl, supabaseAnonKey);
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 export interface CreateNotificationParams {
   recipientId: string;
@@ -20,6 +16,7 @@ export interface CreateNotificationParams {
  */
 export async function createNotification(params: CreateNotificationParams) {
   try {
+    const client = getSupabaseClient();
     const { data, error } = await client
       .from('notifications')
       .insert({
@@ -267,6 +264,7 @@ export async function createBulkNotifications(
   brand: string
 ) {
   try {
+    const client = getSupabaseClient();
     const notificationsWithBrand = notifications.map(n => ({
       recipient_id: n.recipientId,
       sender_id: n.senderId || null,

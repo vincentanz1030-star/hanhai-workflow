@@ -3,7 +3,14 @@
  * 用于解决 Vercel Serverless 环境下的数据库连接问题
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { 
+  getSupabaseClient as getBaseClient,
+  loadEnv
+} from '@/storage/database/supabase-client';
+
+// 确保环境变量已加载
+loadEnv();
 
 // 全局连接池
 let supabaseClient: SupabaseClient | null = null;
@@ -21,27 +28,8 @@ export function getSupabaseClient(): SupabaseClient {
     return supabaseClient;
   }
 
-  const supabaseUrl = process.env.COZE_SUPABASE_URL;
-  const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase 环境变量未设置');
-  }
-
-  // 创建新连接
-  supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-    db: { schema: 'public' as const },
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-    global: {
-      headers: {
-        'x-connection-id': `conn_${Date.now()}`,
-      },
-    },
-  });
-
+  // 使用统一的客户端获取方法
+  supabaseClient = getBaseClient() as SupabaseClient;
   lastConnectionTime = now;
   return supabaseClient;
 }

@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 interface AuditLogOptions {
   userId?: string;
@@ -21,7 +18,7 @@ interface AuditLogOptions {
  */
 export async function logAuditAction(options: AuditLogOptions): Promise<void> {
   try {
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     const ipAddress = options.request?.headers.get('x-forwarded-for') || 
                       options.request?.headers.get('x-real-ip') || 
@@ -52,7 +49,7 @@ export async function logAuditAction(options: AuditLogOptions): Promise<void> {
  */
 export async function getAuditLogs(request: NextRequest): Promise<NextResponse> {
   try {
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     const searchParams = request.nextUrl.searchParams;
     
     const userId = searchParams.get('userId');

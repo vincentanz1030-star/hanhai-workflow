@@ -3,16 +3,7 @@
  * 支持三层权限架构：角色 + 岗位 + 个人
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
-function getSupabaseClient() {
-  return createClient(supabaseUrl, supabaseKey, {
-    db: { schema: 'public' as const }
-  });
-}
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 权限缓存（5分钟）
 const permissionCache = new Map<string, { permissions: Set<string>; expires: number }>();
@@ -91,7 +82,7 @@ export async function getUserAllPermissions(userId: string): Promise<Set<string>
       .select('role_id')
       .eq('user_id', userId);
 
-    const roleIds = (userRoles || []).map(r => r.role_id);
+    const roleIds = (userRoles || []).map((r: { role_id: string }) => r.role_id);
 
     // 检查是否超级管理员
     if (roleIds.length > 0) {
@@ -115,8 +106,8 @@ export async function getUserAllPermissions(userId: string): Promise<Set<string>
         .select('permission:permissions_v2(code)')
         .in('role_id', roleIds);
 
-      (rolePerms || []).forEach(p => {
-        const code = (p.permission as any)?.code;
+      (rolePerms || []).forEach((p: { permission: { code: string } | null }) => {
+        const code = p.permission?.code;
         if (code) permissions.add(code);
       });
     }
@@ -127,7 +118,7 @@ export async function getUserAllPermissions(userId: string): Promise<Set<string>
       .select('position_id')
       .eq('user_id', userId);
 
-    const positionIds = (userPositions || []).map(p => p.position_id);
+    const positionIds = (userPositions || []).map((p: { position_id: string }) => p.position_id);
 
     // 4. 获取岗位权限
     if (positionIds.length > 0) {
@@ -136,8 +127,8 @@ export async function getUserAllPermissions(userId: string): Promise<Set<string>
         .select('permission:permissions_v2(code)')
         .in('position_id', positionIds);
 
-      (posPerms || []).forEach(p => {
-        const code = (p.permission as any)?.code;
+      (posPerms || []).forEach((p: { permission: { code: string } | null }) => {
+        const code = p.permission?.code;
         if (code) permissions.add(code);
       });
     }
@@ -148,8 +139,8 @@ export async function getUserAllPermissions(userId: string): Promise<Set<string>
       .select('is_granted, permission:permissions_v2(code), expires_at')
       .eq('user_id', userId);
 
-    (userPerms || []).forEach(up => {
-      const code = (up.permission as any)?.code;
+    (userPerms || []).forEach((up: { is_granted: boolean; permission: { code: string } | null; expires_at: string | null }) => {
+      const code = up.permission?.code;
       if (!code) return;
 
       // 检查过期

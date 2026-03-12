@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { checkPermission } from '@/lib/permissions';
-import { createClient } from '@supabase/supabase-js';
-
-// 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 /**
  * API认证和权限检查
@@ -32,7 +28,7 @@ export async function requireAuth(
   // 从数据库查询用户的roles信息
   let roles: any[] = [];
   try {
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     const { data: userRoles, error } = await client
       .from('user_roles')
       .select('*')

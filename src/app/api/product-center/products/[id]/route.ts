@@ -3,15 +3,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
-
-const supabaseUrl = process.env.COZE_SUPABASE_URL!;
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
-
-function getSupabaseClient() {
-  return createClient(supabaseUrl, supabaseAnonKey);
-}
 
 // PUT - 更新商品
 export async function PUT(

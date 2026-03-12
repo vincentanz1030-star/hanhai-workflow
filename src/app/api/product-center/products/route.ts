@@ -3,19 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// 获取Supabase客户端
-function getSupabaseClient() {
-  const supabaseUrl = process.env.COZE_SUPABASE_URL;
-  const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables');
-  }
-
-  return createClient(supabaseUrl, supabaseKey);
-}
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // GET - 获取商品列表
 export async function GET(request: NextRequest) {
@@ -71,7 +59,7 @@ export async function GET(request: NextRequest) {
     // 获取供应商信息
     let suppliers: Record<string, { id: string; name: string; supplier_code: string }> = {};
     if (data && data.length > 0) {
-      const supplierIds = [...new Set(data.map(p => p.supplier_id).filter(Boolean))];
+      const supplierIds = [...new Set(data.map((p: any) => p.supplier_id).filter(Boolean))];
       if (supplierIds.length > 0) {
         const { data: supplierData } = await supabase
           .from('suppliers')
@@ -79,7 +67,7 @@ export async function GET(request: NextRequest) {
           .in('id', supplierIds);
         
         if (supplierData) {
-          supplierData.forEach(s => {
+          supplierData.forEach((s: any) => {
             suppliers[s.id] = s;
           });
         }
@@ -87,7 +75,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 合并供应商信息
-    const productsWithSuppliers = (data || []).map(product => ({
+    const productsWithSuppliers = (data || []).map((product: any) => ({
       ...product,
       suppliers: product.supplier_id ? suppliers[product.supplier_id] || null : null,
     }));

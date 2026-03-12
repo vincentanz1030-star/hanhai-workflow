@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuth, isAuthUser } from '@/lib/api-auth';
 import { S3Storage } from 'coze-coding-dev-sdk';
 
 ;
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
 // 上传设计素材
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request);
-  if (authResult instanceof NextResponse) return authResult;
+  if (!isAuthUser(authResult)) return authResult;
 
   const body = await request.json();
   const supabase = getSupabaseClient();
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
     const { data: user } = await supabase
       .from('users')
       .select('id, brand')
-      .eq('id', (authResult as any).userId)
+      .eq('id', authResult.userId)
       .single();
 
     const { data, error } = await supabase

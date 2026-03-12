@@ -175,17 +175,18 @@ export function PurchaseOrderList() {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; variant: string; icon: any }> = {
+    type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info" | "error";
+    const statusMap: Record<string, { label: string; variant: BadgeVariant; icon: React.ComponentType<{ className?: string }> | null }> = {
       pending: { label: '待审核', variant: 'secondary', icon: Clock },
       approved: { label: '已批准', variant: 'default', icon: CheckCircle },
-      shipped: { label: '已发货', variant: 'outline', icon: Truck },
-      received: { label: '已收货', variant: 'default', icon: CheckCircle },
+      shipped: { label: '已发货', variant: 'info', icon: Truck },
+      received: { label: '已收货', variant: 'success', icon: CheckCircle },
       cancelled: { label: '已取消', variant: 'destructive', icon: XCircle },
     };
-    const config = statusMap[status] || { label: status, variant: 'outline', icon: null };
+    const config = statusMap[status] || { label: status, variant: 'outline' as BadgeVariant, icon: null };
     const Icon = config.icon;
     return (
-      <Badge variant={config.variant as any} className="gap-1">
+      <Badge variant={config.variant} className="gap-1">
         {Icon && <Icon className="h-3 w-3" />}
         {config.label}
       </Badge>

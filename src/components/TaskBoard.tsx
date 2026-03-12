@@ -88,7 +88,7 @@ export function TaskBoard({ tasks, onTaskUpdate, onTaskSave }: TaskBoardProps) {
       // 更新任务状态
       const destColumnObj = columns.find(c => c.id === destColumn);
       if (destColumnObj) {
-        movedTask.status = destColumnObj.status as any;
+        movedTask.status = destColumnObj.status;
         newTasksByColumn[destColumn].splice(destination.index, 0, movedTask);
 
         // 调用父组件更新

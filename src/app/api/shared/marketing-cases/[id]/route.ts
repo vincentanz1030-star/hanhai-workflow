@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuth, isAuthUser } from '@/lib/api-auth';
 
 ;
 ;
@@ -11,13 +11,13 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const authResult = await requireAuth(request);
-  if (authResult instanceof NextResponse) return authResult;
+  if (!isAuthUser(authResult)) return authResult;
 
   const { id } = await params;
   const body = await request.json();
   const supabase = getSupabaseClient();
-  const currentUserId = (authResult as any).userId;
-  const isAdmin = (authResult as any).roles?.some((r: any) => r.role === 'admin');
+  const currentUserId = authResult.userId;
+  const isAdmin = authResult.roles?.some((r) => r.role === 'admin');
 
   try {
     // 检查是否是创建者或管理员
@@ -81,12 +81,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const authResult = await requireAuth(request);
-  if (authResult instanceof NextResponse) return authResult;
+  if (!isAuthUser(authResult)) return authResult;
 
   const { id } = await params;
   const supabase = getSupabaseClient();
-  const currentUserId = (authResult as any).userId;
-  const isAdmin = (authResult as any).roles?.some((r: any) => r.role === 'admin');
+  const currentUserId = authResult.userId;
+  const isAdmin = authResult.roles?.some((r) => r.role === 'admin');
 
   try {
     // 检查是否是创建者或管理员

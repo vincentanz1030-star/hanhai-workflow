@@ -55,10 +55,10 @@ const FEEDBACK_TYPES = [
   { value: 'inquiry', label: '咨询' },
 ];
 
-const STATUS_OPTIONS = [
+const STATUS_OPTIONS: Array<{ value: string; label: string; color: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info" | "error" }> = [
   { value: 'pending', label: '待处理', color: 'secondary' },
   { value: 'processing', label: '处理中', color: 'default' },
-  { value: 'resolved', label: '已解决', color: 'outline' },
+  { value: 'resolved', label: '已解决', color: 'success' },
   { value: 'closed', label: '已关闭', color: 'destructive' },
 ];
 
@@ -396,7 +396,7 @@ export default function WeeklyFeedbacksPage() {
 
   const getStatusBadge = (status: string) => {
     const statusInfo = STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[0];
-    return <Badge variant={statusInfo.color as any}>{statusInfo.label}</Badge>;
+    return <Badge variant={statusInfo.color}>{statusInfo.label}</Badge>;
   };
 
   const getPriorityBadge = (priority: string) => {

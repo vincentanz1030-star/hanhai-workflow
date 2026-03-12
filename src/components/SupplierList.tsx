@@ -239,13 +239,14 @@ export function SupplierList() {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; variant: string }> = {
-      active: { label: '活跃', variant: 'default' },
+    type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info" | "error";
+    const statusMap: Record<string, { label: string; variant: BadgeVariant }> = {
+      active: { label: '活跃', variant: 'success' },
       inactive: { label: '停用', variant: 'secondary' },
       blacklist: { label: '黑名单', variant: 'destructive' },
     };
-    const config = statusMap[status] || { label: status, variant: 'outline' };
-    return <Badge variant={config.variant as any}>{config.label}</Badge>;
+    const config = statusMap[status] || { label: status, variant: 'outline' as BadgeVariant };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   const getCategoryLabel = (category: string) => {

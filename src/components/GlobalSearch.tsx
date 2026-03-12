@@ -171,15 +171,15 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
           {/* Tab切换 */}
           {totalResults > 0 && (
             <div className="flex gap-2 px-4 py-2 border-b overflow-x-auto">
-              {[
+              {([
                 { id: 'all', label: '全部', count: totalResults },
                 { id: 'projects', label: '项目', count: results.projects.length },
                 { id: 'tasks', label: '任务', count: results.tasks.length },
                 { id: 'users', label: '用户', count: results.users.length },
-              ].map((tab) => (
+              ] as const).map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id)}
                   className={`px-3 py-1.5 text-sm rounded-md whitespace-nowrap transition-colors ${
                     activeTab === tab.id
                       ? 'bg-primary text-primary-foreground'

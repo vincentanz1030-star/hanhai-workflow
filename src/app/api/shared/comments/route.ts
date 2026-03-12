@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuth, isAuthUser, type AuthUser } from '@/lib/api-auth';
 
 ;
 ;
@@ -95,9 +95,8 @@ export async function GET(request: NextRequest) {
 // 发表评论
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request);
-  if (authResult instanceof NextResponse) return authResult;
+  if (!isAuthUser(authResult)) return authResult;
 
-  const user = (authResult as any).user;
   const body = await request.json();
   const { resource_type, resource_id, content, parent_id } = body;
 
@@ -113,8 +112,8 @@ export async function POST(request: NextRequest) {
       .insert({
         resource_type,
         resource_id,
-        user_id: user.id,
-        brand: user.brand,
+        user_id: authResult.userId,
+        brand: authResult.brand,
         content,
         parent_id: parent_id || null,
       })
@@ -132,9 +131,8 @@ export async function POST(request: NextRequest) {
 // 删除评论
 export async function DELETE(request: NextRequest) {
   const authResult = await requireAuth(request);
-  if (authResult instanceof NextResponse) return authResult;
+  if (!isAuthUser(authResult)) return authResult;
 
-  const user = (authResult as any).user;
   const { searchParams } = new URL(request.url);
   const commentId = searchParams.get('id');
 
@@ -150,7 +148,7 @@ export async function DELETE(request: NextRequest) {
       .from('shared_comments')
       .delete()
       .eq('id', commentId)
-      .eq('user_id', user.id);
+      .eq('user_id', authResult.userId);
 
     if (error) throw error;
 

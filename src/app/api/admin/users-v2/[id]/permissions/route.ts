@@ -5,7 +5,52 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuth, isAuthUser } from '@/lib/api-auth';
+
+// 类型定义
+interface RoleData {
+  id: string;
+  code: string;
+  name: string;
+  color: string;
+  icon: string;
+}
+
+interface PositionData {
+  id: string;
+  code: string;
+  name: string;
+  department: string;
+  color: string;
+  icon: string;
+}
+
+interface UserRoleResult {
+  is_primary: boolean;
+  role: RoleData;
+}
+
+interface UserPositionResult {
+  is_primary: boolean;
+  position: PositionData;
+}
+
+interface PermissionData {
+  id: string;
+  code: string;
+  name: string;
+  resource: string;
+  module: { id: string; code: string; name: string } | null;
+  action: { id: string; code: string; name: string; color: string } | null;
+}
+
+interface UserPermissionResult {
+  is_granted: boolean;
+  expires_at: string | null;
+  remark: string | null;
+  granted_at: string;
+  permission: PermissionData | null;
+}
 
 // GET - 获取用户完整权限信息
 export async function GET(
@@ -15,7 +60,7 @@ export async function GET(
   try {
     // 验证用户身份
     const authResult = await requireAuth(request);
-    if (authResult instanceof NextResponse) {
+    if (!isAuthUser(authResult)) {
       return authResult;
     }
 
@@ -29,7 +74,7 @@ export async function GET(
         is_primary,
         role:roles_v2(id, code, name, color, icon)
       `)
-      .eq('user_id', id);
+      .eq('user_id', id) as { data: UserRoleResult[] | null };
 
     // 2. 获取用户岗位
     const { data: userPositions } = await supabase 
@@ -38,7 +83,7 @@ export async function GET(
         is_primary,
         position:positions_v2(id, code, name, department, color, icon)
       `)
-      .eq('user_id', id);
+      .eq('user_id', id) as { data: UserPositionResult[] | null };
 
     // 3. 获取用户个人权限
     const { data: userPerms } = await supabase
@@ -51,10 +96,10 @@ export async function GET(
           action:permission_actions(id, code, name, color)
         )
       `)
-      .eq('user_id', id);
+      .eq('user_id', id) as { data: UserPermissionResult[] | null };
 
     // 4. 获取角色权限ID集合
-    const roleIds = (userRoles || []).map((r: any) => (r.role as any)?.id).filter(Boolean);
+    const roleIds = (userRoles || []).map((r) => r.role?.id).filter(Boolean);
     let rolePermissionIds: string[] = [];
     
     if (roleIds.length > 0) {
@@ -71,18 +116,18 @@ export async function GET(
         const { data: allPerms } = await supabase
           .from('permissions_v2')
           .select('id');
-        rolePermissionIds = (allPerms || []).map((p: any) => p.id);
+        rolePermissionIds = (allPerms || []).map((p: { id: string }) => p.id);
       } else {
         const { data: rolePerms } = await supabase
           .from('role_permissions_v2')
           .select('permission_id')
           .in('role_id', roleIds);
-        rolePermissionIds = [...new Set((rolePerms || []).map((p: any) => p.permission_id))] as string[];
+        rolePermissionIds = [...new Set((rolePerms || []).map((p: { permission_id: string }) => p.permission_id))] as string[];
       }
     }
 
     // 5. 获取岗位权限ID集合
-    const positionIds = (userPositions || []).map((p: any) => (p.position as any)?.id).filter(Boolean);
+    const positionIds = (userPositions || []).map((p) => p.position?.id).filter(Boolean);
     let positionPermissionIds: string[] = [];
     
     if (positionIds.length > 0) {
@@ -90,7 +135,7 @@ export async function GET(
         .from('position_permissions_v2')
         .select('permission_id')
         .in('position_id', positionIds);
-      positionPermissionIds = [...new Set((posPerms || []).map((p: any) => p.permission_id))] as string[];
+      positionPermissionIds = [...new Set((posPerms || []).map((p: { permission_id: string }) => p.permission_id))] as string[];
     }
 
     // 6. 合并权限（角色 + 岗位）
@@ -100,8 +145,8 @@ export async function GET(
     const grantedIds = new Set(mergedPermissionIds);
     const deniedIds = new Set<string>();
 
-    (userPerms || []).forEach((up: any) => {
-      const permId = (up.permission as any)?.id;
+    (userPerms || []).forEach((up) => {
+      const permId = up.permission?.id;
       if (!permId) return;
       
       // 检查过期时间

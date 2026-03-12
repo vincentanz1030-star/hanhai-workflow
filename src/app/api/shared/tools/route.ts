@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuth, isAuthUser } from '@/lib/api-auth';
 
 ;
 ;
@@ -8,7 +8,7 @@ import { requireAuth } from '@/lib/api-auth';
 // 获取工具资源列表
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request);
-  if (authResult instanceof NextResponse) return authResult;
+  if (!isAuthUser(authResult)) return authResult;
 
   const searchParams = request.nextUrl.searchParams;
   const toolType = searchParams.get('toolType');
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 // 创建工具资源
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request);
-  if (authResult instanceof NextResponse) return authResult;
+  if (!isAuthUser(authResult)) return authResult;
 
   const body = await request.json();
   const supabase = getSupabaseClient();
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const { data: user } = await supabase
       .from('users')
       .select('id')
-      .eq('id', (authResult as any).userId)
+      .eq('id', authResult.userId)
       .single();
 
     const { data, error } = await supabase

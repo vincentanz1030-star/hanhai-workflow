@@ -217,14 +217,15 @@ export function ApprovalWorkflow() {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; variant: string }> = {
-      pending: { label: '待审批', variant: 'secondary' },
-      approved: { label: '已通过', variant: 'default' },
+    type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info" | "error";
+    const statusMap: Record<string, { label: string; variant: BadgeVariant }> = {
+      pending: { label: '待审批', variant: 'warning' },
+      approved: { label: '已通过', variant: 'success' },
       rejected: { label: '已拒绝', variant: 'destructive' },
       cancelled: { label: '已取消', variant: 'outline' },
     };
-    const config = statusMap[status] || { label: status, variant: 'outline' };
-    return <Badge variant={config.variant as any}>{config.label}</Badge>;
+    const config = statusMap[status] || { label: status, variant: 'outline' as BadgeVariant };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   // 获取当前步骤的审批人信息

@@ -4,6 +4,33 @@ import { checkPermission } from '@/lib/permissions';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 /**
+ * 用户角色类型
+ */
+export interface UserRole {
+  id: string;
+  user_id: string;
+  role: string;
+  created_at?: string;
+}
+
+/**
+ * 认证用户信息类型
+ */
+export interface AuthUser {
+  userId: string;
+  email: string;
+  brand: string;
+  roles: UserRole[];
+}
+
+/**
+ * 类型守卫：判断认证结果是否为用户对象
+ */
+export function isAuthUser(result: AuthUser | NextResponse): result is AuthUser {
+  return !(result instanceof NextResponse);
+}
+
+/**
  * API认证和权限检查
  * @param request NextRequest对象
  * @param resource 资源名称（如'project'、'task'等）
@@ -14,7 +41,7 @@ export async function requireAuth(
   request: NextRequest,
   resource?: string,
   action?: string
-): Promise<{ userId: string; email: string; brand: string; roles: any[] } | NextResponse> {
+): Promise<AuthUser | NextResponse> {
   // 获取当前用户（传入 request 对象以支持 Authorization header）
   const currentUser = await getCurrentUser(request);
 
@@ -26,7 +53,7 @@ export async function requireAuth(
   }
 
   // 从数据库查询用户的roles信息
-  let roles: any[] = [];
+  let roles: UserRole[] = [];
   try {
     const client = getSupabaseClient();
     const { data: userRoles, error } = await client

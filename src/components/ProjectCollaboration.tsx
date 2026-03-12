@@ -211,15 +211,15 @@ export function ProjectCollaboration() {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; variant: string }> = {
+    const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info" | "error" }> = {
       planning: { label: '计划中', variant: 'secondary' },
       in_progress: { label: '进行中', variant: 'default' },
-      completed: { label: '已完成', variant: 'outline' },
+      completed: { label: '已完成', variant: 'success' },
       paused: { label: '已暂停', variant: 'outline' },
       cancelled: { label: '已取消', variant: 'destructive' },
     };
-    const config = statusMap[status] || { label: status, variant: 'outline' };
-    return <Badge variant={config.variant as any}>{config.label}</Badge>;
+    const config = statusMap[status] || { label: status, variant: 'outline' as const };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   const getPriorityBadge = (priority: string) => {

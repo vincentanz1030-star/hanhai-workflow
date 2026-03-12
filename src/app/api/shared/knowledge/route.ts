@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuth, isAuthUser } from '@/lib/api-auth';
 
 ;
 ;
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     const { data: user } = await supabase
       .from('users')
       .select('id, name')
-      .eq('id', (authResult as any).userId)
+      .eq('id', authResult.userId)
       .single();
 
     const { data, error } = await supabase

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuth, isAuthUser } from '@/lib/api-auth';
 
 ;
 ;
@@ -63,9 +63,8 @@ export async function GET(request: NextRequest) {
 // 提交评分
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request);
-  if (authResult instanceof NextResponse) return authResult;
+  if (!isAuthUser(authResult)) return authResult;
 
-  const user = (authResult as any).user;
   const body = await request.json();
   const { resource_type, resource_id, rating, review } = body;
 
@@ -86,7 +85,7 @@ export async function POST(request: NextRequest) {
       .select('id')
       .eq('resource_type', resource_type)
       .eq('resource_id', resource_id)
-      .eq('user_id', user.id)
+      .eq('user_id', authResult.userId)
       .single();
 
     if (existing) {
@@ -108,8 +107,8 @@ export async function POST(request: NextRequest) {
         .insert({
           resource_type,
           resource_id,
-          user_id: user.id,
-          brand: user.brand,
+          user_id: authResult.userId,
+          brand: authResult.brand,
           rating,
           review,
         });
@@ -118,8 +117,8 @@ export async function POST(request: NextRequest) {
 
       // 更新用户贡献积分
       await supabase.rpc('update_contribution_points', {
-        p_user_id: user.id,
-        p_brand: user.brand,
+        p_user_id: authResult.userId,
+        p_brand: authResult.brand,
         p_points: 1,
         p_resource_type: resource_type,
       });

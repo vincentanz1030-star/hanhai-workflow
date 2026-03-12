@@ -224,13 +224,14 @@ export function KnowledgeArticles() {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; variant: string }> = {
+    type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info" | "error";
+    const statusMap: Record<string, { label: string; variant: BadgeVariant }> = {
       draft: { label: '草稿', variant: 'secondary' },
-      published: { label: '已发布', variant: 'default' },
+      published: { label: '已发布', variant: 'success' },
       archived: { label: '已归档', variant: 'outline' },
     };
-    const config = statusMap[status] || { label: status, variant: 'outline' };
-    return <Badge variant={config.variant as any}>{config.label}</Badge>;
+    const config = statusMap[status] || { label: status, variant: 'outline' as BadgeVariant };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   const filteredArticles = articles.filter(article =>

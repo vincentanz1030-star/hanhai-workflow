@@ -219,14 +219,15 @@ export function ScheduleManagement() {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; variant: string }> = {
-      upcoming: { label: '即将开始', variant: 'secondary' },
+    type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info" | "error";
+    const statusMap: Record<string, { label: string; variant: BadgeVariant }> = {
+      upcoming: { label: '即将开始', variant: 'info' },
       ongoing: { label: '进行中', variant: 'default' },
-      completed: { label: '已完成', variant: 'outline' },
+      completed: { label: '已完成', variant: 'success' },
       cancelled: { label: '已取消', variant: 'destructive' },
     };
-    const config = statusMap[status] || { label: status, variant: 'outline' };
-    return <Badge variant={config.variant as any}>{config.label}</Badge>;
+    const config = statusMap[status] || { label: status, variant: 'outline' as BadgeVariant };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   const filteredEvents = events.filter(event =>

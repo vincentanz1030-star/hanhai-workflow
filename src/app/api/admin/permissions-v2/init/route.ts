@@ -27,6 +27,60 @@ async function checkTablesExist(supabase: any): Promise<boolean> {
   return true;
 }
 
+// 资源名称中文映射
+const RESOURCE_NAMES: Record<string, string> = {
+  users: '用户',
+  roles: '角色',
+  permissions: '权限',
+  logs: '日志',
+  config: '配置',
+  backup: '备份',
+  restore: '恢复',
+  project: '项目',
+  task: '任务',
+  assign: '分配',
+  complete: '完成',
+  product: '商品',
+  price: '价格',
+  inventory: '库存',
+  supplier: '供应商',
+  purchase_order: '采购订单',
+  sales_stats: '销售统计',
+  product_feedback: '商品反馈',
+  handle: '处理',
+  campaign: '营销活动',
+  campaign_task: '活动任务',
+  collaboration: '协同项目',
+  member: '成员',
+  knowledge: '知识库',
+  schedule: '日程',
+  approval: '审批',
+  reject: '拒绝',
+  message: '消息',
+  send: '发送',
+  shared_resource: '共享资源',
+  feedback: '反馈',
+  analytics: '数据分析',
+};
+
+// 操作名称中文映射
+const ACTION_NAMES: Record<string, string> = {
+  view: '查看',
+  create: '新增',
+  edit: '编辑',
+  delete: '删除',
+  approve: '审批',
+  export: '导出',
+  import: '导入',
+  manage: '管理',
+  assign: '分配',
+  complete: '完成',
+  handle: '处理',
+  send: '发送',
+  reject: '拒绝',
+  restore: '恢复',
+};
+
 // 预设权限模块
 const DEFAULT_MODULES = [
   { code: 'system', name: '系统管理', icon: 'Shield', sort_order: 0, is_system: true },
@@ -330,7 +384,10 @@ export async function POST(request: NextRequest) {
           if (!actionId) continue;
 
           const permCode = `${moduleCode}:${resource}:${actionCode}`;
-          const permName = `${resource}_${actionCode}`;
+          // 使用中文名称
+          const resourceName = RESOURCE_NAMES[resource] || resource;
+          const actionName = ACTION_NAMES[actionCode] || actionCode;
+          const permName = `${resourceName}${actionName}`;
 
           const { error } = await supabase
             .from('permissions_v2')

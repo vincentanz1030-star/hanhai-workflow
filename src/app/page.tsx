@@ -42,6 +42,7 @@ import { InternalMessages } from '@/components/InternalMessages';
 import { ImageUploader, ImageUploadResult } from '@/components/ui/image-uploader';
 import { ImagePreview } from '@/components/ui/image-preview';
 import { SharedResourcePlatform } from '@/components/SharedResourcePlatform';
+import AnnouncementBar from '@/components/announcements/AnnouncementBar';
 
 // 类型定义
 interface Project {
@@ -2609,6 +2610,11 @@ function HomePageContent() {
 
           {/* 数据看板 */}
           <TabsContent value="dashboard" className="space-y-6">
+            {/* 公告栏 */}
+            <AnnouncementBar 
+              isAdmin={user?.roles?.some((r) => r.role === 'admin' || r.role === 'super_admin') || false} 
+              userBrand={user?.brand || 'all'} 
+            />
 
             {/* 统计卡片 */}
             <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-5">

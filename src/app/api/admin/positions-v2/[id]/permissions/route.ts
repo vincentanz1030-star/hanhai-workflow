@@ -25,33 +25,66 @@ export async function GET(
       return NextResponse.json({ success: false, error: '岗位不存在' }, { status: 404 });
     }
 
-    // 获取岗位权限
+    // 获取岗位权限关联
     const { data: posPerms, error } = await supabase
       .from('position_permissions_v2')
-      .select(`
-        permission_id,
-        granted_at,
-        permission:permissions_v2(
-          id, code, name, resource,
-          module:permission_modules(id, code, name),
-          action:permission_actions(id, code, name, color)
-        )
-      `)
+      .select('permission_id, granted_at')
       .eq('position_id', id);
 
     if (error) throw error;
 
-    const permissions = (posPerms || []).map((p: any) => p.permission);
+    const permissionIds = (posPerms || []).map((p: any) => p.permission_id);
+
+    // 如果没有权限，直接返回
+    if (permissionIds.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          position: positionResult.data,
+          permissions: [],
+          permission_ids: [],
+        },
+      });
+    }
+
+    // 获取权限详情
+    const { data: permissions } = await supabase
+      .from('permissions_v2')
+      .select('id, code, name, resource, module_id, action_id')
+      .in('id', permissionIds);
+
+    // 获取模块
+    const moduleIds = [...new Set((permissions || []).map((p: any) => p.module_id).filter(Boolean))];
+    const { data: modules } = moduleIds.length > 0 
+      ? await supabase.from('permission_modules').select('id, code, name').in('id', moduleIds)
+      : { data: [] };
+
+    // 获取动作
+    const actionIds = [...new Set((permissions || []).map((p: any) => p.action_id).filter(Boolean))];
+    const { data: actions } = actionIds.length > 0
+      ? await supabase.from('permission_actions').select('id, code, name, color').in('id', actionIds)
+      : { data: [] };
+
+    // 组装数据
+    const moduleMap = new Map((modules || []).map((m: any) => [m.id, m]));
+    const actionMap = new Map((actions || []).map((a: any) => [a.id, a]));
+
+    const formattedPermissions = (permissions || []).map((p: any) => ({
+      ...p,
+      module: moduleMap.get(p.module_id) || null,
+      action: actionMap.get(p.action_id) || null,
+    }));
 
     return NextResponse.json({
       success: true,
       data: {
         position: positionResult.data,
-        permissions,
-        permission_ids: (posPerms || []).map((p: any) => p.permission_id),
+        permissions: formattedPermissions,
+        permission_ids: permissionIds,
       },
     });
   } catch (error) {
+    console.error('[岗位权限API] 错误:', error);
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : '获取失败' },
       { status: 500 }

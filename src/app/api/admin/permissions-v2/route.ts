@@ -12,16 +12,16 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const moduleId = searchParams.get('module_id');
 
+    // 获取权限列表
     let query = supabase
       .from('permissions_v2')
-      .select(`
-        *,
-        module:permission_modules(id, code, name, icon),
-        action:permission_actions(id, code, name, icon, color)
-      `)
+      .select('*')
       .order('sort_order');
 
-    if (moduleId) query = query.eq('module_id', moduleId);
+    if (moduleId) {
+      const result = await query.eq('module_id', moduleId);
+      return buildPermissionResponse(supabase, result.data, result.error);
+    }
 
     const { data, error } = await query;
 
@@ -42,26 +42,63 @@ export async function GET(request: NextRequest) {
       throw error;
     }
 
-    // 按模块分组
-    const grouped: Record<string, typeof data> = {};
-    (data || []).forEach((p: any) => {
-      const moduleCode = (p.module as any)?.code || 'other';
-      if (!grouped[moduleCode]) grouped[moduleCode] = [];
-      grouped[moduleCode].push(p);
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: data || [],
-      grouped,
-      total: data?.length || 0,
-    });
+    return buildPermissionResponse(supabase, data, null);
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : '获取失败' },
       { status: 500 }
     );
   }
+}
+
+// 构建权限响应（包含关联数据）
+async function buildPermissionResponse(supabase: any, data: any[] | null, error: any) {
+  if (error) throw error;
+  if (!data || data.length === 0) {
+    return NextResponse.json({
+      success: true,
+      data: [],
+      grouped: {},
+      total: 0,
+    });
+  }
+
+  // 获取模块
+  const moduleIds = [...new Set(data.map((p: any) => p.module_id).filter(Boolean))];
+  const { data: modules } = moduleIds.length > 0
+    ? await supabase.from('permission_modules').select('id, code, name, icon').in('id', moduleIds)
+    : { data: [] };
+
+  // 获取动作
+  const actionIds = [...new Set(data.map((p: any) => p.action_id).filter(Boolean))];
+  const { data: actions } = actionIds.length > 0
+    ? await supabase.from('permission_actions').select('id, code, name, icon, color').in('id', actionIds)
+    : { data: [] };
+
+  // 组装数据
+  const moduleMap = new Map((modules || []).map((m: any) => [m.id, m]));
+  const actionMap = new Map((actions || []).map((a: any) => [a.id, a]));
+
+  const formattedData = data.map((p: any) => ({
+    ...p,
+    module: moduleMap.get(p.module_id) || null,
+    action: actionMap.get(p.action_id) || null,
+  }));
+
+  // 按模块分组
+  const grouped: Record<string, any[]> = {};
+  formattedData.forEach((p: any) => {
+    const moduleCode = p.module?.code || 'other';
+    if (!grouped[moduleCode]) grouped[moduleCode] = [];
+    grouped[moduleCode].push(p);
+  });
+
+  return NextResponse.json({
+    success: true,
+    data: formattedData,
+    grouped,
+    total: formattedData.length,
+  });
 }
 
 // POST - 创建权限

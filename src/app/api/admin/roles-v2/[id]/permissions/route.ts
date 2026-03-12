@@ -25,49 +25,103 @@ export async function GET(
       return NextResponse.json({ success: false, error: '角色不存在' }, { status: 404 });
     }
 
-    // 获取角色权限
+    // 获取角色权限关联
     const { data: rolePerms, error } = await supabase
       .from('role_permissions_v2')
-      .select(`
-        permission_id,
-        granted_at,
-        permission:permissions_v2(
-          id, code, name, resource,
-          module:permission_modules(id, code, name),
-          action:permission_actions(id, code, name, color)
-        )
-      `)
+      .select('permission_id, granted_at')
       .eq('role_id', id);
 
     if (error) throw error;
+
+    const permissionIds = (rolePerms || []).map((p: any) => p.permission_id);
+
+    // 如果没有权限，直接返回
+    if (permissionIds.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          role: roleResult.data,
+          permissions: [],
+          permission_ids: [],
+        },
+      });
+    }
+
+    // 获取权限详情
+    const { data: permissions } = await supabase
+      .from('permissions_v2')
+      .select('id, code, name, resource, module_id, action_id')
+      .in('id', permissionIds);
+
+    // 获取模块
+    const moduleIds = [...new Set((permissions || []).map((p: any) => p.module_id).filter(Boolean))];
+    const { data: modules } = moduleIds.length > 0 
+      ? await supabase.from('permission_modules').select('id, code, name').in('id', moduleIds)
+      : { data: [] };
+
+    // 获取动作
+    const actionIds = [...new Set((permissions || []).map((p: any) => p.action_id).filter(Boolean))];
+    const { data: actions } = actionIds.length > 0
+      ? await supabase.from('permission_actions').select('id, code, name, color').in('id', actionIds)
+      : { data: [] };
+
+    // 组装数据
+    const moduleMap = new Map((modules || []).map((m: any) => [m.id, m]));
+    const actionMap = new Map((actions || []).map((a: any) => [a.id, a]));
+
+    const formattedPermissions = (permissions || []).map((p: any) => ({
+      ...p,
+      module: moduleMap.get(p.module_id) || null,
+      action: actionMap.get(p.action_id) || null,
+    }));
 
     // 超级管理员特殊处理
     if (roleResult.data.code === 'super_admin') {
       const { data: allPerms } = await supabase
         .from('permissions_v2')
-        .select(`id, code, name, resource, module:permission_modules(id, code, name), action:permission_actions(id, code, name, color)`);
+        .select('id, code, name, resource, module_id, action_id');
+
+      const allModuleIds = [...new Set((allPerms || []).map((p: any) => p.module_id).filter(Boolean))];
+      const allActionIds = [...new Set((allPerms || []).map((p: any) => p.action_id).filter(Boolean))];
+      
+      const { data: allModules } = allModuleIds.length > 0
+        ? await supabase.from('permission_modules').select('id, code, name').in('id', allModuleIds)
+        : { data: [] };
+      
+      const { data: allActions } = allActionIds.length > 0
+        ? await supabase.from('permission_actions').select('id, code, name, color').in('id', allActionIds)
+        : { data: [] };
+
+      const allModuleMap = new Map((allModules || []).map((m: any) => [m.id, m]));
+      const allActionMap = new Map((allActions || []).map((a: any) => [a.id, a]));
+
+      const formattedAllPerms = (allPerms || []).map((p: any) => ({
+        ...p,
+        module: allModuleMap.get(p.module_id) || null,
+        action: allActionMap.get(p.action_id) || null,
+      }));
 
       return NextResponse.json({
         success: true,
         data: {
           role: roleResult.data,
-          permissions: allPerms || [],
+          permissions: formattedAllPerms,
           is_super_admin: true,
+          permission_ids: (allPerms || []).map((p: any) => p.id),
         },
       });
     }
-
-    const permissions = (rolePerms || []).map((p: any) => p.permission);
 
     return NextResponse.json({
       success: true,
       data: {
         role: roleResult.data,
-        permissions,
-        permission_ids: (rolePerms || []).map((p: any) => p.permission_id),
+        permissions: formattedPermissions,
+        permission_ids: permissionIds,
       },
     });
   } catch (error) {
+    console.error('[角色权限API] 错误:', error);
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : '获取失败' },
       { status: 500 }

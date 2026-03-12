@@ -67,10 +67,25 @@ export async function GET(request: NextRequest) {
 
     const { count } = await countQuery;
 
+    // 获取用户已读记录
+    const { data: reads } = await client
+      .from('announcement_reads')
+      .select('announcement_id')
+      .eq('user_id', authResult.userId);
+
+    const readIds = new Set((reads || []).map((r: { announcement_id: string }) => r.announcement_id));
+
+    // 为每个公告添加 isRead 字段
+    const announcementsWithReadStatus = (announcements || []).map((a: { id: string }) => ({
+      ...a,
+      isRead: readIds.has(a.id)
+    }));
+
     return NextResponse.json({
       success: true,
-      announcements,
-      total: count || 0
+      announcements: announcementsWithReadStatus,
+      total: count || 0,
+      unreadCount: (announcements || []).filter((a: { id: string }) => !readIds.has(a.id)).length
     });
 
   } catch (error) {

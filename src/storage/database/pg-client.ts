@@ -1,4 +1,4 @@
-import { Pool, PoolClient, QueryResult } from 'pg';
+import { Pool, PoolClient, QueryResult as PgQueryResult } from 'pg';
 import { execSync } from 'child_process';
 
 let pool: Pool | null = null;
@@ -89,8 +89,18 @@ function getPool(): Pool {
   return pool;
 }
 
+// 查询结果类型
+interface QueryResult<T = any> {
+  data: T | T[] | null;
+  error: Error | null;
+  count?: number | null;
+}
+
+// 操作类型
+type OperationType = 'select' | 'insert' | 'update' | 'delete' | 'upsert' | null;
+
 // 查询构建器 - 模拟 Supabase API
-class QueryBuilder {
+class QueryBuilder<T = any> implements PromiseLike<QueryResult<T>> {
   private tableName: string;
   private conditions: string[] = [];
   private conditionValues: any[] = [];
@@ -99,6 +109,12 @@ class QueryBuilder {
   private offsetClause: string = '';
   private selectFields: string = '*';
   private client: PoolClient | null = null;
+  
+  // 操作类型和数据
+  private operationType: OperationType = 'select';
+  private updateData: any = null;
+  private insertData: any = null;
+  private upsertOptions: { onConflict?: string } = {};
 
   constructor(tableName: string, client?: PoolClient) {
     this.tableName = tableName;
@@ -116,6 +132,7 @@ class QueryBuilder {
     if (fields !== '*') {
       this.selectFields = fields;
     }
+    this.operationType = 'select';
     return this;
   }
 
@@ -229,41 +246,20 @@ class QueryBuilder {
     if (this.offsetClause) {
       sql += ` ${this.offsetClause}`;
     }
-
+    
     return { text: sql, values: this.conditionValues };
   }
 
-  // 执行查询
-  async then(resolve: (result: { data: any[] | null; error: Error | null; count?: number | null }) => void) {
+  // 执行 SELECT 查询
+  private async executeSelect(): Promise<QueryResult<T>> {
     try {
       const pool = getPool();
-      const { text, values } = this.buildSelectQuery();
+      const { text: sql, values } = this.buildSelectQuery();
       
       const client = this.client || await pool.connect();
       try {
-        const result: QueryResult = await client.query(text, values);
-        resolve({ data: result.rows, error: null, count: result.rowCount });
-      } finally {
-        if (!this.client) {
-          (client as PoolClient).release();
-        }
-      }
-    } catch (error) {
-      resolve({ data: null, error: error as Error, count: null });
-    }
-  }
-
-  // 单条查询
-  async single(): Promise<{ data: any | null; error: Error | null; count?: number | null }> {
-    this.limitClause = 'LIMIT 1';
-    try {
-      const pool = getPool();
-      const { text, values } = this.buildSelectQuery();
-      
-      const client = this.client || await pool.connect();
-      try {
-        const result: QueryResult = await client.query(text, values);
-        return { data: result.rows[0] || null, error: null, count: result.rowCount };
+        const result: PgQueryResult = await client.query(sql, values);
+        return { data: result.rows as T[], error: null, count: result.rowCount };
       } finally {
         if (!this.client) {
           (client as PoolClient).release();
@@ -274,26 +270,54 @@ class QueryBuilder {
     }
   }
 
-  // 可能单条
-  async maybeSingle(): Promise<{ data: any | null; error: Error | null; count?: number | null }> {
-    return this.single();
+  // 单行查询
+  async maybeSingle(): Promise<QueryResult<T>> {
+    this.limitClause = 'LIMIT 1';
+    const result = await this.executeSelect();
+    return {
+      data: Array.isArray(result.data) && result.data.length > 0 ? result.data[0] : null,
+      error: result.error,
+      count: result.count
+    };
   }
 
-  // 插入
-  async insert(data: any | any[]): Promise<{ data: any | null; error: Error | null; count?: number | null }> {
+  // 单行查询（期望必须有一行）
+  async single(): Promise<QueryResult<T>> {
+    const result = await this.maybeSingle();
+    if (!result.error && result.data === null) {
+      return { data: null, error: new Error('No rows found'), count: 0 };
+    }
+    return result;
+  }
+
+  // 插入 - 返回 this 以支持链式调用
+  insert(data: any): this {
+    this.insertData = data;
+    this.operationType = 'insert';
+    return this;
+  }
+
+  // 执行插入
+  private async executeInsert(): Promise<QueryResult<T>> {
+    if (!this.insertData) {
+      return { data: null, error: new Error('No data to insert'), count: null };
+    }
+
     try {
       const pool = getPool();
-      const dataArray = Array.isArray(data) ? data : [data];
+      const data = this.insertData;
       
-      if (dataArray.length === 0) {
-        return { data: [], error: null, count: 0 };
+      // 支持批量插入
+      const rows = Array.isArray(data) ? data : [data];
+      if (rows.length === 0) {
+        return { data: null, error: new Error('No data to insert'), count: null };
       }
 
-      const columns = Object.keys(dataArray[0]);
+      const columns = Object.keys(rows[0]);
       const values: any[] = [];
       const placeholders: string[] = [];
       
-      dataArray.forEach((row, rowIndex) => {
+      rows.forEach((row, rowIndex) => {
         const rowPlaceholders = columns.map((col, colIndex) => {
           values.push(row[col]);
           return `$${rowIndex * columns.length + colIndex + 1}`;
@@ -305,8 +329,8 @@ class QueryBuilder {
       
       const client = this.client || await pool.connect();
       try {
-        const result: QueryResult = await client.query(sql, values);
-        return { data: Array.isArray(data) ? result.rows : result.rows[0], error: null, count: result.rowCount };
+        const result: PgQueryResult = await client.query(sql, values);
+        return { data: Array.isArray(data) ? result.rows as T[] : result.rows[0] as T, error: null, count: result.rowCount };
       } finally {
         if (!this.client) {
           (client as PoolClient).release();
@@ -317,17 +341,28 @@ class QueryBuilder {
     }
   }
 
-  // 更新
-  async update(data: any): Promise<{ data: any | null; error: Error | null; count?: number | null }> {
+  // 更新 - 返回 this 以支持链式调用
+  update(data: any): this {
+    this.updateData = data;
+    this.operationType = 'update';
+    return this;
+  }
+
+  // 执行更新
+  private async executeUpdate(): Promise<QueryResult<T>> {
+    if (!this.updateData) {
+      return { data: null, error: new Error('No data to update'), count: null };
+    }
+
     if (this.conditions.length === 0) {
       return { data: null, error: new Error('Update requires at least one condition'), count: null };
     }
 
     try {
       const pool = getPool();
-      const columns = Object.keys(data);
+      const columns = Object.keys(this.updateData);
       const setClause = columns.map((col, i) => `${col} = $${i + 1}`).join(', ');
-      const values = Object.values(data);
+      const values = Object.values(this.updateData);
       
       const whereClause = this.conditions.map((c, i) => {
         // 调整参数索引
@@ -339,8 +374,38 @@ class QueryBuilder {
       
       const client = this.client || await pool.connect();
       try {
-        const result: QueryResult = await client.query(sql, allValues);
-        return { data: result.rows, error: null, count: result.rowCount };
+        const result: PgQueryResult = await client.query(sql, allValues);
+        return { data: result.rows as T[], error: null, count: result.rowCount };
+      } finally {
+        if (!this.client) {
+          (client as PoolClient).release();
+        }
+      }
+    } catch (error) {
+      return { data: null, error: error as Error, count: null };
+    }
+  }
+
+  // 删除 - 返回 this 以支持链式调用
+  delete(): this {
+    this.operationType = 'delete';
+    return this;
+  }
+
+  // 执行删除
+  private async executeDelete(): Promise<QueryResult<T>> {
+    if (this.conditions.length === 0) {
+      return { data: null, error: new Error('Delete requires at least one condition'), count: null };
+    }
+
+    try {
+      const pool = getPool();
+      const sql = `DELETE FROM ${this.tableName} WHERE ${this.conditions.join(' AND ')} RETURNING *`;
+      
+      const client = this.client || await pool.connect();
+      try {
+        const result: PgQueryResult = await client.query(sql, this.conditionValues);
+        return { data: result.rows as T[], error: null, count: result.rowCount };
       } finally {
         if (!this.client) {
           (client as PoolClient).release();
@@ -352,16 +417,29 @@ class QueryBuilder {
   }
 
   // Upsert - 支持自定义冲突字段（支持复合字段如 'role_id,permission_id'）
-  async upsert(data: any, options?: { onConflict?: string }): Promise<{ data: any | null; error: Error | null; count?: number | null }> {
+  upsert(data: any, options?: { onConflict?: string }): this {
+    this.insertData = data;
+    this.upsertOptions = options || {};
+    this.operationType = 'upsert';
+    return this;
+  }
+
+  // 执行 Upsert
+  private async executeUpsert(): Promise<QueryResult<T>> {
+    if (!this.insertData) {
+      return { data: null, error: new Error('No data to upsert'), count: null };
+    }
+
     try {
       const pool = getPool();
+      const data = this.insertData;
       const columns = Object.keys(data);
       const placeholders = columns.map((col, i) => `$${i + 1}`).join(', ');
       const values = Object.values(data);
       
       // 支持自定义冲突字段，默认为 'id'
       // 支持复合字段如 'role_id,permission_id'
-      const conflictColumns = options?.onConflict || 'id';
+      const conflictColumns = this.upsertOptions.onConflict || 'id';
       
       // 更新子句：排除冲突字段本身
       const conflictColumnList = conflictColumns.split(',').map(c => c.trim());
@@ -379,8 +457,8 @@ class QueryBuilder {
       
       const client = this.client || await pool.connect();
       try {
-        const result: QueryResult = await client.query(sql, values);
-        return { data: result.rows[0], error: null, count: result.rowCount };
+        const result: PgQueryResult = await client.query(sql, values);
+        return { data: result.rows[0] as T, error: null, count: result.rowCount };
       } finally {
         if (!this.client) {
           (client as PoolClient).release();
@@ -391,28 +469,34 @@ class QueryBuilder {
     }
   }
 
-  // 删除
-  async delete(): Promise<{ data: any | null; error: Error | null; count?: number | null }> {
-    if (this.conditions.length === 0) {
-      return { data: null, error: new Error('Delete requires at least one condition'), count: null };
+  // 实现 PromiseLike 接口 - 让对象可以被 await
+  then<TResult1 = QueryResult<T>, TResult2 = never>(
+    onfulfilled?: ((value: QueryResult<T>) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    // 根据操作类型执行相应的查询
+    let promise: Promise<QueryResult<T>>;
+    
+    switch (this.operationType) {
+      case 'insert':
+        promise = this.executeInsert();
+        break;
+      case 'update':
+        promise = this.executeUpdate();
+        break;
+      case 'delete':
+        promise = this.executeDelete();
+        break;
+      case 'upsert':
+        promise = this.executeUpsert();
+        break;
+      case 'select':
+      default:
+        promise = this.executeSelect();
+        break;
     }
-
-    try {
-      const pool = getPool();
-      const sql = `DELETE FROM ${this.tableName} WHERE ${this.conditions.join(' AND ')} RETURNING *`;
-      
-      const client = this.client || await pool.connect();
-      try {
-        const result: QueryResult = await client.query(sql, this.conditionValues);
-        return { data: result.rows, error: null, count: result.rowCount };
-      } finally {
-        if (!this.client) {
-          (client as PoolClient).release();
-        }
-      }
-    } catch (error) {
-      return { data: null, error: error as Error, count: null };
-    }
+    
+    return promise.then(onfulfilled, onrejected);
   }
 }
 
@@ -460,30 +544,18 @@ class PgClient {
   }
 
   // RPC 调用（模拟）
-  rpc(fnName: string, params?: any) {
-    // 简单实现，可以扩展
-    return {
-      async then(resolve: (result: { data: any | null; error: Error | null }) => void) {
-        try {
-          const pool = getPool();
-          const client = await pool.connect();
-          try {
-            const result = await client.query(`SELECT * FROM ${fnName}($1)`, [params]);
-            resolve({ data: result.rows, error: null });
-          } finally {
-            client.release();
-          }
-        } catch (error) {
-          resolve({ data: null, error: error as Error });
-        }
-      }
-    };
+  async rpc(fn: string, params?: any): Promise<{ data: any | null; error: Error | null }> {
+    // 对于本地数据库，直接调用对应的函数
+    // 这里暂时返回错误，后续可以根据需要实现
+    console.log(`RPC call: ${fn}`, params);
+    return { data: null, error: new Error(`RPC function ${fn} not implemented`) };
   }
 }
 
-// 导出单例
+// 单例客户端
 let pgClient: PgClient | null = null;
 
+// 获取 PostgreSQL 客户端
 function getPgClient(): PgClient {
   if (!pgClient) {
     pgClient = new PgClient();
@@ -493,28 +565,37 @@ function getPgClient(): PgClient {
 
 // 检查是否应该使用本地数据库
 function shouldUseLocalDatabase(): boolean {
-  loadEnv();
+  // 优先使用 USE_LOCAL_DATABASE 环境变量
   const useLocal = process.env.USE_LOCAL_DATABASE;
-  const databaseUrl = process.env.DATABASE_URL;
-  
-  // 如果设置了 USE_LOCAL_DATABASE=true，使用本地数据库
-  // 或者如果 DATABASE_URL 包含 localhost，使用本地数据库
-  if (useLocal === 'true') {
+  if (useLocal === 'true' || useLocal === '1') {
     return true;
   }
   
-  if (databaseUrl && databaseUrl.includes('localhost')) {
-    return true;
+  // 如果没有设置 USE_LOCAL_DATABASE，检查 DATABASE_URL
+  const databaseUrl = process.env.DATABASE_URL;
+  if (databaseUrl) {
+    // 如果 DATABASE_URL 包含 localhost 或 127.0.0.1，使用本地数据库
+    return databaseUrl.includes('localhost') || databaseUrl.includes('127.0.0.1');
   }
   
   return false;
 }
 
-export { 
-  loadEnv, 
-  getPgClient, 
-  getPool, 
-  PgClient, 
+// 关闭连接池
+async function closePool(): Promise<void> {
+  if (pool) {
+    await pool.end();
+    pool = null;
+  }
+}
+
+export {
+  loadEnv,
+  getDatabaseConfig,
+  getPool,
+  getPgClient,
+  PgClient,
   QueryBuilder,
-  shouldUseLocalDatabase 
+  shouldUseLocalDatabase,
+  closePool
 };

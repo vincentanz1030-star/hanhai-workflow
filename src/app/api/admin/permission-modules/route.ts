@@ -121,14 +121,14 @@ export async function PUT(request: NextRequest) {
 
     const result = await supabase
       .from('permission_modules')
-      .eq('id', id)
       .update({
         name,
         icon,
         sort_order,
         is_active,
         updated_at: new Date().toISOString(),
-      });
+      })
+      .eq('id', id);
 
     if (result.error) throw result.error;
 

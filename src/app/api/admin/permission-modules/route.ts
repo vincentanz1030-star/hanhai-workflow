@@ -3,14 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-function getSupabaseClient() {
-  const supabaseUrl = process.env.COZE_SUPABASE_URL;
-  const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) throw new Error('Missing Supabase config');
-  return createClient(supabaseUrl, supabaseKey);
-}
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // GET - 获取所有模块（含权限统计）
 export async function GET(request: NextRequest) {
@@ -25,9 +18,9 @@ export async function GET(request: NextRequest) {
 
     // 如果表不存在，返回空数组而不是报错
     if (error) {
-      if (error.code === '42P01' || 
-          error.message?.includes('does not exist') ||
-          error.message?.includes('not find the table')) {
+      if (error.message?.includes('does not exist') ||
+          error.message?.includes('not find the table') ||
+          error.message?.includes('relation')) {
         return NextResponse.json({ 
           success: true, 
           data: [], 
@@ -44,12 +37,12 @@ export async function GET(request: NextRequest) {
       .select('module_id');
 
     const countMap = new Map<string, number>();
-    (permCounts || []).forEach(p => {
+    (permCounts || []).forEach((p: any) => {
       const id = p.module_id as string;
       countMap.set(id, (countMap.get(id) || 0) + 1);
     });
 
-    const result = (modules || []).map(m => ({
+    const result = (modules || []).map((m: any) => ({
       ...m,
       permission_count: countMap.get(m.id) || 0,
     }));
@@ -75,7 +68,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '缺少必填字段' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const result = await supabase
       .from('permission_modules')
       .insert({
         code,
@@ -84,13 +77,11 @@ export async function POST(request: NextRequest) {
         sort_order: sort_order || 0,
         is_system: false,
         is_active: true,
-      })
-      .select()
-      .single();
+      });
 
-    if (error) throw error;
+    if (result.error) throw result.error;
 
-    return NextResponse.json({ success: true, data, message: '模块创建成功' });
+    return NextResponse.json({ success: true, data: result.data, message: '模块创建成功' });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : '创建失败' },
@@ -111,32 +102,30 @@ export async function PUT(request: NextRequest) {
     }
 
     // 检查是否系统模块
-    const { data: existing } = await supabase
+    const existingResult = await supabase
       .from('permission_modules')
       .select('is_system')
       .eq('id', id)
       .single();
 
-    if (existing?.is_system) {
+    if (existingResult.data?.is_system) {
       return NextResponse.json({ success: false, error: '系统模块不可修改' }, { status: 403 });
     }
 
-    const { data, error } = await supabase
+    const result = await supabase
       .from('permission_modules')
+      .eq('id', id)
       .update({
         name,
         icon,
         sort_order,
         is_active,
         updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single();
+      });
 
-    if (error) throw error;
+    if (result.error) throw result.error;
 
-    return NextResponse.json({ success: true, data, message: '模块更新成功' });
+    return NextResponse.json({ success: true, data: result.data?.[0] || result.data, message: '模块更新成功' });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : '更新失败' },
@@ -157,22 +146,22 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 检查是否系统模块
-    const { data: existing } = await supabase
+    const existingResult = await supabase
       .from('permission_modules')
       .select('is_system')
       .eq('id', id)
       .single();
 
-    if (existing?.is_system) {
+    if (existingResult.data?.is_system) {
       return NextResponse.json({ success: false, error: '系统模块不可删除' }, { status: 403 });
     }
 
-    const { error } = await supabase
+    const result = await supabase
       .from('permission_modules')
-      .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .delete();
 
-    if (error) throw error;
+    if (result.error) throw result.error;
 
     return NextResponse.json({ success: true, message: '模块删除成功' });
   } catch (error) {

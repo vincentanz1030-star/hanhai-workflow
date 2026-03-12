@@ -4,14 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-function getSupabaseClient() {
-  const supabaseUrl = process.env.COZE_SUPABASE_URL;
-  const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) throw new Error('Missing Supabase config');
-  return createClient(supabaseUrl, supabaseKey);
-}
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // GET - 获取用户完整权限信息
 export async function GET(
@@ -54,35 +47,35 @@ export async function GET(
       .eq('user_id', id);
 
     // 4. 获取角色权限ID集合
-    const roleIds = (userRoles || []).map(r => (r.role as any)?.id).filter(Boolean);
+    const roleIds = (userRoles || []).map((r: any) => (r.role as any)?.id).filter(Boolean);
     let rolePermissionIds: string[] = [];
     
     if (roleIds.length > 0) {
       // 检查是否超级管理员
-      const { data: superAdminRole } = await supabase
+      const superAdminResult = await supabase
         .from('roles_v2')
         .select('id')
         .eq('code', 'super_admin')
         .in('id', roleIds)
         .single();
 
-      if (superAdminRole) {
+      if (superAdminResult.data) {
         // 超级管理员有所有权限
         const { data: allPerms } = await supabase
           .from('permissions_v2')
           .select('id');
-        rolePermissionIds = (allPerms || []).map(p => p.id);
+        rolePermissionIds = (allPerms || []).map((p: any) => p.id);
       } else {
         const { data: rolePerms } = await supabase
           .from('role_permissions_v2')
           .select('permission_id')
           .in('role_id', roleIds);
-        rolePermissionIds = [...new Set((rolePerms || []).map(p => p.permission_id))];
+        rolePermissionIds = [...new Set((rolePerms || []).map((p: any) => p.permission_id))] as string[];
       }
     }
 
     // 5. 获取岗位权限ID集合
-    const positionIds = (userPositions || []).map(p => (p.position as any)?.id).filter(Boolean);
+    const positionIds = (userPositions || []).map((p: any) => (p.position as any)?.id).filter(Boolean);
     let positionPermissionIds: string[] = [];
     
     if (positionIds.length > 0) {
@@ -90,7 +83,7 @@ export async function GET(
         .from('position_permissions_v2')
         .select('permission_id')
         .in('position_id', positionIds);
-      positionPermissionIds = [...new Set((posPerms || []).map(p => p.permission_id))];
+      positionPermissionIds = [...new Set((posPerms || []).map((p: any) => p.permission_id))] as string[];
     }
 
     // 6. 合并权限（角色 + 岗位）
@@ -100,7 +93,7 @@ export async function GET(
     const grantedIds = new Set(mergedPermissionIds);
     const deniedIds = new Set<string>();
 
-    (userPerms || []).forEach(up => {
+    (userPerms || []).forEach((up: any) => {
       const permId = (up.permission as any)?.id;
       if (!permId) return;
       
@@ -130,7 +123,7 @@ export async function GET(
         `)
         .in('id', allPermIds);
       
-      mergedPermissions = (perms || []).map(p => ({
+      mergedPermissions = (perms || []).map((p: any) => ({
         ...p,
         is_granted: grantedIds.has(p.id),
         is_denied: deniedIds.has(p.id),
@@ -140,8 +133,8 @@ export async function GET(
     return NextResponse.json({
       success: true,
       data: {
-        roles: (userRoles || []).map(r => r.role),
-        positions: (userPositions || []).map(p => p.position),
+        roles: (userRoles || []).map((r: any) => r.role),
+        positions: (userPositions || []).map((p: any) => p.position),
         personal_permissions: userPerms || [],
         merged_permissions: mergedPermissions,
         stats: {
@@ -173,7 +166,7 @@ export async function PUT(
 
     // 设置角色
     if (type === 'roles' && Array.isArray(role_ids)) {
-      await supabase.from('user_roles_v2').delete().eq('user_id', id);
+      await supabase.from('user_roles_v2').eq('user_id', id).delete();
       
       if (role_ids.length > 0) {
         const inserts = role_ids.map((roleId: string, index: number) => ({
@@ -190,7 +183,7 @@ export async function PUT(
 
     // 设置岗位
     if (type === 'positions' && Array.isArray(position_ids)) {
-      await supabase.from('user_positions_v2').delete().eq('user_id', id);
+      await supabase.from('user_positions_v2').eq('user_id', id).delete();
       
       if (position_ids.length > 0) {
         const inserts = position_ids.map((posId: string, index: number) => ({
@@ -218,7 +211,7 @@ export async function PUT(
             expires_at: perm.expires_at,
             remark: perm.remark,
             granted_at: new Date().toISOString(),
-          }, { onConflict: 'user_id,permission_id' });
+          });
       }
       
       return NextResponse.json({ success: true, message: '权限设置成功' });
@@ -248,13 +241,13 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: '缺少权限ID' }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const result = await supabase
       .from('user_permissions_v2')
-      .delete()
       .eq('user_id', id)
-      .eq('permission_id', permissionId);
+      .eq('permission_id', permissionId)
+      .delete();
 
-    if (error) throw error;
+    if (result.error) throw result.error;
 
     return NextResponse.json({ success: true, message: '权限已移除' });
   } catch (error) {

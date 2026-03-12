@@ -3,14 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-function getSupabaseClient() {
-  const supabaseUrl = process.env.COZE_SUPABASE_URL;
-  const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) throw new Error('Missing Supabase config');
-  return createClient(supabaseUrl, supabaseKey);
-}
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // GET - 获取角色权限
 export async function GET(
@@ -22,13 +15,13 @@ export async function GET(
     const { id } = await params;
 
     // 获取角色信息
-    const { data: role, error: roleError } = await supabase
+    const roleResult = await supabase
       .from('roles_v2')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (roleError || !role) {
+    if (roleResult.error || !roleResult.data) {
       return NextResponse.json({ success: false, error: '角色不存在' }, { status: 404 });
     }
 
@@ -49,7 +42,7 @@ export async function GET(
     if (error) throw error;
 
     // 超级管理员特殊处理
-    if (role.code === 'super_admin') {
+    if (roleResult.data.code === 'super_admin') {
       const { data: allPerms } = await supabase
         .from('permissions_v2')
         .select(`id, code, name, resource, module:permission_modules(id, code, name), action:permission_actions(id, code, name, color)`);
@@ -57,21 +50,21 @@ export async function GET(
       return NextResponse.json({
         success: true,
         data: {
-          role,
+          role: roleResult.data,
           permissions: allPerms || [],
           is_super_admin: true,
         },
       });
     }
 
-    const permissions = (rolePerms || []).map(p => p.permission);
+    const permissions = (rolePerms || []).map((p: any) => p.permission);
 
     return NextResponse.json({
       success: true,
       data: {
-        role,
+        role: roleResult.data,
         permissions,
-        permission_ids: (rolePerms || []).map(p => p.permission_id),
+        permission_ids: (rolePerms || []).map((p: any) => p.permission_id),
       },
     });
   } catch (error) {
@@ -98,18 +91,18 @@ export async function PUT(
     }
 
     // 检查角色
-    const { data: role } = await supabase
+    const roleResult = await supabase
       .from('roles_v2')
       .select('code')
       .eq('id', id)
       .single();
 
-    if (role?.code === 'super_admin') {
+    if (roleResult.data?.code === 'super_admin') {
       return NextResponse.json({ success: false, error: '超级管理员权限不可修改' }, { status: 403 });
     }
 
     // 删除旧权限
-    await supabase.from('role_permissions_v2').delete().eq('role_id', id);
+    await supabase.from('role_permissions_v2').eq('role_id', id).delete();
 
     // 插入新权限
     if (permission_ids.length > 0) {
@@ -119,11 +112,11 @@ export async function PUT(
         granted_at: new Date().toISOString(),
       }));
 
-      const { error } = await supabase
+      const result = await supabase
         .from('role_permissions_v2')
         .insert(inserts);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
     }
 
     return NextResponse.json({
@@ -160,16 +153,16 @@ export async function PATCH(
 
       await supabase
         .from('role_permissions_v2')
-        .upsert(inserts, { onConflict: 'role_id,permission_id' });
+        .upsert(inserts);
     }
 
     // 撤销
     if (revoke && revoke.length > 0) {
       await supabase
         .from('role_permissions_v2')
-        .delete()
         .eq('role_id', id)
-        .in('permission_id', revoke);
+        .in('permission_id', revoke)
+        .delete();
     }
 
     return NextResponse.json({

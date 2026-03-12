@@ -314,8 +314,8 @@ export async function POST(request: NextRequest) {
     const { data: modules } = await supabase.from('permission_modules').select('id, code');
     const { data: actions } = await supabase.from('permission_actions').select('id, code');
     
-    const moduleMap = new Map((modules || []).map(m => [m.code, m.id]));
-    const actionMap = new Map((actions || []).map(a => [a.code, a.id]));
+    const moduleMap = new Map((modules || []).map((m: any) => [m.code, m.id]));
+    const actionMap = new Map((actions || []).map((a: any) => [a.code, a.id]));
 
     // 4. 初始化权限
     console.log('[权限初始化] 初始化权限...');
@@ -394,8 +394,8 @@ export async function POST(request: NextRequest) {
     const { data: roles } = await supabase.from('roles_v2').select('id, code');
     const { data: permissions } = await supabase.from('permissions_v2').select('id, code');
     
-    const roleMap = new Map((roles || []).map(r => [r.code, r.id]));
-    const permMap = new Map((permissions || []).map(p => [p.code, p.id]));
+    const roleMap = new Map((roles || []).map((r: any) => [r.code, r.id]));
+    const permMap = new Map((permissions || []).map((p: any) => [p.code, p.id]));
 
     // 8. 分配角色权限
     console.log('[权限初始化] 分配角色权限...');
@@ -411,7 +411,7 @@ export async function POST(request: NextRequest) {
         // 处理通配符
         if (permCodePattern.endsWith(':*')) {
           const prefix = permCodePattern.slice(0, -2);
-          const matchingPerms = (permissions || []).filter(p => p.code.startsWith(prefix));
+          const matchingPerms = (permissions || []).filter((p: any) => p.code.startsWith(prefix));
           for (const perm of matchingPerms) {
             const { error } = await supabase
               .from('role_permissions_v2')
@@ -441,7 +441,7 @@ export async function POST(request: NextRequest) {
     console.log('[权限初始化] 分配岗位权限...');
     let positionPermCount = 0;
     const { data: positions } = await supabase.from('positions_v2').select('id, code');
-    const positionMap = new Map((positions || []).map(p => [p.code, p.id]));
+    const positionMap = new Map((positions || []).map((p: any) => [p.code, p.id]));
 
     for (const [posCode, permCodes] of Object.entries(POSITION_PERMISSIONS)) {
       const posId = positionMap.get(posCode);
@@ -450,7 +450,7 @@ export async function POST(request: NextRequest) {
       for (const permCodePattern of permCodes) {
         if (permCodePattern.endsWith(':*')) {
           const prefix = permCodePattern.slice(0, -2);
-          const matchingPerms = (permissions || []).filter(p => p.code.startsWith(prefix));
+          const matchingPerms = (permissions || []).filter((p: any) => p.code.startsWith(prefix));
           for (const perm of matchingPerms) {
             const { error } = await supabase
               .from('position_permissions_v2')

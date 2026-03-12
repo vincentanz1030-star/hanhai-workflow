@@ -81,8 +81,9 @@ function getSupabaseCredentials(): SupabaseCredentials {
   return { url, anonKey };
 }
 
-// 统一的数据库客户端类型
-type DatabaseClient = SupabaseClient | ReturnType<typeof getPgClient>;
+// 统一的数据库客户端类型 - 使用 any 避免类型冲突
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DatabaseClient = any;
 
 function getSupabaseClient(token?: string): DatabaseClient {
   // 检查是否应该使用本地数据库

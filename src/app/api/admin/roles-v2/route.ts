@@ -3,14 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-function getSupabaseClient() {
-  const supabaseUrl = process.env.COZE_SUPABASE_URL;
-  const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) throw new Error('Missing Supabase config');
-  return createClient(supabaseUrl, supabaseKey);
-}
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // GET - 获取所有角色
 export async function GET(request: NextRequest) {
@@ -24,7 +17,9 @@ export async function GET(request: NextRequest) {
 
     // 表不存在时返回空数据
     if (error) {
-      if (error.code === '42P01' || error.message.includes('does not exist')) {
+      if (error.message?.includes('does not exist') ||
+          error.message?.includes('not find the table') ||
+          error.message?.includes('relation')) {
         return NextResponse.json({ success: true, data: [], notInitialized: true });
       }
       throw error;
@@ -36,11 +31,11 @@ export async function GET(request: NextRequest) {
       .select('role_id');
 
     const countMap = new Map<string, number>();
-    (permCounts || []).forEach(p => {
+    (permCounts || []).forEach((p: any) => {
       countMap.set(p.role_id, (countMap.get(p.role_id) || 0) + 1);
     });
 
-    const result = (roles || []).map(r => ({
+    const result = (roles || []).map((r: any) => ({
       ...r,
       permission_count: countMap.get(r.id) || 0,
     }));
@@ -65,7 +60,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '缺少必填字段' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const result = await supabase
       .from('roles_v2')
       .insert({
         code,
@@ -76,13 +71,11 @@ export async function POST(request: NextRequest) {
         sort_order: sort_order || 0,
         is_system: false,
         is_active: true,
-      })
-      .select()
-      .single();
+      });
 
-    if (error) throw error;
+    if (result.error) throw result.error;
 
-    return NextResponse.json({ success: true, data, message: '角色创建成功' });
+    return NextResponse.json({ success: true, data: result.data, message: '角色创建成功' });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : '创建失败' },
@@ -102,7 +95,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, error: '缺少角色ID' }, { status: 400 });
     }
 
-    const { data: existing } = await supabase
+    const existingResult = await supabase
       .from('roles_v2')
       .select('is_system, code')
       .eq('id', id)
@@ -119,20 +112,18 @@ export async function PUT(request: NextRequest) {
       updated_at: new Date().toISOString(),
     };
 
-    if (existing?.is_system) {
+    if (existingResult.data?.is_system) {
       delete updateData.is_active; // 系统角色不能禁用
     }
 
-    const { data, error } = await supabase
+    const result = await supabase
       .from('roles_v2')
-      .update(updateData)
       .eq('id', id)
-      .select()
-      .single();
+      .update(updateData);
 
-    if (error) throw error;
+    if (result.error) throw result.error;
 
-    return NextResponse.json({ success: true, data, message: '角色更新成功' });
+    return NextResponse.json({ success: true, data: result.data?.[0] || result.data, message: '角色更新成功' });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : '更新失败' },
@@ -152,36 +143,36 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: '缺少角色ID' }, { status: 400 });
     }
 
-    const { data: existing } = await supabase
+    const existingResult = await supabase
       .from('roles_v2')
       .select('is_system, code')
       .eq('id', id)
       .single();
 
-    if (existing?.is_system) {
+    if (existingResult.data?.is_system) {
       return NextResponse.json({ success: false, error: '系统角色不可删除' }, { status: 403 });
     }
 
     // 检查是否有用户使用此角色
-    const { data: users } = await supabase
+    const usersResult = await supabase
       .from('user_roles_v2')
       .select('id')
       .eq('role_id', id)
       .limit(1);
 
-    if (users && users.length > 0) {
+    if (usersResult.data && usersResult.data.length > 0) {
       return NextResponse.json({ success: false, error: '该角色已被用户使用，无法删除' }, { status: 400 });
     }
 
     // 删除关联权限
-    await supabase.from('role_permissions_v2').delete().eq('role_id', id);
+    await supabase.from('role_permissions_v2').eq('role_id', id).delete();
 
-    const { error } = await supabase
+    const result = await supabase
       .from('roles_v2')
-      .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .delete();
 
-    if (error) throw error;
+    if (result.error) throw result.error;
 
     return NextResponse.json({ success: true, message: '角色删除成功' });
   } catch (error) {

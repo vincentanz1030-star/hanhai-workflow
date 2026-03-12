@@ -3,14 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-function getSupabaseClient() {
-  const supabaseUrl = process.env.COZE_SUPABASE_URL;
-  const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) throw new Error('Missing Supabase config');
-  return createClient(supabaseUrl, supabaseKey);
-}
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // GET - 获取所有操作类型
 export async function GET(request: NextRequest) {
@@ -24,9 +17,9 @@ export async function GET(request: NextRequest) {
 
     // 表不存在时返回空数据
     if (error) {
-      if (error.code === '42P01' || 
-          error.message?.includes('does not exist') ||
-          error.message?.includes('not find the table')) {
+      if (error.message?.includes('does not exist') ||
+          error.message?.includes('not find the table') ||
+          error.message?.includes('relation')) {
         return NextResponse.json({ 
           success: true, 
           data: [], 
@@ -57,7 +50,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '缺少必填字段' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    // pg-client 的 insert 已经返回插入的数据（RETURNING *）
+    const result = await supabase
       .from('permission_actions')
       .insert({
         code,
@@ -68,13 +62,11 @@ export async function POST(request: NextRequest) {
         sort_order: sort_order || 0,
         is_system: false,
         is_active: true,
-      })
-      .select()
-      .single();
+      });
 
-    if (error) throw error;
+    if (result.error) throw result.error;
 
-    return NextResponse.json({ success: true, data, message: '操作类型创建成功' });
+    return NextResponse.json({ success: true, data: result.data, message: '操作类型创建成功' });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : '创建失败' },

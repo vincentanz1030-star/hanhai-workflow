@@ -3,14 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-function getSupabaseClient() {
-  const supabaseUrl = process.env.COZE_SUPABASE_URL;
-  const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) throw new Error('Missing Supabase config');
-  return createClient(supabaseUrl, supabaseKey);
-}
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // GET - 获取岗位权限
 export async function GET(
@@ -22,13 +15,13 @@ export async function GET(
     const { id } = await params;
 
     // 获取岗位信息
-    const { data: position, error: posError } = await supabase
+    const positionResult = await supabase
       .from('positions_v2')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (posError || !position) {
+    if (positionResult.error || !positionResult.data) {
       return NextResponse.json({ success: false, error: '岗位不存在' }, { status: 404 });
     }
 
@@ -48,14 +41,14 @@ export async function GET(
 
     if (error) throw error;
 
-    const permissions = (posPerms || []).map(p => p.permission);
+    const permissions = (posPerms || []).map((p: any) => p.permission);
 
     return NextResponse.json({
       success: true,
       data: {
-        position,
+        position: positionResult.data,
         permissions,
-        permission_ids: (posPerms || []).map(p => p.permission_id),
+        permission_ids: (posPerms || []).map((p: any) => p.permission_id),
       },
     });
   } catch (error) {
@@ -82,7 +75,7 @@ export async function PUT(
     }
 
     // 删除旧权限
-    await supabase.from('position_permissions_v2').delete().eq('position_id', id);
+    await supabase.from('position_permissions_v2').eq('position_id', id).delete();
 
     // 插入新权限
     if (permission_ids.length > 0) {
@@ -92,11 +85,11 @@ export async function PUT(
         granted_at: new Date().toISOString(),
       }));
 
-      const { error } = await supabase
+      const result = await supabase
         .from('position_permissions_v2')
         .insert(inserts);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
     }
 
     return NextResponse.json({
@@ -133,16 +126,16 @@ export async function PATCH(
 
       await supabase
         .from('position_permissions_v2')
-        .upsert(inserts, { onConflict: 'position_id,permission_id' });
+        .upsert(inserts);
     }
 
     // 撤销
     if (revoke && revoke.length > 0) {
       await supabase
         .from('position_permissions_v2')
-        .delete()
         .eq('position_id', id)
-        .in('permission_id', revoke);
+        .in('permission_id', revoke)
+        .delete();
     }
 
     return NextResponse.json({

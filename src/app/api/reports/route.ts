@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 
 // 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
 interface ReportSummary {
   totalProjects: number;
   completedProjects: number;
@@ -117,7 +114,7 @@ export async function GET(request: NextRequest) {
     const month = parseInt(searchParams.get('month') || (new Date().getMonth() + 1).toString());
     const weekStart = searchParams.get('weekStart');
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     if (type === 'weekly') {
       return await generateWeeklyReport(client, weekStart);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 import { getPositionName } from '@/lib/config';
 
@@ -15,9 +15,9 @@ export async function GET(request: NextRequest) {
     const position = searchParams.get('position');
     const includeTasks = searchParams.get('includeTasks') === 'true';
 
-    const supabaseUrl = process.env.COZE_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
-    const client = createClient(supabaseUrl, supabaseAnonKey);
+    ;
+    ;
+    const client = getSupabaseClient();
 
     const isAdmin = authResult.roles.some((r: any) => r.role === 'admin');
     const userBrand = authResult.brand;

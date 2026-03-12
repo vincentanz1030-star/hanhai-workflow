@@ -1,13 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 
 // 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase 环境变量未设置');
-}
 
 export async function POST(request: NextRequest) {
   const logs: string[] = [];
@@ -21,7 +15,7 @@ export async function POST(request: NextRequest) {
     addLog('=== 测试：创建项目后使用同一 client 查询 ===');
 
     // 1. 创建同一个 client 实例
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     addLog('✅ 创建 Supabase client');
 
     // 2. 创建项目
@@ -125,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     // 7. 创建新的 client 实例查询
     addLog('\n步骤7: 使用新的 client 实例查询');
-    const newClient = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const newClient = getSupabaseClient();
     const { data: check3, error: checkError3 } = await newClient
       .from('projects')
       .select('*')

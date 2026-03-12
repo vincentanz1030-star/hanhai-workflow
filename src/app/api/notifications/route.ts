@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 
 // 创建通知
@@ -40,9 +40,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 创建 Supabase 客户端
-    const supabaseUrl = process.env.COZE_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
-    const client = createClient(supabaseUrl, supabaseAnonKey);
+    ;
+    ;
+    const client = getSupabaseClient();
 
     // 创建通知
     const { data: notification, error: notificationError } = await client
@@ -98,9 +98,9 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
 
     // 创建 Supabase 客户端
-    const supabaseUrl = process.env.COZE_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
-    const client = createClient(supabaseUrl, supabaseAnonKey);
+    ;
+    ;
+    const client = getSupabaseClient();
 
     // 构建查询
     let query = client

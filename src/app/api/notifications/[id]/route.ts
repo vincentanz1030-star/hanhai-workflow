@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 
 // 标记通知为已读
@@ -16,9 +16,9 @@ export async function POST(
     const { id: notificationId } = await params;
 
     // 创建 Supabase 客户端
-    const supabaseUrl = process.env.COZE_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
-    const client = createClient(supabaseUrl, supabaseAnonKey);
+    ;
+    ;
+    const client = getSupabaseClient();
 
     // 检查通知是否存在
     const { data: notification, error: notificationError } = await client
@@ -90,9 +90,9 @@ export async function DELETE(
     const { id: notificationId } = await params;
 
     // 创建 Supabase 客户端
-    const supabaseUrl = process.env.COZE_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
-    const client = createClient(supabaseUrl, supabaseAnonKey);
+    ;
+    ;
+    const client = getSupabaseClient();
 
     // 检查通知是否存在
     const { data: notification, error: notificationError } = await client

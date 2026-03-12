@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, applyBrandFilter } from '@/lib/api-auth';
 import { createTasksForProject } from '@/lib/project-tasks';
@@ -27,12 +27,6 @@ function toCamelCase(obj: any): any {
 
 // 获取所有项目
 // 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase 环境变量未设置');
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`GET /api/projects - 用户: ${authResult.email}, 用户品牌: ${authResult.brand}, 用户角色: ${JSON.stringify(authResult.roles)}`);
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     const searchParams = request.nextUrl.searchParams;
     const brand = searchParams.get('brand');
     const category = searchParams.get('category');
@@ -155,7 +149,7 @@ export async function POST(request: NextRequest) {
       return authResult;
     }
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     const body = await request.json();
     const { name, brand, category, salesDate, description, selectedRoles } = body;
 
@@ -268,7 +262,7 @@ export async function POST(request: NextRequest) {
 // 删除项目
 export async function DELETE(request: NextRequest) {
   try {
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

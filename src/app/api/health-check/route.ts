@@ -1,37 +1,13 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 export async function GET() {
   const checks: { name: string; status: 'ok' | 'error'; message: string; duration?: number }[] = [];
 
   // 1. 检查环境变量
   const envCheckStart = Date.now();
-  if (!supabaseUrl || !supabaseAnonKey) {
-    checks.push({
-      name: '环境变量',
-      status: 'error',
-      message: 'COZE_SUPABASE_URL 或 COZE_SUPABASE_ANON_KEY 未设置',
-      duration: Date.now() - envCheckStart,
-    });
-    return NextResponse.json({ checks, overall: 'error' });
-  }
-  checks.push({
-    name: '环境变量',
-    status: 'ok',
-    message: '已设置',
-    duration: Date.now() - envCheckStart,
-  });
-
-  // 2. 检查数据库连接
-  const dbCheckStart = Date.now();
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      db: { schema: 'public' as const }
-    });
+    const supabase = getSupabaseClient();
 
     // 简单查询，测试连接
     const { data, error } = await supabase
@@ -65,9 +41,7 @@ export async function GET() {
   // 3. 检查用户表
   const userTableCheckStart = Date.now();
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      db: { schema: 'public' as const }
-    });
+    const supabase = getSupabaseClient();
 
     const { data, error } = await supabase
       .from('users')

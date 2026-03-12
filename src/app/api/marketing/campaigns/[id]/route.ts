@@ -3,19 +3,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
-
-function getSupabaseClient() {
-  const supabaseUrl = process.env.COZE_SUPABASE_URL;
-  const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables');
-  }
-
-  return createClient(supabaseUrl, supabaseKey);
-}
 
 // PUT - 更新活动
 export async function PUT(

@@ -1,15 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 
 // 获取用户审核日志
 // 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase 环境变量未设置');
-}
 
 export async function GET(
   request: NextRequest,
@@ -24,7 +18,7 @@ export async function GET(
       return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const supabase = getSupabaseClient();
 
     // 检查用户角色
     const { data: adminRole } = await supabase

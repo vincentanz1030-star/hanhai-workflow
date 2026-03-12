@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 export async function GET(request: NextRequest) {
   // 从 request 中获取 email 参数
   const { searchParams } = new URL(request.url);
@@ -14,9 +10,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      db: { schema: 'public' as const }
-    });
+    const supabase = getSupabaseClient();
 
     // 查询用户
     const { data: user, error } = await supabase

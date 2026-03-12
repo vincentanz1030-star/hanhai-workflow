@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 function toCamelCase(obj: any): any {
   if (obj === null || obj === undefined) return obj;
   if (Array.isArray(obj)) return obj.map(toCamelCase);
@@ -37,7 +33,7 @@ function toSnakeCase(obj: any): any {
 // 获取新品排期列表
 export async function GET(request: NextRequest) {
   try {
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     const searchParams = request.nextUrl.searchParams;
     const year = searchParams.get('year');
     const month = searchParams.get('month');
@@ -70,7 +66,7 @@ export async function GET(request: NextRequest) {
 // 创建新品排期
 export async function POST(request: NextRequest) {
   try {
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     const body = await request.json();
 
     const { data, error } = await client

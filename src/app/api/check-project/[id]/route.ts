@@ -1,13 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 
 // 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase 环境变量未设置');
-}
 
 export async function GET(
   request: NextRequest,
@@ -15,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     console.log(`查询项目ID: ${id}`);
 

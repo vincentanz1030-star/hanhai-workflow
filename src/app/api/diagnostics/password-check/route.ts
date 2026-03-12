@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { verifyPassword } from '@/lib/auth';
-
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
@@ -13,9 +9,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少 email 或 password 参数' }, { status: 400 });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      db: { schema: 'public' as const }
-    });
+    const supabase = getSupabaseClient();
 
     // 查询用户
     const { data: user, error } = await supabase

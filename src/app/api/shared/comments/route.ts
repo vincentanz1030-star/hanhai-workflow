@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 
-const supabaseUrl = process.env.COZE_SUPABASE_URL!;
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
+;
+;
 
 // 获取评论列表
 export async function GET(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: '缺少资源类型或ID' }, { status: 400 });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getSupabaseClient();
 
   try {
     const offset = (page - 1) * limit;
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '缺少必填字段' }, { status: 400 });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getSupabaseClient();
 
   try {
     const { data, error } = await supabase
@@ -142,7 +142,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: '缺少评论ID' }, { status: 400 });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getSupabaseClient();
 
   try {
     // 只能删除自己的评论

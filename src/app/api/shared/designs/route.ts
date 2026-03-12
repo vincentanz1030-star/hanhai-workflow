@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 import { S3Storage } from 'coze-coding-dev-sdk';
 
-const supabaseUrl = process.env.COZE_SUPABASE_URL!;
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
+;
+;
 
 // 初始化对象存储
 const storage = new S3Storage({
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(searchParams.get('limit') || '20');
   const downloadId = searchParams.get('downloadId');
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getSupabaseClient();
 
   // 下载模式：获取下载链接
   if (downloadId) {
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
   if (authResult instanceof NextResponse) return authResult;
 
   const body = await request.json();
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getSupabaseClient();
 
   try {
     const { data: user } = await supabase

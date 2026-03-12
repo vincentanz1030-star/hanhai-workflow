@@ -1,15 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { checkPermission } from '@/lib/permissions';
 
 // 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase 环境变量未设置');
-}
 
 export async function GET(
   request: NextRequest,
@@ -36,7 +30,7 @@ export async function GET(
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const supabase = getSupabaseClient();
 
     // 获取用户详情
     const { data: user, error } = await supabase
@@ -106,7 +100,7 @@ export async function PUT(
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const supabase = getSupabaseClient();
 
     // 构建更新数据
     const updateData: any = {};
@@ -168,7 +162,7 @@ export async function DELETE(
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const supabase = getSupabaseClient();
 
     // 不能删除自己
     if (currentUser.userId === id) {

@@ -1,9 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
-
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
 // GET - 获取反馈列表
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +9,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     
     let query = client
       .from('weekly_feedbacks')
@@ -87,7 +83,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     const { data: feedback, error } = await client
       .from('weekly_feedbacks')

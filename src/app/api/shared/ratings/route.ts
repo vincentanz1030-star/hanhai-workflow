@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 
-const supabaseUrl = process.env.COZE_SUPABASE_URL!;
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
+;
+;
 
 // 获取资源评分列表
 export async function GET(request: NextRequest) {
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: '缺少资源类型或ID' }, { status: 400 });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getSupabaseClient();
 
   try {
     // 获取评分列表
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '评分必须在1-5之间' }, { status: 400 });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getSupabaseClient();
 
   try {
     // 检查是否已评分

@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 function toCamelCase(obj: any): any {
   if (obj === null || obj === undefined) return obj;
   if (Array.isArray(obj)) return obj.map(toCamelCase);
@@ -21,7 +17,7 @@ function toCamelCase(obj: any): any {
 
 export async function GET(request: NextRequest) {
   try {
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     const searchParams = request.nextUrl.searchParams;
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
     const month = parseInt(searchParams.get('month') || (new Date().getMonth() + 1).toString());

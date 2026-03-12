@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 import * as XLSX from 'xlsx';
 
 // 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
 interface ImportResult {
   success: boolean;
   imported: number;
@@ -23,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查是否有管理员权限
-    const { data: userRoles } = await createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } })
+    const { data: userRoles } = await getSupabaseClient()
       .from('user_roles')
       .select('role')
       .eq('user_id', authResult.userId);
@@ -56,7 +53,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '文件内容为空或格式不正确' }, { status: 400 });
     }
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     let result: ImportResult;
 
@@ -271,7 +268,7 @@ export async function GET(request: NextRequest) {
       return authResult;
     }
 
-    const { data: userRoles } = await createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } })
+    const { data: userRoles } = await getSupabaseClient()
       .from('user_roles')
       .select('role')
       .eq('user_id', authResult.userId);

@@ -1,9 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
-
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
 // GET - 获取单个反馈详情
 export async function GET(
   request: NextRequest,
@@ -11,7 +7,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     const { data: feedback, error } = await client
       .from('weekly_feedbacks')
@@ -68,7 +64,7 @@ export async function PUT(
       responseContent,
     } = body;
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     // 构建更新对象
     const updateData: Record<string, any> = {};
@@ -127,7 +123,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     const { error } = await client
       .from('weekly_feedbacks')

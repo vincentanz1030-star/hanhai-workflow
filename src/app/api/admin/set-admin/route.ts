@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Supabase credentials are not set');
-}
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // POST - 设置用户为管理员（仅限管理员操作）
 export async function POST(request: NextRequest) {
@@ -25,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查当前用户是否是管理员
-    const client = createClient(supabaseUrl, supabaseKey);
+    const client = getSupabaseClient();
     const { data: currentUserRoles, error: roleError } = await client
       .from('user_roles')
       .select('role')
@@ -45,12 +38,12 @@ export async function POST(request: NextRequest) {
     console.log(`[设置管理员] 用户 ${decoded.email} 请求设置 ${email} 为管理员`);
 
     // 执行 SQL 设置管理员
-    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/set_user_as_admin`, {
+    const response = await fetch(`${// REMOVED: supabaseUrl}/rest/v1/rpc/set_user_as_admin`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': // REMOVED: supabaseKey,
+        'Authorization': `Bearer ${// REMOVED: supabaseKey}`,
       },
       body: JSON.stringify({
         p_email: email,
@@ -62,7 +55,7 @@ export async function POST(request: NextRequest) {
       console.error('[设置管理员] 失败:', error);
 
       // 如果 RPC 函数不存在，尝试直接使用 REST API
-      return await setAdminViaRestAPI(email, supabaseUrl, supabaseKey);
+      return await setAdminViaRestAPI(email, // REMOVED: supabaseUrl, // REMOVED: supabaseKey);
     }
 
     const result = await response.json();
@@ -79,15 +72,15 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function setAdminViaRestAPI(email: string, supabaseUrl: string, supabaseKey: string) {
+async function setAdminViaRestAPI(email: string, // REMOVED: supabaseUrl: string, // REMOVED: supabaseKey: string) {
   try {
     // 1. 查找用户 ID
     const userResponse = await fetch(
-      `${supabaseUrl}/rest/v1/users?email=eq.${email}&select=id,email`,
+      `${// REMOVED: supabaseUrl}/rest/v1/users?email=eq.${email}&select=id,email`,
       {
         headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': // REMOVED: supabaseKey,
+          'Authorization': `Bearer ${// REMOVED: supabaseKey}`,
         },
       }
     );
@@ -105,11 +98,11 @@ async function setAdminViaRestAPI(email: string, supabaseUrl: string, supabaseKe
 
     // 2. 检查是否已经是管理员
     const roleResponse = await fetch(
-      `${supabaseUrl}/rest/v1/user_roles?user_id=eq.${userId}&role=eq.admin&select=*`,
+      `${// REMOVED: supabaseUrl}/rest/v1/user_roles?user_id=eq.${userId}&role=eq.admin&select=*`,
       {
         headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': // REMOVED: supabaseKey,
+          'Authorization': `Bearer ${// REMOVED: supabaseKey}`,
         },
       }
     );
@@ -130,12 +123,12 @@ async function setAdminViaRestAPI(email: string, supabaseUrl: string, supabaseKe
     }
 
     // 3. 设置为管理员
-    const insertResponse = await fetch(`${supabaseUrl}/rest/v1/user_roles`, {
+    const insertResponse = await fetch(`${// REMOVED: supabaseUrl}/rest/v1/user_roles`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': // REMOVED: supabaseKey,
+        'Authorization': `Bearer ${// REMOVED: supabaseKey}`,
       },
       body: JSON.stringify({
         user_id: userId,

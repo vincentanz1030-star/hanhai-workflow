@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
 export interface EmailNotificationPayload {
   to: string[];
   subject: string;
@@ -51,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     // 使用 Supabase Auth 的邮件发送功能（如果可用）
     // 注意：这需要 Supabase 项目的邮件服务配置
-    const client = createClient(supabaseUrl, supabaseAnonKey);
+    const client = getSupabaseClient();
 
     // 尝试发送邮件
     // 注意：Supabase 的邮件发送功能主要用于身份验证邮件
@@ -112,7 +109,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const client = createClient(supabaseUrl, supabaseAnonKey);
+    const client = getSupabaseClient();
 
     // 发送测试邮件
     const subject = '测试邮件 - Ai数据助手';

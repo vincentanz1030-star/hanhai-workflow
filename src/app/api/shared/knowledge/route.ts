@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 
-const supabaseUrl = process.env.COZE_SUPABASE_URL!;
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
+;
+;
 
 // 获取知识库列表
 export async function GET(request: NextRequest) {
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   const page = parseInt(searchParams.get('page') || '1');
   const limit = parseInt(searchParams.get('limit') || '20');
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getSupabaseClient();
 
   try {
     let query = supabase
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   if (authResult instanceof NextResponse) return authResult;
 
   const body = await request.json();
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getSupabaseClient();
 
   try {
     const { data: user } = await supabase

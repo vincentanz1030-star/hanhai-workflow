@@ -1,11 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api-auth';
 
 // 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
 // 获取任务评论列表
 export async function GET(
   request: NextRequest,
@@ -18,7 +15,7 @@ export async function GET(
     }
 
     const { id: taskId } = await params;
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     const { data: comments, error } = await client
       .from('task_comments')
@@ -50,7 +47,7 @@ export async function POST(
     }
 
     const { id: taskId } = await params;
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     const body = await request.json();
     const { content } = body;
 

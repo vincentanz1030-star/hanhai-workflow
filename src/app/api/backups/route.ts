@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 
 // 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
 interface BackupRecord {
   id: string;
   name: string;
@@ -26,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 检查是否有管理员权限
-    const { data: userRoles } = await createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } })
+    const { data: userRoles } = await getSupabaseClient()
       .from('user_roles')
       .select('role')
       .eq('user_id', authResult.userId);
@@ -36,7 +33,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     const { data: backups, error } = await client
       .from('data_backups')
@@ -64,7 +61,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查是否有管理员权限
-    const { data: userRoles } = await createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } })
+    const { data: userRoles } = await getSupabaseClient()
       .from('user_roles')
       .select('role')
       .eq('user_id', authResult.userId);
@@ -81,7 +78,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '备份名称不能为空' }, { status: 400 });
     }
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     // 要备份的表
     const tables = [
@@ -146,7 +143,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 检查是否有管理员权限
-    const { data: userRoles } = await createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } })
+    const { data: userRoles } = await getSupabaseClient()
       .from('user_roles')
       .select('role')
       .eq('user_id', authResult.userId);
@@ -163,7 +160,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: '缺少备份ID' }, { status: 400 });
     }
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     const { error } = await client
       .from('data_backups')
@@ -190,7 +187,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // 检查是否有管理员权限
-    const { data: userRoles } = await createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } })
+    const { data: userRoles } = await getSupabaseClient()
       .from('user_roles')
       .select('role')
       .eq('user_id', authResult.userId);
@@ -207,7 +204,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: '缺少备份ID' }, { status: 400 });
     }
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     // 获取备份数据
     const { data: backup, error } = await client

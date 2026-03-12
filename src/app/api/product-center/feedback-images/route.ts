@@ -3,14 +3,28 @@ import { S3Storage } from 'coze-coding-dev-sdk';
 import { getTokenFromRequest as getTokenFromRequestHelper } from '@/lib/token-helper';
 import { verifyToken } from '@/lib/auth';
 
-// 初始化对象存储
-const storage = new S3Storage({
-  endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
-  accessKey: process.env.COZE_STORAGE_ACCESS_KEY || '',
-  secretKey: process.env.COZE_STORAGE_SECRET_KEY || '',
-  bucketName: process.env.COZE_BUCKET_NAME,
-  region: 'cn-beijing',
-});
+// 延迟初始化对象存储（仅在需要时初始化）
+let storageInstance: S3Storage | null = null;
+
+function getStorage(): S3Storage {
+  if (!storageInstance) {
+    const endpointUrl = process.env.COZE_BUCKET_ENDPOINT_URL;
+    const bucketName = process.env.COZE_BUCKET_NAME;
+    
+    if (!endpointUrl || !bucketName) {
+      throw new Error('对象存储未配置。请在环境变量中设置 COZE_BUCKET_ENDPOINT_URL 和 COZE_BUCKET_NAME');
+    }
+    
+    storageInstance = new S3Storage({
+      endpointUrl,
+      accessKey: process.env.COZE_STORAGE_ACCESS_KEY || '',
+      secretKey: process.env.COZE_STORAGE_SECRET_KEY || '',
+      bucketName,
+      region: 'cn-beijing',
+    });
+  }
+  return storageInstance;
+}
 
 // POST - 上传商品反馈图片
 export async function POST(request: NextRequest) {
@@ -114,7 +128,7 @@ export async function POST(request: NextRequest) {
 
     // 上传文件到对象存储
     console.log('[反馈图片上传] 开始上传到对象存储');
-    const fileKey = await storage.uploadFile({
+    const fileKey = await getStorage().uploadFile({
       fileContent: buffer,
       fileName: filePath,
       contentType: file.type,
@@ -124,7 +138,7 @@ export async function POST(request: NextRequest) {
 
     // 生成签名 URL（有效期 30 天）
     console.log('[反馈图片上传] 开始生成签名URL');
-    const imageUrl = await storage.generatePresignedUrl({
+    const imageUrl = await getStorage().generatePresignedUrl({
       key: fileKey,
       expireTime: 2592000,
     });
@@ -189,7 +203,7 @@ export async function GET(request: NextRequest) {
     console.log('[反馈图片] 生成访问URL:', key);
 
     // 生成签名 URL
-    const imageUrl = await storage.generatePresignedUrl({
+    const imageUrl = await getStorage().generatePresignedUrl({
       key,
       expireTime,
     });

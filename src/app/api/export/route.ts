@@ -1,11 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api-auth';
 import { logAuditAction } from '@/lib/audit-log';
-
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
 /**
  * 导出项目数据为CSV格式
  */
@@ -23,7 +19,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '请指定导出数据类型' }, { status: 400 });
     }
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     
     let data: any[] = [];
     let filename = '';

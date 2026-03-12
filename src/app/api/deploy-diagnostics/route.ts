@@ -1,13 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 
 // 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase 环境变量未设置');
-}
 
 export async function GET(request: NextRequest) {
   const logs: string[] = [];
@@ -23,8 +17,8 @@ export async function GET(request: NextRequest) {
     // 1. 环境变量检查
     addLog('步骤1: 检查环境变量');
     const envCheck = {
-      supabaseUrl: process.env.COZE_SUPABASE_URL ? '已配置' : '未配置',
-      supabaseKey: process.env.COZE_SUPABASE_ANON_KEY ? '已配置' : '未配置',
+      // REMOVED: supabaseUrl: process.env.COZE_SUPABASE_URL ? '已配置' : '未配置',
+      // REMOVED: supabaseKey: process.env.COZE_SUPABASE_ANON_KEY ? '已配置' : '未配置',
       jwtSecret: process.env.JWT_SECRET ? '已配置' : '未配置',
       nodeEnv: process.env.NODE_ENV || '未配置',
     };
@@ -41,7 +35,7 @@ export async function GET(request: NextRequest) {
     // 3. 数据库连接测试
     addLog('步骤3: 测试数据库连接');
     try {
-      const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+      const client = getSupabaseClient();
       addLog('Supabase客户端创建成功');
 
       // 测试查询
@@ -75,7 +69,7 @@ export async function GET(request: NextRequest) {
       addLog(`测试项目数据: ${JSON.stringify(testProjectData)}`);
 
       // 实际创建项目
-      const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+      const client = getSupabaseClient();
       const { data: project, error: insertError } = await client
         .from('projects')
         .insert(testProjectData)
@@ -144,7 +138,7 @@ export async function GET(request: NextRequest) {
     // 5. 检查最近创建的项目
     addLog('步骤5: 查询最近创建的5个项目');
     try {
-      const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+      const client = getSupabaseClient();
       const { data: recentProjects, error } = await client
         .from('projects')
         .select('id, name, brand, created_at')

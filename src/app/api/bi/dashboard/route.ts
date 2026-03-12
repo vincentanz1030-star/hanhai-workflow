@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
-const supabaseUrl = process.env.COZE_SUPABASE_URL!;
-const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+;
+const supabase = getSupabaseClient();
 
 // 获取时间范围
 function getDateRange(period: string) {

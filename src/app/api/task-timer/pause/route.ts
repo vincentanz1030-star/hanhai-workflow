@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 
 // 暂停任务计时
@@ -13,9 +13,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { timerId, notes } = body;
 
-    const supabaseUrl = process.env.COZE_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
-    const client = createClient(supabaseUrl, supabaseAnonKey);
+    ;
+    ;
+    const client = getSupabaseClient();
 
     let query = client
       .from('task_time_logs')

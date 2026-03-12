@@ -1,16 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { checkPermission as hasPermission } from '@/lib/permissions';
 
 // 获取用户列表（仅管理员）
 // 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase 环境变量未设置');
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +14,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const supabase = getSupabaseClient();
 
     // 检查用户是否有 admin 角色
     const { data: userRoles } = await supabase

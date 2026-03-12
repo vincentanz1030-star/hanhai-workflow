@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
-
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
 function toCamelCase(obj: any): any {
   if (obj === null || obj === undefined) return obj;
   if (Array.isArray(obj)) return obj.map(toCamelCase);
@@ -45,7 +41,7 @@ export async function GET(
   if (authResult instanceof NextResponse) return authResult;
 
   try {
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     const { id } = await params;
 
     const { data, error } = await client
@@ -76,7 +72,7 @@ export async function PATCH(
   if (authResult instanceof NextResponse) return authResult;
 
   try {
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     const { id } = await params;
     const body = await request.json();
 
@@ -112,7 +108,7 @@ export async function DELETE(
   if (authResult instanceof NextResponse) return authResult;
 
   try {
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     const { id } = await params;
 
     const { error } = await client

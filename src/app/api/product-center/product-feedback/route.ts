@@ -1,16 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-function getSupabaseClient() {
-  const supabaseUrl = process.env.COZE_SUPABASE_URL;
-  const supabaseKey = process.env.COZE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables');
-  }
-
-  return createClient(supabaseUrl, supabaseKey);
-}
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 const supabase = getSupabaseClient();
 

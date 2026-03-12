@@ -1,10 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api-auth';
-
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
 /**
  * 获取用户列表（用于任务分配）
  */
@@ -15,7 +11,7 @@ export async function GET(request: NextRequest) {
       return authResult;
     }
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
     const searchParams = request.nextUrl.searchParams;
     
     const role = searchParams.get('role');

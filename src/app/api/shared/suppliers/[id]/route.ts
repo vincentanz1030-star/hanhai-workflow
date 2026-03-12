@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 
-const supabaseUrl = process.env.COZE_SUPABASE_URL!;
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY!;
+;
+;
 
 // 更新供应商
 export async function PUT(
@@ -15,7 +15,7 @@ export async function PUT(
 
   const { id } = await params;
   const body = await request.json();
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getSupabaseClient();
   const currentUserId = (authResult as any).userId;
   const isAdmin = (authResult as any).roles?.some((r: any) => r.role === 'admin');
 
@@ -90,7 +90,7 @@ export async function DELETE(
   if (authResult instanceof NextResponse) return authResult;
 
   const { id } = await params;
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getSupabaseClient();
   const currentUserId = (authResult as any).userId;
   const isAdmin = (authResult as any).roles?.some((r: any) => r.role === 'admin');
 

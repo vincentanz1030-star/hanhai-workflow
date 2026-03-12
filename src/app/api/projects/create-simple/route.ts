@@ -1,25 +1,11 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// 环境变量
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 简化的项目创建 API
 export async function POST(request: NextRequest) {
   try {
-    // 验证环境变量
-    if (!supabaseUrl || !supabaseAnonKey) {
-      return NextResponse.json(
-        { error: '数据库配置未设置' },
-        { status: 500 }
-      );
-    }
-
     // 创建 Supabase 客户端
-    const client = createClient(supabaseUrl, supabaseAnonKey, {
-      db: { schema: "public" as const },
-    });
+    const client = getSupabaseClient();
 
     // 解析请求体
     const body = await request.json();

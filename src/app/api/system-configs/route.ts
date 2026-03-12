@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 
 // 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
 interface SystemConfig {
   key: string;
   value: string;
@@ -25,7 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 检查是否有管理员权限
-    const { data: userRoles } = await createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } })
+    const { data: userRoles } = await getSupabaseClient()
       .from('user_roles')
       .select('role')
       .eq('user_id', authResult.userId);
@@ -38,7 +35,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const category = searchParams.get('category') as string | null;
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     let query = client.from('system_configs').select('*');
 
@@ -68,7 +65,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // 检查是否有管理员权限
-    const { data: userRoles } = await createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } })
+    const { data: userRoles } = await getSupabaseClient()
       .from('user_roles')
       .select('role')
       .eq('user_id', authResult.userId);
@@ -85,7 +82,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
     }
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     const { data: config, error } = await client
       .from('system_configs')
@@ -118,7 +115,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查是否有管理员权限
-    const { data: userRoles } = await createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } })
+    const { data: userRoles } = await getSupabaseClient()
       .from('user_roles')
       .select('role')
       .eq('user_id', authResult.userId);
@@ -135,7 +132,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '无效的配置数据' }, { status: 400 });
     }
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     // 批量更新配置
     const updates = configs.map((config: { key: string; value: string }) =>
@@ -167,7 +164,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // 检查是否有管理员权限
-    const { data: userRoles } = await createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } })
+    const { data: userRoles } = await getSupabaseClient()
       .from('user_roles')
       .select('role')
       .eq('user_id', authResult.userId);
@@ -177,7 +174,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
-    const client = createClient(supabaseUrl, supabaseAnonKey, { db: { schema: "public" as const } });
+    const client = getSupabaseClient();
 
     // 默认配置
     const defaultConfigs = [

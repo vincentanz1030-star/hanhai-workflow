@@ -99,6 +99,7 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
   const [isLoading, setIsLoading] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [mounted, setMounted] = useState(false); // 用于客户端渲染
 
   // 预览对话框
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -109,6 +110,11 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [deletingAnnouncement, setDeletingAnnouncement] = useState<Announcement | null>(null);
+
+  // 客户端挂载
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // 表单状态
   const [formData, setFormData] = useState({
@@ -360,7 +366,7 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
             <div className="flex-1 min-w-0">
               {/* 标题行 */}
               <div className="flex items-center justify-between mb-1">
-                <h4 className={cn('font-semibold text-sm truncate', isUnread && 'font-bold')}>
+                <h4 className={cn('font-semibold text-sm sm:text-base truncate', isUnread && 'font-bold')}>
                   {current.title}
                 </h4>
                 <div className="flex items-center gap-1 shrink-0">
@@ -375,7 +381,7 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
 
               {/* 内容 */}
               {current.content && (
-                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-2 line-clamp-2">
                   {current.content}
                 </p>
               )}
@@ -383,7 +389,7 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
               {/* 底部：时间 + 操作 */}
               <div className="flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">
-                  {new Date(current.created_at).toLocaleString('zh-CN')}
+                  {mounted ? new Date(current.created_at).toLocaleString('zh-CN') : ''}
                 </p>
                 <div className="flex items-center gap-1">
                   {/* 预览按钮 */}
@@ -471,13 +477,13 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
                 <IconComponent className="h-5 w-5 text-white" />
               </div>
               <div>
-                <DialogTitle className="text-lg">{previewAnnouncement?.title}</DialogTitle>
+                <DialogTitle className="text-base sm:text-lg">{previewAnnouncement?.title}</DialogTitle>
                 <DialogDescription>
                   {previewAnnouncement?.type === 'info' && '通知'}
                   {previewAnnouncement?.type === 'warning' && '警告'}
                   {previewAnnouncement?.type === 'success' && '成功'}
                   {previewAnnouncement?.type === 'error' && '错误'}
-                  {previewAnnouncement?.created_at && (
+                  {previewAnnouncement?.created_at && mounted && (
                     <span className="ml-2">
                       · {new Date(previewAnnouncement.created_at).toLocaleString('zh-CN')}
                     </span>
@@ -487,7 +493,7 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
             </div>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-base leading-relaxed whitespace-pre-wrap">
+            <p className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
               {previewAnnouncement?.content || '暂无详细内容'}
             </p>
           </div>

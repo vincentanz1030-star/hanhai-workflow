@@ -35,7 +35,8 @@ import {
   XCircle,
   Check,
   CheckCheck,
-  Sparkles,
+  Eye,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -60,46 +61,35 @@ interface AnnouncementBarProps {
   userBrand?: string;
 }
 
+// 扁平化设计配色
 const typeConfig = {
   info: {
     icon: Info,
-    gradient: 'from-blue-500 via-blue-400 to-cyan-400',
-    bgGradient: 'from-blue-50 via-blue-100/50 to-cyan-50 dark:from-blue-950/50 dark:via-blue-900/30 dark:to-cyan-950/50',
-    border: 'border-blue-300 dark:border-blue-700',
-    glow: 'shadow-blue-500/20 dark:shadow-blue-400/10',
-    text: 'text-blue-700 dark:text-blue-300',
-    badge: 'bg-blue-500',
-    ring: 'ring-blue-400/50',
+    bgColor: 'bg-blue-500',
+    lightBg: 'bg-blue-50 dark:bg-blue-950/30',
+    textColor: 'text-blue-700 dark:text-blue-300',
+    borderColor: 'border-l-blue-500',
   },
   warning: {
     icon: AlertTriangle,
-    gradient: 'from-amber-500 via-orange-400 to-yellow-400',
-    bgGradient: 'from-amber-50 via-orange-100/50 to-yellow-50 dark:from-amber-950/50 dark:via-orange-900/30 dark:to-yellow-950/50',
-    border: 'border-amber-300 dark:border-amber-700',
-    glow: 'shadow-amber-500/20 dark:shadow-amber-400/10',
-    text: 'text-amber-700 dark:text-amber-300',
-    badge: 'bg-amber-500',
-    ring: 'ring-amber-400/50',
+    bgColor: 'bg-amber-500',
+    lightBg: 'bg-amber-50 dark:bg-amber-950/30',
+    textColor: 'text-amber-700 dark:text-amber-300',
+    borderColor: 'border-l-amber-500',
   },
   success: {
     icon: CheckCircle,
-    gradient: 'from-emerald-500 via-green-400 to-teal-400',
-    bgGradient: 'from-emerald-50 via-green-100/50 to-teal-50 dark:from-emerald-950/50 dark:via-green-900/30 dark:to-teal-950/50',
-    border: 'border-emerald-300 dark:border-emerald-700',
-    glow: 'shadow-emerald-500/20 dark:shadow-emerald-400/10',
-    text: 'text-emerald-700 dark:text-emerald-300',
-    badge: 'bg-emerald-500',
-    ring: 'ring-emerald-400/50',
+    bgColor: 'bg-emerald-500',
+    lightBg: 'bg-emerald-50 dark:bg-emerald-950/30',
+    textColor: 'text-emerald-700 dark:text-emerald-300',
+    borderColor: 'border-l-emerald-500',
   },
   error: {
     icon: XCircle,
-    gradient: 'from-red-500 via-rose-400 to-pink-400',
-    bgGradient: 'from-red-50 via-rose-100/50 to-pink-50 dark:from-red-950/50 dark:via-rose-900/30 dark:to-pink-950/50',
-    border: 'border-red-300 dark:border-red-700',
-    glow: 'shadow-red-500/20 dark:shadow-red-400/10',
-    text: 'text-red-700 dark:text-red-300',
-    badge: 'bg-red-500',
-    ring: 'ring-red-400/50',
+    bgColor: 'bg-red-500',
+    lightBg: 'bg-red-50 dark:bg-red-950/30',
+    textColor: 'text-red-700 dark:text-red-300',
+    borderColor: 'border-l-red-500',
   },
 };
 
@@ -110,7 +100,11 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
   const [isPaused, setIsPaused] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // 对话框状态
+  // 预览对话框
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewAnnouncement, setPreviewAnnouncement] = useState<Announcement | null>(null);
+
+  // 编辑对话框
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
@@ -152,15 +146,13 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
   // 自动轮播
   useEffect(() => {
     if (announcements.length <= 1 || isPaused) return;
-
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % announcements.length);
     }, 6000);
-
     return () => clearInterval(interval);
   }, [announcements.length, isPaused]);
 
-  // 标记当前公告为已读
+  // 标记已读
   const markAsRead = async (announcementId: string) => {
     try {
       await fetch('/api/announcements/read', {
@@ -168,7 +160,6 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ announcementId }),
       });
-
       setAnnouncements((prev) =>
         prev.map((a) => (a.id === announcementId ? { ...a, isRead: true } : a))
       );
@@ -185,11 +176,20 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
       });
-
       setAnnouncements((prev) => prev.map((a) => ({ ...a, isRead: true })));
       setUnreadCount(0);
     } catch (error) {
       console.error('标记全部已读失败:', error);
+    }
+  };
+
+  // 打开预览
+  const openPreview = (announcement: Announcement, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setPreviewAnnouncement(announcement);
+    setIsPreviewOpen(true);
+    if (!announcement.isRead) {
+      markAsRead(announcement.id);
     }
   };
 
@@ -209,7 +209,8 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
   };
 
   // 打开新增对话框
-  const handleAdd = () => {
+  const handleAdd = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     resetForm();
     setFormData((prev) => ({ ...prev, brand: userBrand }));
     setIsDialogOpen(true);
@@ -238,7 +239,6 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
       alert('请输入公告标题');
       return;
     }
-
     setIsSubmitting(true);
     try {
       const url = editingAnnouncement
@@ -254,20 +254,14 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
         is_active: formData.is_active,
         brand: formData.brand,
       };
-
-      if (formData.start_time) {
-        body.start_time = new Date(formData.start_time).toISOString();
-      }
-      if (formData.end_time) {
-        body.end_time = new Date(formData.end_time).toISOString();
-      }
+      if (formData.start_time) body.start_time = new Date(formData.start_time).toISOString();
+      if (formData.end_time) body.end_time = new Date(formData.end_time).toISOString();
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-
       const result = await response.json();
       if (result.success) {
         setIsDialogOpen(false);
@@ -287,13 +281,9 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
   // 删除公告
   const handleDelete = async () => {
     if (!deletingAnnouncement) return;
-
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/announcements/${deletingAnnouncement.id}`, {
-        method: 'DELETE',
-      });
-
+      const response = await fetch(`/api/announcements/${deletingAnnouncement.id}`, { method: 'DELETE' });
       const result = await response.json();
       if (result.success) {
         setIsDeleteDialogOpen(false);
@@ -312,31 +302,16 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
   };
 
   // 切换公告
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + announcements.length) % announcements.length);
-  };
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % announcements.length);
-  };
-
-  // 点击公告处理
-  const handleAnnouncementClick = (announcement: Announcement) => {
-    if (!announcement.isRead) {
-      markAsRead(announcement.id);
-    }
-  };
+  const handlePrev = () => setCurrentIndex((prev) => (prev - 1 + announcements.length) % announcements.length);
+  const handleNext = () => setCurrentIndex((prev) => (prev + 1) % announcements.length);
 
   // 加载中
   if (isLoading) {
     return (
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 animate-pulse" />
-        <div className="relative px-4 py-3">
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Sparkles className="h-4 w-4 animate-spin" />
-            <span>加载公告...</span>
-          </div>
+      <div className="border-b bg-muted/30 px-4 py-4">
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Megaphone className="h-4 w-4 animate-pulse" />
+          <span>加载公告...</span>
         </div>
       </div>
     );
@@ -345,363 +320,218 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
   // 无公告
   if (announcements.length === 0) {
     return isAdmin ? (
-      <div className="bg-gradient-to-r from-muted/50 to-muted/30 border-b px-4 py-3">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Megaphone className="h-4 w-4" />
-            <span>暂无公告</span>
-          </div>
-          <Button size="sm" variant="outline" onClick={handleAdd}>
-            <Plus className="h-4 w-4 mr-1" />
-            发布公告
+      <div className="border-b bg-muted/30 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">暂无公告</span>
+          <Button size="sm" variant="outline" onClick={() => handleAdd()}>
+            <Plus className="h-4 w-4 mr-1" />发布公告
           </Button>
         </div>
       </div>
     ) : null;
   }
 
-  const currentAnnouncement = announcements[currentIndex];
-  const config = typeConfig[currentAnnouncement.type];
+  const current = announcements[currentIndex];
+  const config = typeConfig[current.type];
   const IconComponent = config.icon;
-  const isUnread = !currentAnnouncement.isRead;
+  const isUnread = !current.isRead;
 
   return (
     <>
+      {/* 扁平化公告栏 */}
       <div
-        className={cn(
-          'relative overflow-hidden border-b transition-all duration-500',
-          isUnread && 'ring-2 ring-inset animate-pulse-subtle'
-        )}
-        style={{ animationDuration: '2s' }}
+        className={cn('border-b border-l-4', config.lightBg, config.borderColor)}
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
-        {/* 动态渐变背景 */}
-        <div className={cn('absolute inset-0 bg-gradient-to-r opacity-80', config.bgGradient)} />
-        
-        {/* 装饰性光效 */}
-        {isUnread && (
-          <div className={cn(
-            'absolute inset-0 opacity-30',
-            'bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))]',
-            config.gradient
-          )} />
-        )}
-
-        {/* 移动端：纵向布局 | 桌面端：横向布局 */}
-        <div className="relative container mx-auto px-3 sm:px-4 py-6 sm:py-8">
-          {/* 移动端顶部：标题行 */}
-          <div className="sm:hidden flex items-center justify-between mb-3">
+        <div className="px-3 sm:px-4 py-4 sm:py-5">
+          {/* 移动端顶部标签行 */}
+          <div className="sm:hidden flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              {isUnread && (
-                <Badge variant="error" className="text-xs animate-pulse">新</Badge>
-              )}
-              <Badge className={cn('text-xs text-white', config.badge)}>
-                {currentAnnouncement.type === 'info' && '通知'}
-                {currentAnnouncement.type === 'warning' && '警告'}
-                {currentAnnouncement.type === 'success' && '成功'}
-                {currentAnnouncement.type === 'error' && '错误'}
-              </Badge>
+              <div className={cn('p-1.5 rounded', config.bgColor)}>
+                <IconComponent className="h-4 w-4 text-white" />
+              </div>
+              {isUnread && <Badge variant="error" className="text-xs">新</Badge>}
+              <span className={cn('text-xs font-medium', config.textColor)}>
+                {current.type === 'info' && '通知'}
+                {current.type === 'warning' && '警告'}
+                {current.type === 'success' && '成功'}
+                {current.type === 'error' && '错误'}
+              </span>
             </div>
-            <div className="flex items-center gap-1">
-              {unreadCount > 0 && (
-                <Badge variant="error" className="text-xs">{unreadCount} 条未读</Badge>
-              )}
-            </div>
+            {unreadCount > 0 && (
+              <Badge variant="error" className="text-xs">{unreadCount} 条未读</Badge>
+            )}
           </div>
 
           {/* 主内容区 */}
-          <div className="flex items-center gap-3 sm:gap-4">
-            {/* 左侧导航 - 移动端隐藏 */}
-            {announcements.length > 1 && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className={cn('hidden sm:flex h-10 w-10 shrink-0 rounded-full', config.text)}
-                onClick={handlePrev}
-              >
-                <ChevronLeft className="h-6 w-6" />
-              </Button>
-            )}
+          <div className="flex items-start gap-3">
+            {/* 桌面端图标 */}
+            <div className={cn('hidden sm:flex p-2 rounded shrink-0', config.bgColor)}>
+              <IconComponent className="h-5 w-5 text-white" />
+            </div>
 
-            {/* 公告内容 - 可点击 */}
-            <div
-              className={cn('flex-1 flex items-center gap-3 sm:gap-4 min-w-0 cursor-pointer group')}
-              onClick={() => handleAnnouncementClick(currentAnnouncement)}
-            >
-              {/* 图标 - 移动端更大 */}
-              <div className={cn(
-                'relative shrink-0 p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-gradient-to-br shadow-lg transition-transform group-hover:scale-105 sm:group-hover:scale-110',
-                config.gradient,
-                config.glow
-              )}>
-                <IconComponent className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
-                {isUnread && (
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-900 animate-pulse" />
-                )}
+            {/* 内容区 */}
+            <div className="flex-1 min-w-0">
+              {/* 标题行 */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={cn('font-semibold text-base sm:text-lg', config.textColor, isUnread && 'font-bold')}>
+                  {current.title}
+                </span>
+                <div className="hidden sm:flex items-center gap-1.5">
+                  {isUnread && <Badge variant="error" className="text-xs">新</Badge>}
+                  <Badge variant="outline" className={cn('text-xs', config.textColor)}>
+                    {current.type === 'info' && '通知'}
+                    {current.type === 'warning' && '警告'}
+                    {current.type === 'success' && '成功'}
+                    {current.type === 'error' && '错误'}
+                  </Badge>
+                </div>
               </div>
 
-              {/* 文字内容 */}
-              <div className="flex-1 min-w-0">
-                {/* 桌面端：标题和标签同行 */}
-                <div className="hidden sm:flex items-center gap-2 flex-wrap">
-                  <span className={cn('font-semibold text-lg truncate', config.text, isUnread && 'font-bold')}>
-                    {currentAnnouncement.title}
-                  </span>
-                  
-                  <div className="flex items-center gap-1.5">
-                    {isUnread && (
-                      <Badge variant="error" className="text-xs animate-pulse">新</Badge>
-                    )}
-                    <Badge className={cn('text-xs text-white', config.badge)}>
-                      {currentAnnouncement.type === 'info' && '通知'}
-                      {currentAnnouncement.type === 'warning' && '警告'}
-                      {currentAnnouncement.type === 'success' && '成功'}
-                      {currentAnnouncement.type === 'error' && '错误'}
-                    </Badge>
-                  </div>
-                </div>
+              {/* 内容 - 最多4-5行 */}
+              {current.content && (
+                <p className={cn('mt-2 text-sm sm:text-base leading-relaxed line-clamp-4 sm:line-clamp-5', config.textColor, 'opacity-80')}>
+                  {current.content}
+                </p>
+              )}
 
-                {/* 移动端：标题单独一行，更大字体 */}
-                <span className={cn('sm:hidden font-bold text-lg leading-tight block', config.text)}>
-                  {currentAnnouncement.title}
-                </span>
-                
-                {/* 内容 - 移动端显示2行 */}
-                {currentAnnouncement.content && (
-                  <p className={cn(
-                    'text-sm sm:text-base mt-1.5 sm:mt-1 line-clamp-2 sm:line-clamp-1 opacity-75',
-                    config.text
-                  )}>
-                    {currentAnnouncement.content}
-                  </p>
-                )}
+              {/* 操作按钮行 */}
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-black/5 dark:border-white/5">
+                <div className="flex items-center gap-2">
+                  {/* 预览按钮 */}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={cn('h-8 gap-1', config.textColor)}
+                    onClick={(e) => openPreview(current, e)}
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span className="hidden sm:inline">查看详情</span>
+                  </Button>
 
-                {/* 移动端：已读状态和操作 */}
-                <div className="sm:hidden flex items-center justify-between mt-3">
-                  {currentAnnouncement.isRead ? (
-                    <div className={cn('flex items-center gap-1 text-xs opacity-60', config.text)}>
-                      <CheckCheck className="h-4 w-4" />
-                      <span>已读</span>
-                    </div>
+                  {/* 已读状态 */}
+                  {current.isRead ? (
+                    <span className={cn('flex items-center gap-1 text-xs opacity-60', config.textColor)}>
+                      <CheckCheck className="h-4 w-4" />已读
+                    </span>
                   ) : (
                     <Button
                       size="sm"
-                      variant="outline"
-                      className={cn('h-8 gap-1', config.text)}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        markAsRead(currentAnnouncement.id);
-                      }}
+                      variant="ghost"
+                      className={cn('h-8 gap-1', config.textColor)}
+                      onClick={(e) => { e.stopPropagation(); markAsRead(current.id); }}
                     >
-                      <Check className="h-4 w-4" />
-                      <span>标记已读</span>
+                      <Check className="h-4 w-4" />标记已读
                     </Button>
                   )}
-                  
-                  {/* 管理员操作 - 移动端 */}
+                </div>
+
+                {/* 右侧操作 */}
+                <div className="flex items-center gap-1">
+                  {unreadCount > 1 && (
+                    <Button size="sm" variant="ghost" className="text-xs h-8" onClick={markAllAsRead}>
+                      <CheckCheck className="h-3 w-3 mr-1" />全部已读
+                    </Button>
+                  )}
                   {isAdmin && (
-                    <div className="flex items-center gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className={cn('h-8 w-8', config.text)}
-                        onClick={(e) => handleEdit(currentAnnouncement, e)}
-                      >
+                    <>
+                      <Button size="sm" variant="ghost" className={cn('h-8 w-8 p-0', config.textColor)} onClick={(e) => handleEdit(current, e)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeletingAnnouncement(currentAnnouncement);
-                          setIsDeleteDialogOpen(true);
-                        }}
-                      >
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingAnnouncement(current); setIsDeleteDialogOpen(true); }}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    </div>
+                    </>
                   )}
                 </div>
               </div>
-
-              {/* 桌面端：已读状态 */}
-              {currentAnnouncement.isRead ? (
-                <div className={cn('hidden sm:flex items-center gap-1 text-xs opacity-60', config.text)}>
-                  <CheckCheck className="h-4 w-4" />
-                  <span>已读</span>
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className={cn('hidden sm:flex gap-1 h-9', config.text)}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    markAsRead(currentAnnouncement.id);
-                  }}
-                >
-                  <Check className="h-4 w-4" />
-                  <span>标记已读</span>
-                </Button>
-              )}
             </div>
 
-            {/* 右侧操作区 - 桌面端 */}
-            <div className="hidden sm:flex items-center gap-2 shrink-0">
-              {/* 未读数量 */}
-              {unreadCount > 0 && (
-                <Badge variant="error" className="animate-pulse">
-                  {unreadCount} 条未读
-                </Badge>
-              )}
-
-              {/* 全部已读 */}
-              {unreadCount > 1 && (
-                <Button size="sm" variant="outline" className="text-xs" onClick={markAllAsRead}>
-                  <CheckCheck className="h-3 w-3 mr-1" />
-                  全部已读
-                </Button>
-              )}
-
-              {/* 管理员操作 */}
-              {isAdmin && (
-                <>
-                  <div className="w-px h-6 bg-border/50 mx-1" />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className={cn('h-8 w-8', config.text)}
-                    onClick={(e) => handleEdit(currentAnnouncement, e)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeletingAnnouncement(currentAnnouncement);
-                      setIsDeleteDialogOpen(true);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={handleAdd}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    发布
-                  </Button>
-                </>
-              )}
-
-              {/* 导航和分页 */}
+            {/* 导航区 */}
+            <div className="flex flex-col items-center gap-1 shrink-0">
               {announcements.length > 1 && (
                 <>
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <span className="font-medium">{currentIndex + 1}</span>
-                    <span>/</span>
-                    <span>{announcements.length}</span>
-                  </div>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className={cn('h-10 w-10', config.text)}
-                    onClick={handleNext}
-                  >
-                    <ChevronRight className="h-6 w-6" />
+                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handlePrev}>
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  <span className="text-xs text-muted-foreground font-medium">
+                    {currentIndex + 1}/{announcements.length}
+                  </span>
+                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleNext}>
+                    <ChevronRight className="h-5 w-5" />
                   </Button>
                 </>
+              )}
+              {isAdmin && (
+                <Button size="sm" variant="outline" className="mt-2 text-xs" onClick={() => handleAdd()}>
+                  <Plus className="h-3 w-3 mr-1" />发布
+                </Button>
               )}
             </div>
           </div>
-
-          {/* 移动端底部：导航 + 发布按钮 */}
-          {announcements.length > 1 && (
-            <div className="sm:hidden flex items-center justify-between mt-3 pt-3 border-t border-black/5 dark:border-white/5">
-              <Button
-                size="sm"
-                variant="ghost"
-                className={cn('gap-1', config.text)}
-                onClick={handlePrev}
-              >
-                <ChevronLeft className="h-5 w-5" />
-                <span>上一条</span>
-              </Button>
-              
-              <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-                <span>{currentIndex + 1}</span>
-                <span>/</span>
-                <span>{announcements.length}</span>
-              </div>
-              
-              <Button
-                size="sm"
-                variant="ghost"
-                className={cn('gap-1', config.text)}
-                onClick={handleNext}
-              >
-                <span>下一条</span>
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            </div>
-          )}
-
-          {/* 移动端：发布按钮 */}
-          {isAdmin && (
-            <div className="sm:hidden flex justify-center mt-3 pt-3 border-t border-black/5 dark:border-white/5">
-              <Button size="sm" variant="outline" onClick={handleAdd} className="gap-1">
-                <Plus className="h-4 w-4" />
-                <span>发布新公告</span>
-              </Button>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* 新增/编辑对话框 */}
+      {/* 预览对话框 */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className={cn('p-2 rounded', config.bgColor)}>
+                <IconComponent className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg">{previewAnnouncement?.title}</DialogTitle>
+                <DialogDescription>
+                  {previewAnnouncement?.type === 'info' && '通知'}
+                  {previewAnnouncement?.type === 'warning' && '警告'}
+                  {previewAnnouncement?.type === 'success' && '成功'}
+                  {previewAnnouncement?.type === 'error' && '错误'}
+                  {previewAnnouncement?.created_at && (
+                    <span className="ml-2">
+                      · {new Date(previewAnnouncement.created_at).toLocaleString('zh-CN')}
+                    </span>
+                  )}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-base leading-relaxed whitespace-pre-wrap">
+              {previewAnnouncement?.content || '暂无详细内容'}
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            {previewAnnouncement && !previewAnnouncement.isRead && (
+              <Button variant="outline" onClick={() => { markAsRead(previewAnnouncement.id); setIsPreviewOpen(false); }}>
+                <Check className="h-4 w-4 mr-1" />标记已读
+              </Button>
+            )}
+            <Button onClick={() => setIsPreviewOpen(false)}>关闭</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 编辑对话框 */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingAnnouncement ? '编辑公告' : '发布公告'}</DialogTitle>
-            <DialogDescription>
-              {editingAnnouncement ? '修改公告内容后点击保存' : '填写公告内容后点击发布'}
-            </DialogDescription>
           </DialogHeader>
-
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="title">标题 *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-                placeholder="请输入公告标题"
-              />
+              <Label>标题 *</Label>
+              <Input value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} placeholder="请输入公告标题" />
             </div>
-
             <div className="grid gap-2">
-              <Label htmlFor="content">内容</Label>
-              <Textarea
-                id="content"
-                value={formData.content}
-                onChange={(e) => setFormData((prev) => ({ ...prev, content: e.target.value }))}
-                placeholder="请输入公告内容（可选）"
-                rows={3}
-              />
+              <Label>内容</Label>
+              <Textarea value={formData.content} onChange={(e) => setFormData((p) => ({ ...p, content: e.target.value }))} placeholder="请输入公告内容" rows={5} />
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="type">类型</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, type: value as Announcement['type'] }))
-                  }
-                >
+                <Label>类型</Label>
+                <Select value={formData.type} onValueChange={(v) => setFormData((p) => ({ ...p, type: v as Announcement['type'] }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="info">📢 通知</SelectItem>
@@ -711,49 +541,24 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="grid gap-2">
-                <Label htmlFor="priority">优先级</Label>
-                <Input
-                  id="priority"
-                  type="number"
-                  value={formData.priority}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, priority: parseInt(e.target.value) || 0 }))
-                  }
-                  placeholder="数字越大越靠前"
-                />
+                <Label>优先级</Label>
+                <Input type="number" value={formData.priority} onChange={(e) => setFormData((p) => ({ ...p, priority: parseInt(e.target.value) || 0 }))} placeholder="数字越大越靠前" />
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="start_time">开始时间</Label>
-                <Input
-                  id="start_time"
-                  type="datetime-local"
-                  value={formData.start_time}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, start_time: e.target.value }))}
-                />
+                <Label>开始时间</Label>
+                <Input type="datetime-local" value={formData.start_time} onChange={(e) => setFormData((p) => ({ ...p, start_time: e.target.value }))} />
               </div>
-
               <div className="grid gap-2">
-                <Label htmlFor="end_time">结束时间</Label>
-                <Input
-                  id="end_time"
-                  type="datetime-local"
-                  value={formData.end_time}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, end_time: e.target.value }))}
-                />
+                <Label>结束时间</Label>
+                <Input type="datetime-local" value={formData.end_time} onChange={(e) => setFormData((p) => ({ ...p, end_time: e.target.value }))} />
               </div>
             </div>
-
             <div className="grid gap-2">
-              <Label htmlFor="brand">可见范围</Label>
-              <Select
-                value={formData.brand}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, brand: value }))}
-              >
+              <Label>可见范围</Label>
+              <Select value={formData.brand} onValueChange={(v) => setFormData((p) => ({ ...p, brand: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">全部品牌</SelectItem>
@@ -764,54 +569,31 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
                 </SelectContent>
               </Select>
             </div>
-
             <div className="flex items-center justify-between">
-              <Label htmlFor="is_active">启用状态</Label>
-              <Switch
-                id="is_active"
-                checked={formData.is_active}
-                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, is_active: checked }))}
-              />
+              <Label>启用状态</Label>
+              <Switch checked={formData.is_active} onCheckedChange={(c) => setFormData((p) => ({ ...p, is_active: c }))} />
             </div>
           </div>
-
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>取消</Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? '提交中...' : editingAnnouncement ? '保存' : '发布'}
-            </Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? '提交中...' : editingAnnouncement ? '保存' : '发布'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* 删除确认对话框 */}
+      {/* 删除确认 */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>确认删除</DialogTitle>
-            <DialogDescription>
-              确定要删除公告「{deletingAnnouncement?.title}」吗？此操作无法撤销。
-            </DialogDescription>
+            <DialogDescription>确定要删除公告「{deletingAnnouncement?.title}」吗？此操作无法撤销。</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>取消</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isSubmitting}>
-              {isSubmitting ? '删除中...' : '确认删除'}
-            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isSubmitting}>{isSubmitting ? '删除中...' : '确认删除'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* 自定义动画样式 */}
-      <style jsx global>{`
-        @keyframes pulse-subtle {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.85; }
-        }
-        .animate-pulse-subtle {
-          animation: pulse-subtle 2s ease-in-out infinite;
-        }
-      `}</style>
     </>
   );
 }

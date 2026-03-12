@@ -208,42 +208,43 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
   return (
     <>
       <Card className={`${compact ? '' : 'mb-6'}`}>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle className="flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5" />
-              {year}年{month}月 新品排期日历
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+              {year}年{month}月 新品排期
             </CardTitle>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={handlePreviousMonth}>
-                <ChevronLeft className="h-4 w-4" />
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Button variant="outline" size="icon" onClick={handlePreviousMonth} className="h-8 w-8 sm:h-9 sm:w-9">
+                <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
-              <span className="text-sm font-medium w-24 text-center">
+              <span className="text-xs sm:text-sm font-medium w-16 sm:w-24 text-center">
                 {monthNames[month - 1]}
               </span>
-              <Button variant="outline" size="icon" onClick={handleNextMonth}>
-                <ChevronRight className="h-4 w-4" />
+              <Button variant="outline" size="icon" onClick={handleNextMonth} className="h-8 w-8 sm:h-9 sm:w-9">
+                <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
               <Button
                 variant="default"
                 size="sm"
                 onClick={() => handleDateClick(1)}
+                className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm ml-1"
               >
-                <Plus className="h-4 w-4 mr-1" />
-                添加排期
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                <span className="hidden sm:inline">添加排期</span>
               </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          {/* 图例 */}
-          <div className="flex items-center gap-4 mb-4 text-xs">
+        <CardContent className="pt-0">
+          {/* 图例 - 移动端简化 */}
+          <div className="flex items-center justify-between mb-3 text-xs">
             <div className="flex items-center gap-1">
-              <div className="w-4 h-4 bg-white border border-gray-300 rounded-sm flex items-center justify-center">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-white border border-gray-300 rounded-sm flex items-center justify-center">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
-                  width="12" 
-                  height="12" 
+                  width="10" 
+                  height="10"
                   viewBox="0 0 24 24" 
                   fill="none" 
                   stroke="currentColor" 
@@ -255,19 +256,19 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
               </div>
-              <span>有排期（鼠标悬停查看详情）</span>
+              <span className="text-muted-foreground">有排期</span>
             </div>
-            <div className="flex items-center gap-1 ml-auto text-muted-foreground">
-              <span>点击日期添加排期</span>
+            <div className="text-muted-foreground text-[10px] sm:text-xs">
+              👆 左右滑动查看更多日期
             </div>
           </div>
 
           {/* 日历网格 - 使用响应式布局 */}
-          <div className="overflow-x-auto">
-            <div className="min-w-full">
+          <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0 touch-pan-x">
+            <div className="min-w-[800px] sm:min-w-full">
                 {/* 日期头 */}
-                <div className="grid grid-cols-[120px_repeat(31,1fr)] gap-0.5 border-b-2 border-border mb-2">
-                  <div className="p-2 text-xs font-bold bg-muted sticky left-0 z-20 border-r-2 border-border">
+                <div className="grid grid-cols-[80px_sm:100px_repeat(31,minmax(28px,1fr))] sm:grid-cols-[120px_repeat(31,1fr)] gap-0.5 border-b-2 border-border mb-2">
+                  <div className="p-1.5 sm:p-2 text-[10px] sm:text-xs font-bold bg-muted sticky left-0 z-20 border-r-2 border-border">
                     品牌
                   </div>
                   {Array.from({ length: daysInMonth }, (_, i) => {
@@ -275,14 +276,14 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                     return (
                       <div
                         key={day}
-                        className={`p-1.5 text-xs text-center border-l cursor-pointer hover:bg-blue-50 transition-colors ${
-                          isWeekend(day) ? 'bg-orange-50' : 'bg-muted/30'
+                        className={`p-1 sm:p-1.5 text-[10px] sm:text-xs text-center border-l cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${
+                          isWeekend(day) ? 'bg-orange-50 dark:bg-orange-900/20' : 'bg-muted/30'
                         }`}
                         onClick={() => handleDateClick(day)}
                         title="点击添加排期"
                       >
                         <div className="font-bold">{day}</div>
-                        <div className="text-[10px] text-muted-foreground">{getDayOfWeek(day)}</div>
+                        <div className="text-[8px] sm:text-[10px] text-muted-foreground hidden sm:block">{getDayOfWeek(day)}</div>
                       </div>
                     );
                   })}
@@ -292,9 +293,9 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                 {brandsWithLaunches.map((brand) => {
                   const launches = brandGroups[brand] || [];
                   return (
-                    <div key={brand} className="grid grid-cols-[120px_repeat(31,1fr)] gap-0.5 border-b border-border last:border-b-0 hover:bg-muted/10">
+                    <div key={brand} className="grid grid-cols-[80px_sm:100px_repeat(31,minmax(28px,1fr))] sm:grid-cols-[120px_repeat(31,1fr)] gap-0.5 border-b border-border last:border-b-0 hover:bg-muted/10">
                       {/* 左侧品牌列 */}
-                      <div className="p-2 text-xs font-semibold sticky left-0 z-10 bg-background border-r border-border flex items-center">
+                      <div className="p-1.5 sm:p-2 text-[10px] sm:text-xs font-semibold sticky left-0 z-10 bg-background border-r border-border flex items-center truncate">
                         {getBrandName(brand)}
                       </div>
                       
@@ -310,28 +311,28 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                         return (
                           <div
                             key={i}
-                            className={`p-1 text-center border-l cursor-pointer hover:bg-blue-100 transition-colors ${
-                              isWeekend(day) ? 'bg-orange-50' : 'bg-white'
+                            className={`p-0.5 sm:p-1 text-center border-l cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors ${
+                              isWeekend(day) ? 'bg-orange-50 dark:bg-orange-900/10' : 'bg-white dark:bg-slate-900'
                             }`}
                             onClick={() => handleDateClick(day, brand)}
                             title={`点击添加${getBrandName(brand)}的排期`}
                           >
                             {launch ? (
                               <div 
-                                className="w-full h-8 bg-white border border-gray-300 rounded-sm hover:bg-gray-50 transition-colors relative group flex items-center justify-center"
+                                className="w-full h-6 sm:h-8 bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-sm hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors relative group flex items-center justify-center"
                                 title={launch.description || '无描述'}
                               >
                                 <svg 
                                   xmlns="http://www.w3.org/2000/svg" 
-                                  width="20" 
-                                  height="20" 
+                                  width="16"
+                                  height="16"
                                   viewBox="0 0 24 24" 
                                   fill="none" 
                                   stroke="currentColor" 
                                   strokeWidth="3" 
                                   strokeLinecap="round" 
                                   strokeLinejoin="round" 
-                                  className="text-black"
+                                  className="text-black dark:text-white sm:w-5 sm:h-5"
                                 >
                                   <polyline points="20 6 9 17 4 12"></polyline>
                                 </svg>
@@ -339,13 +340,13 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-5 w-5 p-0 absolute top-0 right-0 bg-white text-blue-600 opacity-0 group-hover:opacity-100 rounded-sm shadow-sm"
+                                  className="h-5 w-5 p-0 absolute top-0 right-0 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 rounded-sm shadow-sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleLaunchEdit(launch, e);
                                   }}
                                 >
-                                  <Edit2 className="h-3 w-3" />
+                                  <Edit2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                                 </Button>
                               </div>
                             ) : null}
@@ -359,9 +360,9 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
             </div>
 
           {/* 统计信息 */}
-          <div className="mt-4 pt-4 border-t flex items-center justify-between text-xs text-muted-foreground">
-            <span>本月共 {totalLaunches} 个新品排期</span>
-            <span>共 {Object.keys(brandGroups).length} 个品牌有排期</span>
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground">
+            <span>本月 {totalLaunches} 个排期</span>
+            <span>{Object.keys(brandGroups).length} 个品牌</span>
           </div>
         </CardContent>
       </Card>

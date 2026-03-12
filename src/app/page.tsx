@@ -2338,231 +2338,278 @@ function HomePageContent() {
         {/* 头部 */}
         <header className="border-b bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 sticky top-0 z-50">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
-                <FolderOpen className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
+          {/* 移动端布局 */}
+          <div className="sm:hidden">
+            {/* 第一行：Logo + 用户操作 */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <FolderOpen className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-base font-bold text-slate-900 dark:text-white">Ai数据助手</h1>
+                </div>
               </div>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Ai数据助手</h1>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">以销售为驱动的项目进度管理</p>
+              <div className="flex items-center gap-1">
+                <NotificationBell />
+                <Link href="/change-password">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" title="修改密码">
+                    <KeyRound className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="icon" onClick={logout} className="h-8 w-8" title="登出">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+                {user.roles.some((r: any) => r.role === 'admin') && (
+                  <>
+                    <Link href="/admin">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="系统管理">
+                        <Settings className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Link href="/admin/users">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="用户管理">
+                        <Shield className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-              {/* 全局搜索框 - 始终显示 */}
-              <div className="relative flex-1 sm:flex-none sm:w-64 lg:w-80">
+            {/* 第二行：搜索框 + 创建项目按钮 */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="搜索项目、任务... (Ctrl+K)"
+                  className="pl-9 h-9 w-full text-sm"
+                  onClick={() => setIsGlobalSearchOpen(true)}
+                  readOnly
+                />
+              </div>
+              <Button
+                className="gap-1.5 h-9 px-3 text-xs shrink-0"
+                onClick={() => setIsCreateDialogOpen(true)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                创建项目
+              </Button>
+            </div>
+          </div>
+
+          {/* 桌面端布局 */}
+          <div className="hidden sm:flex flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
+                <FolderOpen className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Ai数据助手</h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400">以销售为驱动的项目进度管理</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* 全局搜索框 */}
+              <div className="relative w-64 lg:w-80">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="搜索项目、任务、用户... (Ctrl+K)"
-                  className="pl-9 h-9 sm:h-10 w-full"
+                  className="pl-9 h-10 w-full"
                   onClick={() => setIsGlobalSearchOpen(true)}
                   readOnly
                 />
               </div>
               <NotificationBell />
-              <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 flex-1 sm:flex-none">
-                <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary flex items-center justify-center">
-                  <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
+              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800">
+                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+                  <User className="h-5 w-5 text-primary-foreground" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm font-medium truncate">{user.name}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{user.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">
                     {user.primaryRole ? user.roles.find(r => r.role === user.primaryRole)?.role : user.roles[0]?.role}
                   </p>
                 </div>
               </div>
               <Link href="/change-password">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0"
-                  title="修改密码"
-                >
-                  <KeyRound className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Button variant="ghost" size="icon" className="h-10 w-10 flex-shrink-0" title="修改密码">
+                  <KeyRound className="h-5 w-5" />
                 </Button>
               </Link>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={logout}
-                className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0"
-                title="登出"
-              >
-                <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Button variant="ghost" size="icon" onClick={logout} className="h-10 w-10 flex-shrink-0" title="登出">
+                <LogOut className="h-5 w-5" />
               </Button>
-              {/* 显示用户角色 */}
-              <div className="hidden md:flex items-center text-xs text-muted-foreground">
-                {user.roles?.[0]?.role && <span className="ml-2 mr-2">({user.roles[0].role})</span>}
-              </div>
               {/* 管理员功能入口 */}
               {user.roles.some((r: any) => r.role === 'admin') && (
                 <div className="flex gap-1">
                   <Link href="/admin">
-                    <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0" title="系统管理">
-                      <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <Button variant="ghost" size="icon" className="h-10 w-10 flex-shrink-0" title="系统管理">
+                      <Settings className="h-5 w-5" />
                     </Button>
                   </Link>
                   <Link href="/admin/users">
-                    <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0" title="用户管理">
-                      <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <Button variant="ghost" size="icon" className="h-10 w-10 flex-shrink-0" title="用户管理">
+                      <Shield className="h-5 w-5" />
                     </Button>
                   </Link>
                 </div>
               )}
-              <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
-                setIsCreateDialogOpen(open);
-                if (!open) {
-                  setCreateProjectError('');
-                }
-              }}>
-              <DialogTrigger asChild>
               <Button
-                className="gap-2 h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full sm:w-auto"
+                className="gap-2 h-10 px-4 text-sm"
+                onClick={() => setIsCreateDialogOpen(true)}
               >
-                <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                <Plus className="h-4 w-4" />
                 创建项目
               </Button>
-              </DialogTrigger>
-                <DialogContent className="w-[95vw] sm:w-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-base sm:text-lg">创建新项目</DialogTitle>
-                  <DialogDescription className="text-xs sm:text-sm">填写项目信息，系统将自动生成各岗位任务</DialogDescription>
-                </DialogHeader>
-                {createProjectError && (
-                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-md text-xs sm:text-sm">
-                    {createProjectError}
-                  </div>
-                )}
-                <div className="space-y-3 sm:space-y-4 py-3 sm:py-4 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
-                  <div className="space-y-2">
-                    <Label htmlFor="brand" className="text-xs sm:text-sm">选择品牌 *</Label>
-                    <select
-                      id="brand"
-                      value={newProject.brand}
-                      onChange={(e) => setNewProject({ ...newProject, brand: e.target.value as any })}
-                      className="flex h-9 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs sm:text-sm"
-                    >
-                      <option value="">请选择品牌...</option>
-                      {Object.keys(BRAND_NAMES).map(key => {
-                        if (key === 'all') return null; // 不在创建项目时显示"全部"
-                        return (
-                          <option key={key} value={key}>{BRAND_NAMES[key]}</option>
-                        );
-                      })}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="category" className="text-xs sm:text-sm">项目分类 *</Label>
-                    <select
-                      id="category"
-                      value={newProject.category}
-                      onChange={(e) => setNewProject({ ...newProject, category: e.target.value as any })}
-                      className="flex h-9 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs sm:text-sm"
-                    >
-                      <option value="">请选择分类...</option>
-                      {Object.keys(CATEGORY_NAMES).map(key => (
-                        <option key={key} value={key}>{CATEGORY_NAMES[key]}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="text-xs sm:text-sm">项目名称 *</Label>
-                    <Input
-                      id="name"
-                      value={newProject.name}
-                      onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                      placeholder="例如：夏季新品推广"
-                      className="h-9 sm:h-10"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="salesDate" className="text-xs sm:text-sm">销售日期 *</Label>
-                    <Input
-                      id="salesDate"
-                      type="date"
-                      value={newProject.salesDate}
-                      onChange={(e) => setNewProject({ ...newProject, salesDate: e.target.value })}
-                      className="h-9 sm:h-10"
-                    />
-                    <p className="text-[10px] sm:text-sm text-muted-foreground">系统将自动向前推3个月作为项目确认时间</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="description" className="text-xs sm:text-sm">项目描述</Label>
-                    <Textarea
-                      id="description"
-                      value={newProject.description}
-                      onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                      placeholder="简要描述项目内容和目标"
-                      rows={3}
-                      className="text-xs sm:text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs sm:text-sm">选择参与岗位 *</Label>
-                    <p className="text-[10px] sm:text-sm text-muted-foreground">根据项目分类自动加载对应岗位，可多选</p>
-                    {newProject.category ? (
-                      <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
-                        {CATEGORY_ROLES[newProject.category]?.map(role => (
-                          <label key={role} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 rounded">
-                            <input
-                              type="checkbox"
-                              checked={newProject.selectedRoles.includes(role)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setNewProject({
-                                    ...newProject,
-                                    selectedRoles: [...newProject.selectedRoles, role],
-                                  });
-                                } else {
-                                  setNewProject({
-                                    ...newProject,
-                                    selectedRoles: newProject.selectedRoles.filter(r => r !== role),
-                                  });
-                                }
-                              }}
-                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                            />
-                            <span className="text-xs sm:text-sm">{ROLE_NAMES[role] || role}</span>
-                          </label>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-xs sm:text-sm text-muted-foreground border rounded-md p-3">
-                        请先选择项目分类
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    onClick={handleCreateProject}
-                    disabled={
-                      !newProject.name ||
-                      !newProject.salesDate ||
-                      !newProject.brand ||
-                      !newProject.category ||
-                      newProject.selectedRoles.length === 0 ||
-                      isCreatingProject
-                    }
-                    className="h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full"
-                  >
-                    {isCreatingProject ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        创建中...
-                      </>
-                    ) : (
-                      '创建项目'
-                    )}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            </div>
           </div>
         </div>
-      </div>
       </header>
+
+      {/* 创建项目对话框 - 移动端和桌面端共享 */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+        setIsCreateDialogOpen(open);
+        if (!open) {
+          setCreateProjectError('');
+        }
+      }}>
+        <DialogContent className="w-[95vw] sm:w-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg">创建新项目</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">填写项目信息，系统将自动生成各岗位任务</DialogDescription>
+          </DialogHeader>
+          {createProjectError && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-md text-xs sm:text-sm">
+              {createProjectError}
+            </div>
+          )}
+          <div className="space-y-3 sm:space-y-4 py-3 sm:py-4 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
+            <div className="space-y-2">
+              <Label htmlFor="brand" className="text-xs sm:text-sm">选择品牌 *</Label>
+              <select
+                id="brand"
+                value={newProject.brand}
+                onChange={(e) => setNewProject({ ...newProject, brand: e.target.value as any })}
+                className="flex h-9 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs sm:text-sm"
+              >
+                <option value="">请选择品牌...</option>
+                {Object.keys(BRAND_NAMES).map(key => {
+                  if (key === 'all') return null;
+                  return (
+                    <option key={key} value={key}>{BRAND_NAMES[key]}</option>
+                  );
+                })}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category" className="text-xs sm:text-sm">项目分类 *</Label>
+              <select
+                id="category"
+                value={newProject.category}
+                onChange={(e) => setNewProject({ ...newProject, category: e.target.value as any })}
+                className="flex h-9 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs sm:text-sm"
+              >
+                <option value="">请选择分类...</option>
+                {Object.keys(CATEGORY_NAMES).map(key => (
+                  <option key={key} value={key}>{CATEGORY_NAMES[key]}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-xs sm:text-sm">项目名称 *</Label>
+              <Input
+                id="name"
+                value={newProject.name}
+                onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                placeholder="例如：夏季新品推广"
+                className="h-9 sm:h-10"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="salesDate" className="text-xs sm:text-sm">销售日期 *</Label>
+              <Input
+                id="salesDate"
+                type="date"
+                value={newProject.salesDate}
+                onChange={(e) => setNewProject({ ...newProject, salesDate: e.target.value })}
+                className="h-9 sm:h-10"
+              />
+              <p className="text-[10px] sm:text-sm text-muted-foreground">系统将自动向前推3个月作为项目确认时间</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-xs sm:text-sm">项目描述</Label>
+              <Textarea
+                id="description"
+                value={newProject.description}
+                onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                placeholder="简要描述项目内容和目标"
+                rows={3}
+                className="text-xs sm:text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs sm:text-sm">选择参与岗位 *</Label>
+              <p className="text-[10px] sm:text-sm text-muted-foreground">根据项目分类自动加载对应岗位，可多选</p>
+              {newProject.category ? (
+                <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                  {CATEGORY_ROLES[newProject.category]?.map(role => (
+                    <label key={role} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 rounded">
+                      <input
+                        type="checkbox"
+                        checked={newProject.selectedRoles.includes(role)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setNewProject({
+                              ...newProject,
+                              selectedRoles: [...newProject.selectedRoles, role],
+                            });
+                          } else {
+                            setNewProject({
+                              ...newProject,
+                              selectedRoles: newProject.selectedRoles.filter(r => r !== role),
+                            });
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <span className="text-xs sm:text-sm">{ROLE_NAMES[role] || role}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs sm:text-sm text-muted-foreground border rounded-md p-3">
+                  请先选择项目分类
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={handleCreateProject}
+              disabled={
+                !newProject.name ||
+                !newProject.salesDate ||
+                !newProject.brand ||
+                !newProject.category ||
+                newProject.selectedRoles.length === 0 ||
+                isCreatingProject
+              }
+              className="h-9 px-3 text-xs sm:h-10 sm:px-4 sm:text-sm w-full"
+            >
+              {isCreatingProject ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  创建中...
+                </>
+              ) : (
+                '创建项目'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 主内容 */}
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">

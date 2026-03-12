@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -314,26 +315,30 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
   // 加载中
   if (isLoading) {
     return (
-      <div className="px-3 sm:px-4 py-3">
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Megaphone className="h-4 w-4 animate-pulse" />
-          <span>加载公告...</span>
-        </div>
-      </div>
+      <Card>
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Megaphone className="h-4 w-4 animate-pulse" />
+            <span>加载公告...</span>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   // 无公告
   if (announcements.length === 0) {
     return isAdmin ? (
-      <div className="px-3 sm:px-4 py-3">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">暂无公告</span>
-          <Button size="sm" variant="outline" onClick={() => handleAdd()}>
-            <Plus className="h-4 w-4 mr-1" />发布公告
-          </Button>
-        </div>
-      </div>
+      <Card>
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">暂无公告</span>
+            <Button size="sm" variant="outline" onClick={() => handleAdd()}>
+              <Plus className="h-4 w-4 mr-1" />发布公告
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     ) : null;
   }
 
@@ -344,40 +349,41 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
 
   return (
     <>
-      {/* 公告栏 - 参考通知中心样式 */}
-      <div className="px-3 sm:px-4 py-3">
-        <div
-          className={cn(
-            'p-3 rounded-lg border transition-colors',
-            isUnread
-              ? 'bg-white dark:bg-slate-900 border-primary'
-              : 'bg-slate-50 dark:bg-slate-800'
-          )}
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-        >
-          <div className="flex items-start gap-3">
-            {/* 左侧图标 - 圆形背景 */}
-            <div className={cn('p-2 rounded-full text-white shrink-0', config.bgColor)}>
-              <IconComponent className="h-4 w-4" />
-            </div>
-
-            {/* 内容区 */}
-            <div className="flex-1 min-w-0">
-              {/* 标题行 */}
-              <div className="flex items-center justify-between mb-1">
-                <h4 className={cn('font-semibold text-sm sm:text-base truncate', isUnread && 'font-bold')}>
-                  {current.title}
-                </h4>
-                <div className="flex items-center gap-1 shrink-0">
-                  {!isUnread && (
-                    <Check className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
-                  {isUnread && (
-                    <Badge variant="secondary" className="text-[10px]">新</Badge>
-                  )}
-                </div>
+      {/* 公告栏 - 参考通知中心样式，使用Card包裹保持宽度一致 */}
+      <Card>
+        <CardContent className="p-3 sm:p-4">
+          <div
+            className={cn(
+              'p-3 rounded-lg border transition-colors',
+              isUnread
+                ? 'bg-white dark:bg-slate-900 border-primary'
+                : 'bg-slate-50 dark:bg-slate-800'
+            )}
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+          >
+            <div className="flex items-start gap-3">
+              {/* 左侧图标 - 圆形背景 */}
+              <div className={cn('p-2 rounded-full text-white shrink-0', config.bgColor)}>
+                <IconComponent className="h-4 w-4" />
               </div>
+
+              {/* 内容区 */}
+              <div className="flex-1 min-w-0">
+                {/* 标题行 */}
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className={cn('font-semibold text-sm sm:text-base truncate', isUnread && 'font-bold')}>
+                    {current.title}
+                  </h4>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {!isUnread && (
+                      <Check className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    {isUnread && (
+                      <Badge variant="secondary" className="text-[10px]">新</Badge>
+                    )}
+                  </div>
+                </div>
 
               {/* 内容 */}
               {current.content && (
@@ -466,7 +472,8 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
             </Button>
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* 预览对话框 */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>

@@ -2783,8 +2783,45 @@ function HomePageContent() {
                         ? ((target.actualAmount / target.targetAmount) * 100).toFixed(1)
                         : '0';
                       return (
-                        <div key={target.id} className="border rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-3">
+                        <div key={target.id} className="border rounded-lg p-3 sm:p-4">
+                          {/* 移动端布局 */}
+                          <div className="sm:hidden">
+                            {/* 标题行 */}
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="font-semibold text-sm">{target.year}年 - {BRAND_NAMES[target.brand]}</h3>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={() => handleEditSalesTarget(target)}
+                                >
+                                  编辑
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-destructive"
+                                  onClick={() => handleDeleteSalesTarget(target.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                            {/* 数据行 */}
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                              <Badge variant="outline" className="text-xs">目标: {target.targetAmount}万元</Badge>
+                              <Badge className="bg-blue-500 text-xs">已完成: {target.actualAmount}万元</Badge>
+                            </div>
+                            {/* 完成率 */}
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-lg font-bold text-blue-600">{completionRate}%</span>
+                              <span className="text-xs text-muted-foreground">完成率</span>
+                            </div>
+                          </div>
+
+                          {/* 桌面端布局 */}
+                          <div className="hidden sm:flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3">
                               <h3 className="font-semibold">{target.year}年 - {BRAND_NAMES[target.brand]}</h3>
                               <Badge variant="outline">目标: {target.targetAmount}万元</Badge>
@@ -2813,7 +2850,7 @@ function HomePageContent() {
                               </div>
                             </div>
                           </div>
-                          <Progress value={parseFloat(completionRate)} className="h-3" />
+                          <Progress value={parseFloat(completionRate)} className="h-2 sm:h-3" />
                           
                           {/* 月度目标详情 */}
                           {target.monthlyTargets && target.monthlyTargets.length > 0 && (

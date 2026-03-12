@@ -564,9 +564,9 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">全部品牌</SelectItem>
-                  <SelectItem value="he_zhe">和哲</SelectItem>
-                  <SelectItem value="baobao">包包</SelectItem>
-                  <SelectItem value="ai_he">爱和</SelectItem>
+                  <SelectItem value="he_zhe">禾哲</SelectItem>
+                  <SelectItem value="baobao">BAOBAO</SelectItem>
+                  <SelectItem value="ai_he">爱禾</SelectItem>
                   <SelectItem value="bao_deng_yuan">宝登源</SelectItem>
                 </SelectContent>
               </Select>

@@ -64,7 +64,7 @@ export async function POST(
 
     if (targetUsers && targetUsers.length > 0) {
       // 获取这些用户的角色信息
-      const userIds = targetUsers.map((u) => u.id);
+      const userIds = targetUsers.map((u: { id: string }) => u.id);
       const { data: userRoles } = await supabase
         .from('user_roles')
         .select('user_id, role')

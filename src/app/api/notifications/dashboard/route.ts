@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 
+// 类型定义
+interface Notification {
+  id: string;
+  type: 'collaboration' | 'reminder' | 'weekly' | 'project';
+  title: string;
+  content: string;
+  priority: 'high' | 'medium' | 'low';
+  role: string;
+  deadline?: string;
+  createdAt: string;
+}
+
 // 直接从环境变量获取 Supabase 配置
 // 获取综合通知数据
 export async function GET(request: NextRequest) {
@@ -19,7 +31,7 @@ export async function GET(request: NextRequest) {
       .select('role')
       .eq('user_id', authResult.userId);
 
-    const userRoleList = userRoles?.map(r => r.role) || [];
+    const userRoleList = userRoles?.map((r: { role: string }) => r.role) || [];
 
     // 1. 获取协同合作请求
     const { data: collaborations } = await client
@@ -78,7 +90,7 @@ export async function GET(request: NextRequest) {
         deadline,
         createdAt: task.created_at,
       };
-    }).filter(n => n.priority !== 'low');
+    }).filter((n: Notification) => n.priority !== 'low');
 
     // 3. 获取本周工作安排
     const now = new Date();
@@ -111,7 +123,7 @@ export async function GET(request: NextRequest) {
         deadline: plan.week_end,
         createdAt: plan.created_at,
       };
-    }).filter(n => n.priority !== 'low');
+    }).filter((n: Notification) => n.priority !== 'low');
 
     // 4. 获取项目相关通知（项目即将到期或逾期）
     const { data: projects } = await client
@@ -142,7 +154,7 @@ export async function GET(request: NextRequest) {
         deadline: salesDate,
         createdAt: project.created_at,
       };
-    }).filter(n => n.priority !== 'low');
+    }).filter((n: Notification) => n.priority !== 'low');
 
     // 合并所有通知并按优先级排序
     const allNotifications = [

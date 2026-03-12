@@ -48,7 +48,12 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-    const formattedTasks = tasks?.map(task => ({
+    const formattedTasks = tasks?.map((task: {
+      id: string;
+      [key: string]: any;
+      campaigns?: { name: string };
+      users?: { name: string };
+    }) => ({
       ...task,
       campaign_name: task.campaigns?.name,
       assignee_name: task.users?.name,

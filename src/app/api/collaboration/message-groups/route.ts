@@ -33,7 +33,19 @@ export async function GET(request: NextRequest) {
     if (error) throw error;
 
     // 映射字段名以匹配前端期望
-    const mappedData = (data || []).map(group => ({
+    const mappedData = (data || []).map((group: {
+      id: string;
+      group_name: string;
+      description: string | null;
+      group_type: string;
+      member_count: number;
+      members: string[];
+      owner: string;
+      last_message: string | null;
+      last_message_time: string | null;
+      updated_at: string;
+      created_at: string;
+    }) => ({
       id: group.id,
       name: group.group_name,
       description: group.description,

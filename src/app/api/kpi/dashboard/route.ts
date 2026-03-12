@@ -1,7 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
-;
+// 类型定义
+interface Project {
+  id: string;
+  status: string;
+  brand: string;
+  created_at: string;
+  sales_date: string;
+}
+
+interface Task {
+  id: string;
+  status: string;
+  role: string;
+  progress: number;
+  estimated_completion_date: string;
+  actual_completion_date: string | null;
+  project_id: string;
+}
+
+interface PositionStats {
+  total: number;
+  completed: number;
+}
+
 const supabase = getSupabaseClient();
 
 export async function GET(request: NextRequest) {
@@ -43,36 +66,40 @@ export async function GET(request: NextRequest) {
 
     if (monthlyCompletedError) throw monthlyCompletedError;
 
+    // 类型转换
+    const typedProjects: Project[] = projects || [];
+    const typedTasks: Task[] = tasks || [];
+
     // 计算统计数据
     const projectStats = {
-      total: projects?.length || 0,
-      completed: projects?.filter(p => p.status === 'completed').length || 0,
-      inProgress: projects?.filter(p => p.status === 'in-progress').length || 0,
-      overdue: projects?.filter(p => {
+      total: typedProjects.length,
+      completed: typedProjects.filter((p: Project) => p.status === 'completed').length,
+      inProgress: typedProjects.filter((p: Project) => p.status === 'in-progress').length,
+      overdue: typedProjects.filter((p: Project) => {
         if (p.status === 'completed') return false;
         const deadline = new Date(p.sales_date);
         return deadline < now;
-      }).length || 0,
+      }).length,
     };
 
     const taskStats = {
-      total: tasks?.length || 0,
-      completed: tasks?.filter(t => t.status === 'completed').length || 0,
-      inProgress: tasks?.filter(t => t.status === 'in-progress').length || 0,
-      overdue: tasks?.filter(t => {
+      total: typedTasks.length,
+      completed: typedTasks.filter((t: Task) => t.status === 'completed').length,
+      inProgress: typedTasks.filter((t: Task) => t.status === 'in-progress').length,
+      overdue: typedTasks.filter((t: Task) => {
         if (t.status === 'completed') return false;
         const deadline = new Date(t.estimated_completion_date);
         return deadline < now;
-      }).length || 0,
+      }).length,
     };
 
     // 计算KPI指标
     const metrics = {
-      completionRate: tasks && tasks.length > 0
-        ? Math.round((taskStats.completed / tasks.length) * 100)
+      completionRate: typedTasks.length > 0
+        ? Math.round((taskStats.completed / typedTasks.length) * 100)
         : 0,
-      overdueRate: tasks && tasks.length > 0
-        ? Math.round((taskStats.overdue / tasks.length) * 100)
+      overdueRate: typedTasks.length > 0
+        ? Math.round((taskStats.overdue / typedTasks.length) * 100)
         : 0,
       avgCompletionTime: 0, // 需要更复杂的计算
       monthlyNewProjects: monthlyProjects?.length || 0,
@@ -80,14 +107,13 @@ export async function GET(request: NextRequest) {
     };
 
     // 计算平均完成时间
-    const completedTasksWithDates = tasks?.filter(t => t.status === 'completed' && t.actual_completion_date) || [];
+    const completedTasksWithDates = typedTasks.filter((t: Task) => t.status === 'completed' && t.actual_completion_date);
     if (completedTasksWithDates.length > 0) {
-      const projectsWithCreated = projects || [];
       let totalTime = 0;
       let count = 0;
 
-      completedTasksWithDates.forEach(task => {
-        const project = projectsWithCreated.find(p => p.id === task.project_id);
+      completedTasksWithDates.forEach((task: Task) => {
+        const project = typedProjects.find((p: Project) => p.id === task.project_id);
         if (project && task.actual_completion_date) {
           const projectCreated = new Date(project.created_at);
           const taskCompleted = new Date(task.actual_completion_date);
@@ -100,13 +126,13 @@ export async function GET(request: NextRequest) {
     }
 
     // 品牌分布
-    const brandDistribution = projects?.reduce((acc, project) => {
+    const brandDistribution = typedProjects.reduce((acc: Record<string, number>, project: Project) => {
       acc[project.brand] = (acc[project.brand] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>) || {};
+    }, {});
 
     // 岗位效率
-    const positionStats = tasks?.reduce((acc, task) => {
+    const positionStats = typedTasks.reduce((acc: Record<string, PositionStats>, task: Task) => {
       if (!acc[task.role]) {
         acc[task.role] = { total: 0, completed: 0 };
       }
@@ -115,10 +141,10 @@ export async function GET(request: NextRequest) {
         acc[task.role].completed++;
       }
       return acc;
-    }, {} as Record<string, { total: number; completed: number }>) || {};
+    }, {});
 
     const topPositions = Object.entries(positionStats)
-      .map(([name, stats]) => ({
+      .map(([name, stats]: [string, PositionStats]) => ({
         name,
         completed: stats.completed,
         total: stats.total,
@@ -136,17 +162,17 @@ export async function GET(request: NextRequest) {
       const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
 
-      const dayCompleted = tasks?.filter(t => {
+      const dayCompleted = typedTasks.filter((t: Task) => {
         if (!t.actual_completion_date) return false;
         const completionDate = new Date(t.actual_completion_date);
         return completionDate >= dayStart && completionDate < dayEnd;
-      }).length || 0;
+      }).length;
 
-      const dayOverdue = tasks?.filter(t => {
+      const dayOverdue = typedTasks.filter((t: Task) => {
         if (t.status === 'completed') return false;
         const deadline = new Date(t.estimated_completion_date);
         return deadline >= dayStart && deadline < dayEnd && deadline < now;
-      }).length || 0;
+      }).length;
 
       trendData.push({
         date: dateStr,

@@ -1,5 +1,28 @@
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
+// 类型定义
+interface UserRole {
+  role: string;
+  is_primary?: boolean;
+}
+
+interface RolePermission {
+  role: string;
+  permission_id: string;
+  permissions?: {
+    resource: string;
+    action: string;
+    description: string;
+  };
+}
+
+interface Permission {
+  id: string;
+  resource: string;
+  action: string;
+  description?: string;
+}
+
 /**
  * 检查用户是否有指定权限
  */
@@ -20,7 +43,7 @@ export async function checkPermission(
     return false;
   }
 
-  const roles = userRoles.map(r => r.role);
+  const roles = userRoles.map((r: UserRole) => r.role);
 
   // 检查这些角色是否有指定权限
   const { data: permissions, error: permsError } = await supabase
@@ -32,7 +55,7 @@ export async function checkPermission(
     return false;
   }
 
-  const permissionIds = permissions.map(p => p.permission_id);
+  const permissionIds = permissions.map((p: { permission_id: string }) => p.permission_id);
 
   // 查询权限详情
   const { data: permDetails, error: detailsError } = await supabase
@@ -83,7 +106,7 @@ export async function getUserPermissions(userId: string) {
     return [];
   }
 
-  const roles = userRoles.map(r => r.role);
+  const roles = userRoles.map((r: UserRole) => r.role);
 
   // 获取这些角色的所有权限
   const { data: permissions, error: permsError } = await supabase
@@ -102,10 +125,10 @@ export async function getUserPermissions(userId: string) {
     return [];
   }
 
-  return permissions.map(p => ({
-    resource: (p.permissions as any).resource,
-    action: (p.permissions as any).action,
-    description: (p.permissions as any).description,
+  return permissions.map((p: RolePermission) => ({
+    resource: (p.permissions as Permission).resource,
+    action: (p.permissions as Permission).action,
+    description: (p.permissions as Permission).description,
   }));
 }
 
@@ -132,6 +155,6 @@ export async function getUserRoles(userId: string) {
  */
 export async function getPrimaryRole(userId: string): Promise<string | null> {
   const roles = await getUserRoles(userId);
-  const primary = roles.find(r => r.is_primary);
+  const primary = roles.find((r: UserRole) => r.is_primary);
   return primary ? primary.role : (roles[0]?.role || null);
 }

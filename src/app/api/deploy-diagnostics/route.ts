@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
       } else {
         addLog(`✅ 查询成功，项目数量: ${recentProjects?.length || 0}`);
         if (recentProjects && recentProjects.length > 0) {
-          recentProjects.forEach((p, i) => {
+          recentProjects.forEach((p: { name: string; brand: string; created_at: string }, i: number) => {
             addLog(`  ${i + 1}. ${p.name} (${p.brand}) - 创建时间: ${p.created_at}`);
           });
         }

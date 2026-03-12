@@ -36,7 +36,10 @@ export async function GET(request: NextRequest) {
     }
 
     // 转换数据格式
-    const formattedFeedbacks = (feedbacks || []).map(f => ({
+    const formattedFeedbacks = (feedbacks || []).map((f: {
+      [key: string]: any;
+      created_by_user?: { name: string };
+    }) => ({
       ...f,
       created_by_name: f.created_by_user?.name || null,
       created_by_user: undefined,

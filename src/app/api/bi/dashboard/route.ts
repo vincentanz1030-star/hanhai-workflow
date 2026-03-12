@@ -1,7 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
-;
+// 类型定义
+interface Project {
+  id: string;
+  status: string;
+  brand: string;
+  created_at: string;
+  sales_date?: string;
+  name?: string;
+}
+
+interface Task {
+  id: string;
+  status: string;
+  role: string;
+  progress: number;
+  estimated_completion_date: string;
+  actual_completion_date?: string;
+  created_at: string;
+}
+
+interface Product {
+  id: string;
+  name?: string;
+  category?: string;
+  stock?: number;
+  sales_count?: number;
+  status: string;
+}
+
+interface Campaign {
+  id: string;
+  name?: string;
+  status: string;
+  budget: number;
+  revenue?: number;
+  start_date?: string;
+  end_date?: string;
+}
+
 const supabase = getSupabaseClient();
 
 // 获取时间范围
@@ -89,19 +127,19 @@ export async function GET(request: NextRequest) {
         .select('id, name, status, budget, revenue, start_date, end_date'),
     ]);
 
-    const projects = projectsResult.data || [];
-    const tasks = tasksResult.data || [];
-    const products = productsResult.data || [];
-    const campaigns = campaignsResult.data || [];
+    const projects: Project[] = projectsResult.data || [];
+    const tasks: Task[] = tasksResult.data || [];
+    const products: Product[] = productsResult.data || [];
+    const campaigns: Campaign[] = campaignsResult.data || [];
 
     // 过滤品牌
-    const filteredProjects = brand === 'all' 
+    const filteredProjects: Project[] = brand === 'all' 
       ? projects 
-      : projects.filter(p => p.brand === brand);
+      : projects.filter((p: Project) => p.brand === brand);
 
     // ============ 概览数据 ============
-    const completedTasks = tasks.filter(t => t.status === 'completed').length;
-    const overdueTasks = tasks.filter(t => {
+    const completedTasks = tasks.filter((t: Task) => t.status === 'completed').length;
+    const overdueTasks = tasks.filter((t: Task) => {
       if (t.status === 'completed') return false;
       const deadline = new Date(t.estimated_completion_date);
       return deadline < endDate;
@@ -122,7 +160,7 @@ export async function GET(request: NextRequest) {
     const projectStatusMap: Record<string, number> = {};
     const brandMap: Record<string, number> = {};
     
-    filteredProjects.forEach(p => {
+    filteredProjects.forEach((p: Project) => {
       const status = p.status || 'pending';
       projectStatusMap[status] = (projectStatusMap[status] || 0) + 1;
       if (p.brand) {
@@ -149,7 +187,7 @@ export async function GET(request: NextRequest) {
     const taskStatusMap: Record<string, number> = {};
     const positionMap: Record<string, { total: number; completed: number }> = {};
 
-    tasks.forEach(t => {
+    tasks.forEach((t: Task) => {
       const status = t.status || 'pending';
       taskStatusMap[status] = (taskStatusMap[status] || 0) + 1;
 
@@ -193,7 +231,7 @@ export async function GET(request: NextRequest) {
     const categoryMap: Record<string, number> = {};
     const inventoryStatus = { normal: 0, low: 0, out: 0 };
 
-    products.forEach(p => {
+    products.forEach((p: Product) => {
       if (p.category) {
         categoryMap[p.category] = (categoryMap[p.category] || 0) + 1;
       }
@@ -213,9 +251,9 @@ export async function GET(request: NextRequest) {
         { name: '已缺货', value: inventoryStatus.out, color: '#ef4444' },
       ],
       topProducts: products
-        .sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0))
+        .sort((a: Product, b: Product) => (b.sales_count || 0) - (a.sales_count || 0))
         .slice(0, 5)
-        .map(p => ({
+        .map((p: Product) => ({
           name: p.name?.slice(0, 10) || '未知产品',
           sales: p.sales_count || 0,
           stock: p.stock || 0,
@@ -224,7 +262,7 @@ export async function GET(request: NextRequest) {
 
     // ============ 营销分析 ============
     const marketingAnalysis = {
-      campaignPerformance: campaigns.slice(0, 5).map(c => ({
+      campaignPerformance: campaigns.slice(0, 5).map((c: Campaign) => ({
         name: c.name?.slice(0, 8) || '活动',
         roi: c.budget > 0 ? Math.round(((c.revenue || 0) / c.budget) * 100) : 0,
         budget: c.budget || 0,
@@ -274,7 +312,7 @@ export async function GET(request: NextRequest) {
 
 // 生成趋势数据
 function generateTrendData(startDate: Date, endDate: Date, type: string) {
-  const data = [];
+  const data: Array<{ month?: string; newProjects?: number; completed?: number; date?: string; overdue?: number }> = [];
   const current = new Date(startDate);
 
   while (current <= endDate) {

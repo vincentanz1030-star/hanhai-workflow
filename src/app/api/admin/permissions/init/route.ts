@@ -327,9 +327,9 @@ export async function POST(request: NextRequest) {
 
         if (!allPerms) throw new Error('无法获取权限列表');
 
-        const permMap = new Map(allPerms.map(p => [`${p.resource}:${p.action}`, p.id]));
+        const permMap = new Map(allPerms.map((p: { resource: string; action: string; id: string }) => [`${p.resource}:${p.action}`, p.id]));
         const permissionIds = rolePerm.permissions
-          .map(p => permMap.get(p))
+          .map((p: string) => permMap.get(p))
           .filter(Boolean);
 
         // 删除现有的角色权限映射

@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 
+// 类型定义
+interface UserRole {
+  role: string;
+}
+
 // 直接从环境变量获取 Supabase 配置
 interface BackupRecord {
   id: string;
@@ -28,7 +33,7 @@ export async function GET(request: NextRequest) {
       .select('role')
       .eq('user_id', authResult.userId);
 
-    const hasAdminRole = userRoles?.some(ur => ur.role === 'admin');
+    const hasAdminRole = userRoles?.some((ur: UserRole) => ur.role === 'admin');
     if (!hasAdminRole) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
@@ -66,7 +71,7 @@ export async function POST(request: NextRequest) {
       .select('role')
       .eq('user_id', authResult.userId);
 
-    const hasAdminRole = userRoles?.some(ur => ur.role === 'admin');
+    const hasAdminRole = userRoles?.some((ur: UserRole) => ur.role === 'admin');
     if (!hasAdminRole) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
@@ -148,7 +153,7 @@ export async function DELETE(request: NextRequest) {
       .select('role')
       .eq('user_id', authResult.userId);
 
-    const hasAdminRole = userRoles?.some(ur => ur.role === 'admin');
+    const hasAdminRole = userRoles?.some((ur: UserRole) => ur.role === 'admin');
     if (!hasAdminRole) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
@@ -192,7 +197,7 @@ export async function PUT(request: NextRequest) {
       .select('role')
       .eq('user_id', authResult.userId);
 
-    const hasAdminRole = userRoles?.some(ur => ur.role === 'admin');
+    const hasAdminRole = userRoles?.some((ur: UserRole) => ur.role === 'admin');
     if (!hasAdminRole) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }

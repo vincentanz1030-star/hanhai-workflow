@@ -38,10 +38,10 @@ interface Product {
   remarks?: string;
   created_at: string;
   suppliers?: { id: string; name: string };
-  product_prices?: {
+  product_prices?: Array<{
     cost_with_tax_shipping?: number;
     retail_price?: number;
-  };
+  }>;
   product_inventory?: { quantity: number }[];
 }
 

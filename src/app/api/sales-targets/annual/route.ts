@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     // 获取每个年度目标的月度目标（去重）
     const targetsWithMonthly = await Promise.all(
-      (targets || []).map(async (target) => {
+      (targets || []).map(async (target: { id: string; [key: string]: any }) => {
         const { data: monthlyTargets } = await client
           .from('monthly_sales_targets')
           .select('*')

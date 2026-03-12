@@ -92,7 +92,7 @@ export async function PATCH(request: NextRequest) {
       .select('actual_amount')
       .eq('annual_target_id', monthlyTarget.annual_target_id);
 
-    const totalActualAmount = allMonthly?.reduce((sum, m) => sum + (m.actual_amount || 0), 0) || 0;
+    const totalActualAmount = allMonthly?.reduce((sum: number, m: { actual_amount?: number }) => sum + (m.actual_amount || 0), 0) || 0;
 
     // 更新年度目标
     await client

@@ -2,11 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 
-// 直接从环境变量获取 Supabase 配置
+// 类型定义
+interface Task {
+  id: string;
+  status: string;
+  role: string;
+  created_at: string;
+  estimated_completion_date?: string;
+  actual_completion_date?: string;
+}
+
+interface Project {
+  id: string;
+  status: string;
+  created_at: string;
+}
+
 interface EfficiencyMetric {
   metric: string;
   value: number;
-  change: number; // 与上期相比的变化百分比
+  change: number;
   trend: 'up' | 'down' | 'stable';
   description: string;
 }
@@ -21,7 +36,7 @@ interface BottleneckAnalysis {
 
 interface WorkflowEfficiency {
   phase: string;
-  averageDuration: number; // 天数
+  averageDuration: number;
   completionRate: number;
   efficiencyScore: number;
   issues: string[];
@@ -53,7 +68,7 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const type = searchParams.get('type') || 'monthly'; // weekly, monthly, quarterly
+    const type = searchParams.get('type') || 'monthly';
 
     const client = getSupabaseClient();
 
@@ -130,28 +145,32 @@ export async function GET(request: NextRequest) {
       .gte('created_at', previousStartDateStr)
       .lte('created_at', previousEndDateStr);
 
+    // 类型转换
+    const typedCurrentTasks: Task[] = currentTasks || [];
+    const typedPreviousTasks: Task[] = previousTasks || [];
+
     // 计算本期指标
-    const totalTasks = currentTasks?.length || 0;
-    const completedTasks = currentTasks?.filter(t => t.status === 'completed').length || 0;
-    const overdueTasks = currentTasks?.filter(t => {
+    const totalTasks = typedCurrentTasks.length;
+    const completedTasks = typedCurrentTasks.filter((t: Task) => t.status === 'completed').length;
+    const overdueTasks = typedCurrentTasks.filter((t: Task) => {
       if (!t.estimated_completion_date || t.status === 'completed') return false;
       return new Date(t.estimated_completion_date) < new Date();
-    }).length || 0;
+    }).length;
 
     // 计算上期指标
-    const previousTotalTasks = previousTasks?.length || 0;
-    const previousCompletedTasks = previousTasks?.filter(t => t.status === 'completed').length || 0;
-    const previousOverdueTasks = previousTasks?.filter(t => {
+    const previousTotalTasks = typedPreviousTasks.length;
+    const previousCompletedTasks = typedPreviousTasks.filter((t: Task) => t.status === 'completed').length;
+    const previousOverdueTasks = typedPreviousTasks.filter((t: Task) => {
       if (!t.estimated_completion_date || t.status === 'completed') return false;
       return new Date(t.estimated_completion_date) < new Date();
-    }).length || 0;
+    }).length;
 
     // 计算平均完成时间
     let currentCompletionTime = 0;
     let currentCompletedWithTime = 0;
-    currentTasks?.filter(t => t.status === 'completed' && t.created_at && t.actual_completion_date).forEach(task => {
+    typedCurrentTasks.filter((t: Task) => t.status === 'completed' && t.created_at && t.actual_completion_date).forEach((task: Task) => {
       const created = new Date(task.created_at);
-      const completed = new Date(task.actual_completion_date);
+      const completed = new Date(task.actual_completion_date!);
       currentCompletionTime += (completed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
       currentCompletedWithTime++;
     });
@@ -159,9 +178,9 @@ export async function GET(request: NextRequest) {
 
     let previousCompletionTime = 0;
     let previousCompletedWithTime = 0;
-    previousTasks?.filter(t => t.status === 'completed' && t.created_at && t.actual_completion_date).forEach(task => {
+    typedPreviousTasks.filter((t: Task) => t.status === 'completed' && t.created_at && t.actual_completion_date).forEach((task: Task) => {
       const created = new Date(task.created_at);
-      const completed = new Date(task.actual_completion_date);
+      const completed = new Date(task.actual_completion_date!);
       previousCompletionTime += (completed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
       previousCompletedWithTime++;
     });
@@ -281,16 +300,16 @@ export async function GET(request: NextRequest) {
                       'warehouse', 'operations'];
 
     roleList.forEach(role => {
-      const roleTasks = currentTasks?.filter(t => t.role === role) || [];
-      const roleCompletedTasks = roleTasks.filter(t => t.status === 'completed');
-      const roleOverdueTasks = roleTasks.filter(t => {
+      const roleTasks = typedCurrentTasks.filter((t: Task) => t.role === role);
+      const roleCompletedTasks = roleTasks.filter((t: Task) => t.status === 'completed');
+      const roleOverdueTasks = roleTasks.filter((t: Task) => {
         if (!t.estimated_completion_date || t.status === 'completed') return false;
         return new Date(t.estimated_completion_date) < new Date();
       });
 
       let roleCompletionTime = 0;
       let roleCompletedWithTime = 0;
-      roleCompletedTasks.forEach(task => {
+      roleCompletedTasks.forEach((task: Task) => {
         if (task.created_at && task.actual_completion_date) {
           const created = new Date(task.created_at);
           const completed = new Date(task.actual_completion_date);
@@ -300,22 +319,22 @@ export async function GET(request: NextRequest) {
       });
 
       const averageDuration = roleCompletedWithTime > 0 ? Math.round(roleCompletionTime / roleCompletedWithTime) : 0;
-      const completionRate = roleTasks.length > 0 ? Math.round((roleCompletedTasks.length / roleTasks.length) * 100) : 0;
-      const efficiencyScore = Math.round(
-        (completionRate * 0.5) +
+      const roleCompletionRate = roleTasks.length > 0 ? Math.round((roleCompletedTasks.length / roleTasks.length) * 100) : 0;
+      const roleEfficiencyScore = Math.round(
+        (roleCompletionRate * 0.5) +
         (Math.max(0, 100 - averageDuration * 5) * 0.5)
       );
 
       const issues: string[] = [];
-      if (completionRate < 70) issues.push(`完成率仅${completionRate}%`);
+      if (roleCompletionRate < 70) issues.push(`完成率仅${roleCompletionRate}%`);
       if (roleOverdueTasks.length > roleTasks.length * 0.1) issues.push(`逾期任务占比高`);
       if (averageDuration > 10) issues.push(`平均完成时间过长(${averageDuration}天)`);
 
       workflowEfficiency.push({
         phase: role,
         averageDuration,
-        completionRate,
-        efficiencyScore,
+        completionRate: roleCompletionRate,
+        efficiencyScore: roleEfficiencyScore,
         issues,
       });
     });

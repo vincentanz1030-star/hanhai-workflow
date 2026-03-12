@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     if (error) throw error;
 
     // 提取去重的角色列表
-    const roles = Array.from(new Set(data?.map(item => item.role).filter(Boolean) || []));
+    const roles = Array.from(new Set(data?.map((item: { role: string }) => item.role).filter(Boolean) || []));
 
     return NextResponse.json({
       success: true,

@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
         .select('role')
         .eq('user_id', existingUser.id);
 
-      const hasAdminRole = existingRoles?.some(r => r.role === 'admin');
+      const hasAdminRole = existingRoles?.some((r: { role: string }) => r.role === 'admin');
 
       return NextResponse.json({
         success: true,

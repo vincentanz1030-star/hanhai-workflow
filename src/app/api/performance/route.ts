@@ -2,7 +2,38 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
 
-// 直接从环境变量获取 Supabase 配置
+// 类型定义
+interface Task {
+  id: string;
+  status: string;
+  role: string;
+  project_id: string;
+  created_at: string;
+  estimated_completion_date: string | null;
+  actual_completion_date: string | null;
+  rating: number | null;
+}
+
+interface Project {
+  id: string;
+  brand: string;
+  status: string;
+  created_at: string;
+}
+
+interface User {
+  id: string;
+  username: string;
+  nickname: string;
+  brand: string;
+  status: string;
+}
+
+interface UserRole {
+  user_id: string;
+  role: string;
+}
+
 interface UserPerformance {
   userId: string;
   username: string;
@@ -70,8 +101,6 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get('type') || 'monthly'; // daily, weekly, monthly, quarterly
-    const role = searchParams.get('role');
-    const userId = searchParams.get('userId');
 
     const client = getSupabaseClient();
 
@@ -111,15 +140,17 @@ export async function GET(request: NextRequest) {
       .select('id, username, nickname, brand, status')
       .eq('status', 'active');
 
-    const activeUsers = users?.filter(u => u.status === 'active') || [];
+    const typedUsers: User[] = users || [];
+    const activeUsers = typedUsers.filter((u: User) => u.status === 'active');
 
     // 获取用户的岗位信息
     const { data: userRoles } = await client
       .from('user_roles')
       .select('*');
 
+    const typedUserRoles: UserRole[] = userRoles || [];
     const userRolesMap = new Map<string, string[]>();
-    userRoles?.forEach(ur => {
+    typedUserRoles.forEach((ur: UserRole) => {
       if (!userRolesMap.has(ur.user_id)) {
         userRolesMap.set(ur.user_id, []);
       }
@@ -133,14 +164,7 @@ export async function GET(request: NextRequest) {
       .gte('created_at', startDateStr)
       .lte('created_at', endDateStr);
 
-    // 按用户统计任务
-    const userTasksMap = new Map<string, any[]>();
-    tasks?.forEach(task => {
-      if (!userTasksMap.has(task.project_id)) {
-        userTasksMap.set(task.project_id, []);
-      }
-      userTasksMap.get(task.project_id)!.push(task);
-    });
+    const typedTasks: Task[] = tasks || [];
 
     // 获取项目信息
     const { data: projects } = await client
@@ -149,11 +173,13 @@ export async function GET(request: NextRequest) {
       .gte('created_at', startDateStr)
       .lte('created_at', endDateStr);
 
+    const typedProjects: Project[] = projects || [];
+
     // 计算用户绩效
     const userPerformance: UserPerformance[] = [];
-    const userProjectMap = new Map<string, any[]>();
+    const userProjectMap = new Map<string, Project[]>();
 
-    projects?.forEach(project => {
+    typedProjects.forEach((project: Project) => {
       if (!userProjectMap.has(project.brand)) {
         userProjectMap.set(project.brand, []);
       }
@@ -161,9 +187,9 @@ export async function GET(request: NextRequest) {
     });
 
     // 按品牌统计任务
-    const brandTasksMap = new Map<string, any[]>();
-    tasks?.forEach(task => {
-      const project = projects?.find(p => p.id === task.project_id);
+    const brandTasksMap = new Map<string, Task[]>();
+    typedTasks.forEach((task: Task) => {
+      const project = typedProjects.find((p: Project) => p.id === task.project_id);
       if (project) {
         if (!brandTasksMap.has(project.brand)) {
           brandTasksMap.set(project.brand, []);
@@ -174,8 +200,8 @@ export async function GET(request: NextRequest) {
 
     // 计算各岗位绩效
     const rolePerformance: RolePerformance[] = [];
-    const roleTasksMap = new Map<string, any[]>();
-    tasks?.forEach(task => {
+    const roleTasksMap = new Map<string, Task[]>();
+    typedTasks.forEach((task: Task) => {
       if (!roleTasksMap.has(task.role)) {
         roleTasksMap.set(task.role, []);
       }
@@ -186,10 +212,10 @@ export async function GET(request: NextRequest) {
                       'procurement', 'packaging_design', 'finance', 'customer_service',
                       'warehouse', 'operations'];
 
-    roleList.forEach(role => {
+    roleList.forEach((role: string) => {
       const roleTasks = roleTasksMap.get(role) || [];
-      const completedTasks = roleTasks.filter(t => t.status === 'completed');
-      const overdueTasks = roleTasks.filter(t => {
+      const completedTasks = roleTasks.filter((t: Task) => t.status === 'completed');
+      const overdueTasks = roleTasks.filter((t: Task) => {
         if (!t.estimated_completion_date || t.status === 'completed') return false;
         return new Date(t.estimated_completion_date) < new Date();
       });
@@ -205,7 +231,7 @@ export async function GET(request: NextRequest) {
       // 计算平均完成时间（天）
       let totalCompletionTime = 0;
       let completedWithTime = 0;
-      completedTasks.forEach(task => {
+      completedTasks.forEach((task: Task) => {
         if (task.created_at && task.actual_completion_date) {
           const created = new Date(task.created_at);
           const completed = new Date(task.actual_completion_date);
@@ -216,9 +242,9 @@ export async function GET(request: NextRequest) {
       const averageCompletionTime = completedWithTime > 0 ? Math.round(totalCompletionTime / completedWithTime) : 0;
 
       // 计算平均评分
-      const ratedTasks = completedTasks.filter(t => t.rating !== null);
+      const ratedTasks = completedTasks.filter((t: Task) => t.rating !== null);
       const averageRating = ratedTasks.length > 0
-        ? ratedTasks.reduce((sum, t) => sum + (t.rating || 0), 0) / ratedTasks.length
+        ? ratedTasks.reduce((sum: number, t: Task) => sum + (t.rating || 0), 0) / ratedTasks.length
         : 0;
 
       // 计算绩效评分 (0-100)
@@ -232,7 +258,7 @@ export async function GET(request: NextRequest) {
       rolePerformance.push({
         role,
         stats: {
-          totalUsers: new Set(projects?.filter(p => p.brand).map(p => p.brand)).size,
+          totalUsers: new Set(typedProjects.filter((p: Project) => p.brand).map((p: Project) => p.brand)).size,
           totalTasks: roleTasks.length,
           completedTasks: completedTasks.length,
           averageCompletionTime,
@@ -246,18 +272,18 @@ export async function GET(request: NextRequest) {
     });
 
     // 计算总体统计
-    const totalTasks = tasks?.length || 0;
-    const completedTasks = tasks?.filter(t => t.status === 'completed').length || 0;
-    const overdueTasks = tasks?.filter(t => {
+    const totalTasks = typedTasks.length;
+    const completedTasks = typedTasks.filter((t: Task) => t.status === 'completed').length;
+    const overdueTasks = typedTasks.filter((t: Task) => {
       if (!t.estimated_completion_date || t.status === 'completed') return false;
       return new Date(t.estimated_completion_date) < new Date();
-    }).length || 0;
+    }).length;
 
     let totalCompletionTime = 0;
     let completedWithTime = 0;
-    tasks?.filter(t => t.status === 'completed' && t.created_at && t.actual_completion_date).forEach(task => {
+    typedTasks.filter((t: Task) => t.status === 'completed' && t.created_at && t.actual_completion_date).forEach((task: Task) => {
       const created = new Date(task.created_at);
-      const completed = new Date(task.actual_completion_date);
+      const completed = new Date(task.actual_completion_date!);
       totalCompletionTime += (completed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
       completedWithTime++;
     });
@@ -267,9 +293,9 @@ export async function GET(request: NextRequest) {
       ? Math.round((completedTasks / totalTasks) * 100)
       : 0;
 
-    const ratedTasks = tasks?.filter(t => t.status === 'completed' && t.rating !== null) || [];
+    const ratedTasks = typedTasks.filter((t: Task) => t.status === 'completed' && t.rating !== null);
     const averageRating = ratedTasks.length > 0
-      ? ratedTasks.reduce((sum, t) => sum + (t.rating || 0), 0) / ratedTasks.length
+      ? ratedTasks.reduce((sum: number, t: Task) => sum + (t.rating || 0), 0) / ratedTasks.length
       : 0;
 
     // 生成建议
@@ -288,10 +314,10 @@ export async function GET(request: NextRequest) {
       period: {
         start: startDateStr,
         end: endDateStr,
-        type: type as any,
+        type: type as 'daily' | 'weekly' | 'monthly' | 'quarterly',
       },
       summary: {
-        totalUsers: users?.length || 0,
+        totalUsers: typedUsers.length,
         activeUsers: activeUsers.length,
         totalTasks,
         completedTasks,

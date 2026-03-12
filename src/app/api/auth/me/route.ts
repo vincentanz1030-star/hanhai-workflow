@@ -3,6 +3,21 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { getCurrentUser } from '@/lib/auth';
 import { getUserRoles, getPrimaryRole } from '@/lib/permissions';
 
+// 类型定义
+interface UserRole {
+  role: string;
+  is_primary?: boolean;
+}
+
+interface RolePermission {
+  permission_id: string;
+  permissions?: {
+    resource: string;
+    action: string;
+    description: string;
+  };
+}
+
 // 直接从环境变量获取 Supabase 配置
 
 export async function GET(request: NextRequest) {
@@ -47,12 +62,12 @@ export async function GET(request: NextRequest) {
           description
         )
       `)
-      .in('role', roles.map(r => r.role));
+      .in('role', roles.map((r: UserRole) => r.role));
 
-    const permissionList = permissions?.map(p => ({
-      resource: (p.permissions as any).resource,
-      action: (p.permissions as any).action,
-      description: (p.permissions as any).description,
+    const permissionList = permissions?.map((p: RolePermission) => ({
+      resource: (p.permissions as { resource: string; action: string; description: string }).resource,
+      action: (p.permissions as { resource: string; action: string; description: string }).action,
+      description: (p.permissions as { resource: string; action: string; description: string }).description,
     })) || [];
 
     return NextResponse.json({

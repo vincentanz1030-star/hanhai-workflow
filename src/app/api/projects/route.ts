@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
 
       // 统计各品牌的项目数量
       const brandCount: Record<string, number> = {};
-      projects.forEach(p => {
+      projects.forEach((p: { brand: string }) => {
         brandCount[p.brand] = (brandCount[p.brand] || 0) + 1;
       });
       console.log(`各品牌项目分布:`, brandCount);
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
 
     // 获取每个项目的任务
     const projectsWithTasks = await Promise.all(
-      (projects || []).map(async (project) => {
+      (projects || []).map(async (project: { id: string; [key: string]: any }) => {
         const { data: tasks } = await client
           .from('tasks')
           .select('*')

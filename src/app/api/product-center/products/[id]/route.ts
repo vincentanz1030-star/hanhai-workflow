@@ -118,24 +118,46 @@ export async function PUT(
     if (body.cost_price !== undefined || body.cost_with_tax_shipping !== undefined || 
         body.wholesale_price !== undefined || body.retail_price !== undefined) {
       
-      const priceData: Record<string, any> = {
-        product_id: id,
-        updated_at: new Date().toISOString(),
-      };
+      try {
+        // 先检查是否存在价格记录
+        const { data: existingPrice } = await supabase
+          .from('product_prices')
+          .select('id')
+          .eq('product_id', id)
+          .limit(1);
 
-      if (body.cost_price !== undefined) priceData.cost_price = body.cost_price;
-      if (body.cost_with_tax_shipping !== undefined) priceData.cost_with_tax_shipping = body.cost_with_tax_shipping;
-      if (body.wholesale_price !== undefined) priceData.wholesale_price = body.wholesale_price;
-      if (body.retail_price !== undefined) priceData.retail_price = body.retail_price;
+        const priceData: Record<string, any> = {
+          product_id: id,
+          updated_at: new Date().toISOString(),
+        };
 
-      const { error: priceError } = await supabase
-        .from('product_prices')
-        .upsert(priceData, {
-          onConflict: 'product_id'
-        });
+        if (body.cost_price !== undefined) priceData.cost_price = body.cost_price;
+        if (body.cost_with_tax_shipping !== undefined) priceData.cost_with_tax_shipping = body.cost_with_tax_shipping;
+        if (body.wholesale_price !== undefined) priceData.wholesale_price = body.wholesale_price;
+        if (body.retail_price !== undefined) priceData.retail_price = body.retail_price;
 
-      if (priceError) {
-        console.error('[Products API] Price update error:', priceError);
+        if (existingPrice && existingPrice.length > 0) {
+          // 更新现有记录
+          const { error: priceError } = await supabase
+            .from('product_prices')
+            .update(priceData)
+            .eq('id', existingPrice[0].id);
+          
+          if (priceError) {
+            console.error('[Products API] Price update error:', priceError);
+          }
+        } else {
+          // 创建新记录
+          const { error: priceError } = await supabase
+            .from('product_prices')
+            .insert(priceData);
+          
+          if (priceError) {
+            console.error('[Products API] Price insert error:', priceError);
+          }
+        }
+      } catch (priceError) {
+        console.error('[Products API] Price operation error:', priceError);
         // 价格更新失败不影响整体更新结果
       }
     }
@@ -152,18 +174,30 @@ export async function PUT(
 
         if (existingInventory && existingInventory.length > 0) {
           // 更新现有记录
-          await supabase
+          const { error: updateError } = await supabase
             .from('product_inventory')
-            .update({ quantity: body.quantity })
+            .update({ 
+              quantity: body.quantity,
+              last_updated: new Date().toISOString()
+            })
             .eq('id', existingInventory[0].id);
-        } else if (body.quantity > 0) {
-          // 创建新记录
-          await supabase
+          
+          if (updateError) {
+            console.error('[Products API] Inventory update error:', updateError);
+          }
+        } else if (body.quantity > 0 || body.quantity === 0) {
+          // 创建新记录 (warehouse 是必填字段)
+          const { error: insertError } = await supabase
             .from('product_inventory')
             .insert({
               product_id: id,
               quantity: body.quantity,
+              warehouse: 'default',
             });
+          
+          if (insertError) {
+            console.error('[Products API] Inventory insert error:', insertError);
+          }
         }
       } catch (inventoryError) {
         console.error('[Products API] Inventory update error:', inventoryError);

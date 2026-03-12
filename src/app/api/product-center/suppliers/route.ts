@@ -4,9 +4,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { requireAuth } from '@/lib/api-auth';
 
 // GET - 获取供应商列表
 export async function GET(request: NextRequest) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
   try {
     const supabase = getSupabaseClient();
     const searchParams = request.nextUrl.searchParams;
@@ -56,9 +61,21 @@ export async function GET(request: NextRequest) {
 
 // POST - 创建供应商
 export async function POST(request: NextRequest) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
   try {
     const supabase = getSupabaseClient();
     const body = await request.json();
+
+    // 验证必填字段
+    if (!body.name || !body.supplier_code) {
+      return NextResponse.json(
+        { success: false, error: '缺少必填字段：name、supplier_code' },
+        { status: 400 }
+      );
+    }
 
     const { data, error } = await supabase
       .from('suppliers')

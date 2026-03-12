@@ -4,9 +4,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { requireAuth } from '@/lib/api-auth';
+import { canViewAllBrands, canManageAllBrands } from '@/lib/permissions';
 
 // GET - 获取活动列表
 export async function GET(request: NextRequest) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const user = authResult;
+
   try {
     const supabase = getSupabaseClient();
     const searchParams = request.nextUrl.searchParams;
@@ -16,12 +24,24 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const campaign_type = searchParams.get('campaign_type');
     const year = searchParams.get('year');
+    const brand = searchParams.get('brand');
 
     const offset = (page - 1) * limit;
+
+    // 品牌隔离检查
+    const canViewAll = await canViewAllBrands(user.userId, user.brand);
 
     let query = supabase
       .from('marketing_campaigns')
       .select('*', { count: 'exact' });
+
+    // 品牌过滤
+    if (!canViewAll) {
+      // 非管理员：过滤包含自己品牌的记录（brands 是数组字段）
+      query = query.contains('brands', [user.brand]);
+    } else if (brand && brand !== 'all') {
+      query = query.contains('brands', [brand]);
+    }
 
     if (status && status !== 'all') {
       query = query.eq('status', status);
@@ -60,6 +80,12 @@ export async function GET(request: NextRequest) {
 
 // POST - 创建活动
 export async function POST(request: NextRequest) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const user = authResult;
+
   try {
     const supabase = getSupabaseClient();
     const body = await request.json();
@@ -102,6 +128,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 品牌权限验证
+    const canManageAll = await canManageAllBrands(user.brand);
+    if (!canManageAll) {
+      // 非管理员只能创建包含自己品牌的活动
+      if (!brands || !brands.includes(user.brand)) {
+        return NextResponse.json(
+          { success: false, error: '只能创建包含自己品牌的活动' },
+          { status: 403 }
+        );
+      }
+    }
+
     const { data, error } = await supabase
       .from('marketing_campaigns')
       .insert({
@@ -115,9 +153,9 @@ export async function POST(request: NextRequest) {
         target_gmv,
         priority,
         channels: channels || [],
-        brands: brands || [],
+        brands: brands || [user.brand],
         products: products || [],
-        created_by,
+        created_by: created_by || user.userId,
       })
       .select()
       .single();

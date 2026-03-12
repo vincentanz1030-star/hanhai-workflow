@@ -4,9 +4,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { requireAuth } from '@/lib/api-auth';
+import { canViewAllBrands, canManageAllBrands } from '@/lib/permissions';
 
 // GET - 获取项目列表
 export async function GET(request: NextRequest) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const user = authResult;
+
   try {
     const supabase = getSupabaseClient();
     const searchParams = request.nextUrl.searchParams;
@@ -15,12 +23,23 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const status = searchParams.get('status');
     const owner = searchParams.get('owner');
+    const brand = searchParams.get('brand');
 
     const offset = (page - 1) * limit;
+
+    // 品牌隔离检查
+    const canViewAll = await canViewAllBrands(user.userId, user.brand);
 
     let query = supabase
       .from('collaboration_projects')
       .select('*', { count: 'exact' });
+
+    // 品牌过滤
+    if (!canViewAll) {
+      query = query.eq('brand', user.brand);
+    } else if (brand && brand !== 'all') {
+      query = query.eq('brand', brand);
+    }
 
     if (status && status !== 'all') {
       query = query.eq('status', status);
@@ -56,16 +75,30 @@ export async function GET(request: NextRequest) {
 
 // POST - 创建项目
 export async function POST(request: NextRequest) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const user = authResult;
+
   try {
     const supabase = getSupabaseClient();
     const body = await request.json();
 
+    // 品牌权限验证
+    const canManageAll = await canManageAllBrands(user.brand);
+    const projectBrand = body.brand || user.brand;
+
+    if (!canManageAll && projectBrand !== user.brand) {
+      return NextResponse.json(
+        { success: false, error: '无权限创建其他品牌的项目' },
+        { status: 403 }
+      );
+    }
+
     // 验证owner_id是否为有效的UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const validOwnerId = uuidRegex.test(body.owner_id) ? body.owner_id : '00000000-0000-0000-0000-000000000000';
-
-    // 添加默认的created_by字段（如果没有提供）
-    const validCreatedBy = body.created_by || '00000000-0000-0000-0000-000000000000';
+    const validOwnerId = uuidRegex.test(body.owner_id) ? body.owner_id : user.userId;
 
     // 初始化默认值
     const projectData = {
@@ -80,7 +113,8 @@ export async function POST(request: NextRequest) {
       task_count: body.task_count || 0,
       completed_tasks: body.completed_tasks || 0,
       members: body.members || [],
-      created_by: validCreatedBy,
+      created_by: user.userId,
+      brand: projectBrand,
     };
 
     const { data, error } = await supabase

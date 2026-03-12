@@ -1,7 +1,22 @@
-import { getSupabaseClient, getSupabaseCredentials } from '@/storage/database/supabase-client';
+import { getSupabaseCredentials } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
+  // 认证检查 - 只允许管理员访问
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const user = authResult;
+
+  // 只允许 brand=all 的管理员访问
+  if (user.brand !== 'all') {
+    return NextResponse.json(
+      { error: '无权限访问此接口' },
+      { status: 403 }
+    );
+  }
+
   try {
     let supabaseUrlStatus = '✗ 未设置';
     let supabaseKeyStatus = '✗ 未设置';

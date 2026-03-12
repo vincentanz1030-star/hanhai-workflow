@@ -280,6 +280,7 @@ export default function PermissionManagerV2() {
   // 角色权限编辑
   const openRolePermissionEditor = async (roleId: string) => {
     setSelectedRoleId(roleId);
+    setSelectedPositionId(null);
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/roles-v2/${roleId}/permissions`);
@@ -287,7 +288,18 @@ export default function PermissionManagerV2() {
       if (data.success) {
         setRolePermissionIds(new Set(data.data.permission_ids || []));
         setShowPermissionEditor(true);
+      } else {
+        // 如果API返回错误，可能是认证问题
+        if (data.error === '未登录，请先登录') {
+          alert('请先登录');
+          window.location.href = '/';
+          return;
+        }
+        alert(data.error || '获取角色权限失败');
       }
+    } catch (error) {
+      console.error('获取角色权限失败:', error);
+      alert('获取角色权限失败');
     } finally {
       setLoading(false);
     }

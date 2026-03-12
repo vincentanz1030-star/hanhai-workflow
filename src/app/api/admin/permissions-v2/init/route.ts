@@ -312,6 +312,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = getSupabaseClient();
+
+    // 检查管理员权限（使用简单的token验证）
+    const authHeader = request.headers.get('authorization');
+    const cookie = request.headers.get('cookie') || '';
+    const tokenMatch = cookie.match(/auth_token=([^;]+)/);
+    const token = authHeader?.replace('Bearer ', '') || tokenMatch?.[1];
+
+    if (!token) {
+      return NextResponse.json({ error: '未登录，请先登录' }, { status: 401 });
+    }
+
     const body = await request.json().catch(() => ({}));
     const force = body.force === true; // 强制重新初始化
 

@@ -5,7 +5,7 @@ export async function GET() {
   const checks: { name: string; status: 'ok' | 'error'; message: string; duration?: number }[] = [];
 
   // 1. 检查环境变量
-  const envCheckStart = Date.now();
+  const dbCheckStart = Date.now();
   try {
     const supabase = getSupabaseClient();
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseClient, getSupabaseCredentials } from '@/storage/database/supabase-client';
 
 // POST - 设置用户为管理员（仅限管理员操作）
 export async function POST(request: NextRequest) {
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       .select('role')
       .eq('user_id', decoded.userId);
 
-    if (roleError || !currentUserRoles?.some(r => r.role === 'admin')) {
+    if (roleError || !currentUserRoles?.some((r: { role: string }) => r.role === 'admin')) {
       console.log(`[设置管理员] 非管理员用户 ${decoded.email} 尝试设置管理员`);
       return NextResponse.json({ error: '无权限执行此操作，仅限管理员' }, { status: 403 });
     }
@@ -37,83 +37,36 @@ export async function POST(request: NextRequest) {
 
     console.log(`[设置管理员] 用户 ${decoded.email} 请求设置 ${email} 为管理员`);
 
-    // 执行 SQL 设置管理员
-    const response = await fetch(`${// REMOVED: supabaseUrl}/rest/v1/rpc/set_user_as_admin`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': // REMOVED: supabaseKey,
-        'Authorization': `Bearer ${// REMOVED: supabaseKey}`,
-      },
-      body: JSON.stringify({
-        p_email: email,
-      }),
-    });
+    // 使用 Supabase 客户端查找用户
+    const { data: users, error: userError } = await client
+      .from('users')
+      .select('id, email')
+      .eq('email', email);
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('[设置管理员] 失败:', error);
-
-      // 如果 RPC 函数不存在，尝试直接使用 REST API
-      return await setAdminViaRestAPI(email, // REMOVED: supabaseUrl, // REMOVED: supabaseKey);
-    }
-
-    const result = await response.json();
-    return NextResponse.json({ success: true, result });
-  } catch (error: any) {
-    console.error('[设置管理员] 错误:', error);
-    return NextResponse.json(
-      {
-        error: '设置管理员失败',
-        details: error?.message || '未知错误',
-      },
-      { status: 500 }
-    );
-  }
-}
-
-async function setAdminViaRestAPI(email: string, // REMOVED: supabaseUrl: string, // REMOVED: supabaseKey: string) {
-  try {
-    // 1. 查找用户 ID
-    const userResponse = await fetch(
-      `${// REMOVED: supabaseUrl}/rest/v1/users?email=eq.${email}&select=id,email`,
-      {
-        headers: {
-          'apikey': // REMOVED: supabaseKey,
-          'Authorization': `Bearer ${// REMOVED: supabaseKey}`,
-        },
-      }
-    );
-
-    if (!userResponse.ok) {
+    if (userError) {
+      console.error('[设置管理员] 查找用户失败:', userError);
       return NextResponse.json({ error: '查找用户失败' }, { status: 500 });
     }
 
-    const users = await userResponse.json();
     if (!users || users.length === 0) {
       return NextResponse.json({ error: '用户不存在' }, { status: 404 });
     }
 
     const userId = users[0].id;
 
-    // 2. 检查是否已经是管理员
-    const roleResponse = await fetch(
-      `${// REMOVED: supabaseUrl}/rest/v1/user_roles?user_id=eq.${userId}&role=eq.admin&select=*`,
-      {
-        headers: {
-          'apikey': // REMOVED: supabaseKey,
-          'Authorization': `Bearer ${// REMOVED: supabaseKey}`,
-        },
-      }
-    );
+    // 检查是否已经是管理员
+    const { data: existingRoles, error: checkError } = await client
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('role', 'admin');
 
-    if (!roleResponse.ok) {
+    if (checkError) {
+      console.error('[设置管理员] 检查角色失败:', checkError);
       return NextResponse.json({ error: '检查角色失败' }, { status: 500 });
     }
 
-    const roles = await roleResponse.json();
-
-    if (roles.length > 0) {
+    if (existingRoles && existingRoles.length > 0) {
       return NextResponse.json({
         success: true,
         message: '用户已经是管理员',
@@ -122,24 +75,18 @@ async function setAdminViaRestAPI(email: string, // REMOVED: supabaseUrl: string
       });
     }
 
-    // 3. 设置为管理员
-    const insertResponse = await fetch(`${// REMOVED: supabaseUrl}/rest/v1/user_roles`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': // REMOVED: supabaseKey,
-        'Authorization': `Bearer ${// REMOVED: supabaseKey}`,
-      },
-      body: JSON.stringify({
+    // 设置为管理员
+    const { error: insertError } = await client
+      .from('user_roles')
+      .insert({
         user_id: userId,
         role: 'admin',
         is_primary: true,
-      }),
-    });
+      });
 
-    if (!insertResponse.ok) {
-      const error = await insertResponse.text();
-      return NextResponse.json({ error: '设置管理员失败', details: error }, { status: 500 });
+    if (insertError) {
+      console.error('[设置管理员] 设置失败:', insertError);
+      return NextResponse.json({ error: '设置管理员失败', details: insertError.message }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -148,12 +95,12 @@ async function setAdminViaRestAPI(email: string, // REMOVED: supabaseUrl: string
       userId,
       email,
     });
-  } catch (error: any) {
-    console.error('[设置管理员 REST] 错误:', error);
+  } catch (error: unknown) {
+    console.error('[设置管理员] 错误:', error);
     return NextResponse.json(
       {
         error: '设置管理员失败',
-        details: error?.message || '未知错误',
+        details: error instanceof Error ? error.message : '未知错误',
       },
       { status: 500 }
     );

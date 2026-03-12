@@ -1,11 +1,22 @@
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getSupabaseClient, getSupabaseCredentials } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
+    let supabaseUrlStatus = '✗ 未设置';
+    let supabaseKeyStatus = '✗ 未设置';
+    
+    try {
+      const creds = getSupabaseCredentials();
+      supabaseUrlStatus = '✓ 已设置';
+      supabaseKeyStatus = '✓ 已设置';
+    } catch {
+      // 凭证获取失败
+    }
+
     const envStatus = {
-      // REMOVED: supabaseUrl: process.env.COZE_SUPABASE_URL ? '✓ 已设置' : '✗ 未设置',
-      // REMOVED: supabaseAnonKey: process.env.COZE_SUPABASE_ANON_KEY ? '✓ 已设置' : '✗ 未设置',
+      supabaseUrl: supabaseUrlStatus,
+      supabaseAnonKey: supabaseKeyStatus,
       jwtSecret: process.env.JWT_SECRET ? '✓ 已设置' : '✗ 未设置',
       nodeEnv: process.env.NODE_ENV || '未设置',
     };
@@ -13,7 +24,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       env: envStatus,
-      message: envStatus.// REMOVED: supabaseUrl === '✓ 已设置' && envStatus.// REMOVED: supabaseAnonKey === '✓ 已设置'
+      message: envStatus.supabaseUrl === '✓ 已设置' && envStatus.supabaseAnonKey === '✓ 已设置'
         ? '环境变量配置正常'
         : '环境变量配置异常，请检查'
     });

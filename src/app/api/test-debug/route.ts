@@ -30,7 +30,8 @@ export async function GET(request: NextRequest) {
     // 2. 测试数据库连接
     addLog('步骤 2: 测试数据库连接');
     try {
-            const { data, error } = await client.from('users').select('count').limit(1);
+      const client = getSupabaseClient();
+      const { data, error } = await client.from('users').select('count').limit(1);
       if (error) {
         addLog(`❌ 数据库连接失败: ${error.message}`);
       } else {

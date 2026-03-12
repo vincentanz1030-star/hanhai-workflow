@@ -16,13 +16,22 @@ function loadEnv(): void {
     return;
   }
 
+  // 首先尝试使用 dotenv 加载 .env.local
   try {
-    try {
-      require('dotenv').config();
-    } catch {
-      // dotenv not available
-    }
+    require('dotenv').config({ path: '.env.local' });
+  } catch {
+    // dotenv not available
+  }
+  
+  // 然后尝试默认的 .env
+  try {
+    require('dotenv').config();
+  } catch {
+    // dotenv not available
+  }
 
+  // 尝试从 coze workload identity 获取环境变量
+  try {
     const pythonCode = `
 import os
 import sys
@@ -71,6 +80,9 @@ function getSupabaseCredentials(): SupabaseCredentials {
   const url = process.env.COZE_SUPABASE_URL;
   const anonKey = process.env.COZE_SUPABASE_ANON_KEY;
 
+  console.log('[DB Credentials] URL exists:', !!url);
+  console.log('[DB Credentials] AnonKey exists:', !!anonKey, anonKey ? `(length: ${anonKey.length})` : '');
+
   if (!url) {
     throw new Error('COZE_SUPABASE_URL is not set');
   }
@@ -96,9 +108,8 @@ function getSupabaseClient(token?: string): DatabaseClient {
   console.log('[DB] Using Supabase HTTP API');
   const { url, anonKey } = getSupabaseCredentials();
 
-  const commonOptions = {
+  const clientOptions = {
     db: {
-      timeout: 60000,
       schema: 'public' as const,
     },
     auth: {
@@ -107,33 +118,26 @@ function getSupabaseClient(token?: string): DatabaseClient {
       detectSessionInUrl: false,
     },
     global: {
-      // 添加缓存控制，防止数据不一致
-      fetch: (url: RequestInfo | URL, options?: RequestInit) => {
-        return fetch(url, {
-          ...options,
-          cache: 'no-store' as RequestCache, // 禁用缓存
-          headers: {
-            ...options?.headers,
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
-          },
-        });
+      headers: {
+        'Cache-Control': 'no-cache',
       },
     },
   };
 
   if (token) {
     return createClient(url, anonKey, {
-      ...commonOptions,
+      ...clientOptions,
       global: {
-        ...commonOptions.global,
-        headers: { Authorization: `Bearer ${token}` },
+        ...clientOptions.global,
+        headers: {
+          ...clientOptions.global.headers,
+          Authorization: `Bearer ${token}`,
+        },
       },
     });
   }
 
-  return createClient(url, anonKey, commonOptions);
+  return createClient(url, anonKey, clientOptions);
 }
 
 // 获取本地数据库客户端（用于需要原始 pg 访问的场景）

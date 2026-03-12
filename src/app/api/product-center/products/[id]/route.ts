@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
+import { canViewAllBrands, canManageAllBrands } from '@/lib/permissions';
 
 // PUT - 更新商品
 export async function PUT(
@@ -14,6 +15,8 @@ export async function PUT(
   // 认证检查
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) return authResult;
+
+  const user = authResult;
 
   try {
     const { id } = await params;
@@ -64,6 +67,42 @@ export async function PUT(
           error: '缺少必填字段：sku_code、name、brand',
         },
         { status: 400 }
+      );
+    }
+
+    // 品牌权限验证
+    const canManageAll = await canManageAllBrands(user.brand);
+    if (!canManageAll && brand !== user.brand) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '无权限操作该品牌的数据',
+        },
+        { status: 403 }
+      );
+    }
+
+    // 检查原商品是否存在且用户有权限修改
+    const { data: existingProduct, error: fetchError } = await supabase
+      .from('products')
+      .select('id, brand')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !existingProduct) {
+      return NextResponse.json(
+        { success: false, error: '商品不存在' },
+        { status: 404 }
+      );
+    }
+
+    if (!canManageAll && existingProduct.brand !== user.brand) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '无权限修改该商品',
+        },
+        { status: 403 }
       );
     }
 
@@ -172,6 +211,8 @@ export async function DELETE(
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) return authResult;
 
+  const user = authResult;
+
   try {
     const { id } = await params;
 
@@ -183,6 +224,32 @@ export async function DELETE(
     }
 
     const supabase = getSupabaseClient();
+
+    // 检查商品是否存在且用户有权限删除
+    const canManageAll = await canManageAllBrands(user.brand);
+    
+    const { data: existingProduct, error: fetchError } = await supabase
+      .from('products')
+      .select('id, brand')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !existingProduct) {
+      return NextResponse.json(
+        { success: false, error: '商品不存在' },
+        { status: 404 }
+      );
+    }
+
+    if (!canManageAll && existingProduct.brand !== user.brand) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '无权限删除该商品',
+        },
+        { status: 403 }
+      );
+    }
 
     // 先删除关联的销售统计数据
     await supabase.from('sales_statistics').delete().eq('product_id', id);

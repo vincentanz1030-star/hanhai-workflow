@@ -1,5 +1,7 @@
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
+import { canViewAllBrands, canManageAllBrands } from '@/lib/permissions';
 
 // 辅助函数：将下划线命名转为驼峰命名
 const toCamelCase = (obj: any): any => {
@@ -18,13 +20,20 @@ const toCamelCase = (obj: any): any => {
 };
 
 // 获取产品品类列表
-// 直接从环境变量获取 Supabase 配置
-
 export async function GET(request: NextRequest) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const user = authResult;
+
   try {
     const client = getSupabaseClient();
     const { searchParams } = new URL(request.url);
     const brand = searchParams.get('brand');
+
+    // 检查用户是否可以查看所有品牌
+    const canViewAll = await canViewAllBrands(user.userId, user.brand);
 
     let query = client
       .from('product_categories')
@@ -32,7 +41,10 @@ export async function GET(request: NextRequest) {
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true });
 
-    if (brand && brand !== 'all') {
+    // 品牌过滤：如果没有查看所有品牌的权限，强制过滤用户品牌
+    if (!canViewAll) {
+      query = query.eq('brand', user.brand);
+    } else if (brand && brand !== 'all') {
       query = query.eq('brand', brand);
     }
 
@@ -53,6 +65,12 @@ export async function GET(request: NextRequest) {
 
 // 创建新产品品类
 export async function POST(request: NextRequest) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const user = authResult;
+
   try {
     const client = getSupabaseClient();
     const body = await request.json();
@@ -67,6 +85,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: '品牌、级别和名称为必填项' },
         { status: 400 }
+      );
+    }
+
+    // 品牌权限验证
+    const canManageAll = await canManageAllBrands(user.brand);
+    if (!canManageAll && brand !== user.brand) {
+      return NextResponse.json(
+        { error: '无权限操作该品牌的数据' },
+        { status: 403 }
       );
     }
 

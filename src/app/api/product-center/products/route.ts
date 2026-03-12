@@ -4,9 +4,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { requireAuth, applyBrandFilter } from '@/lib/api-auth';
+import { canViewAllBrands, canManageAllBrands } from '@/lib/permissions';
 
 // GET - 获取商品列表
 export async function GET(request: NextRequest) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const user = authResult;
+
   try {
     const supabase = getSupabaseClient();
     const searchParams = request.nextUrl.searchParams;
@@ -21,6 +29,9 @@ export async function GET(request: NextRequest) {
 
     const offset = (page - 1) * limit;
 
+    // 检查用户是否可以查看所有品牌
+    const canViewAll = await canViewAllBrands(user.userId, user.brand);
+
     // 构建查询 - 不使用join，分开查询
     let query = supabase
       .from('products')
@@ -30,10 +41,15 @@ export async function GET(request: NextRequest) {
         product_inventory(*)
       `, { count: 'exact' });
 
-    // 添加过滤条件
-    if (brand && brand !== 'all') {
+    // 品牌过滤：如果没有查看所有品牌的权限，强制过滤用户品牌
+    if (!canViewAll) {
+      query = query.eq('brand', user.brand);
+    } else if (brand && brand !== 'all') {
+      // 有权限时，按请求参数过滤
       query = query.eq('brand', brand);
     }
+
+    // 添加其他过滤条件
     if (status && status !== 'all') {
       query = query.eq('status', status);
     }
@@ -104,6 +120,12 @@ export async function GET(request: NextRequest) {
 
 // POST - 创建商品
 export async function POST(request: NextRequest) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const user = authResult;
+
   try {
     const supabase = getSupabaseClient();
     const body = await request.json();
@@ -143,6 +165,18 @@ export async function POST(request: NextRequest) {
           error: '缺少必填字段：sku_code、name、brand',
         },
         { status: 400 }
+      );
+    }
+
+    // 品牌权限验证：检查用户是否有权限操作该品牌
+    const canManageAll = await canManageAllBrands(user.brand);
+    if (!canManageAll && brand !== user.brand) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '无权限操作该品牌的数据',
+        },
+        { status: 403 }
       );
     }
 

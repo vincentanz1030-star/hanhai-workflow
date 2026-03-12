@@ -1,14 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-// 直接从环境变量获取 Supabase 配置
-const supabaseUrl = process.env.COZE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.COZE_SUPABASE_ANON_KEY || '';
-
-function getSupabaseClient() {
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    db: { schema: 'public' as const }
-  });
-}
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 /**
  * 检查用户是否有指定权限
@@ -61,9 +51,25 @@ export async function checkPermission(
 
 /**
  * 检查用户是否可以查看所有品牌数据
+ * 条件：用户品牌为 'all' 或者有 system:view_all 权限
  */
-export async function canViewAllBrands(userId: string): Promise<boolean> {
+export async function canViewAllBrands(userId: string, userBrand?: string): Promise<boolean> {
+  // 如果用户品牌为 'all'，直接返回 true
+  if (userBrand === 'all') {
+    return true;
+  }
+  
+  // 否则检查是否有 system:view_all 权限
   return checkPermission(userId, 'system', 'view_all');
+}
+
+/**
+ * 检查用户是否可以管理所有品牌数据（创建、修改、删除）
+ * 条件：用户品牌必须为 'all'
+ */
+export async function canManageAllBrands(userBrand?: string): Promise<boolean> {
+  // 只有品牌为 'all' 的用户才能管理所有品牌的数据
+  return userBrand === 'all';
 }
 
 /**

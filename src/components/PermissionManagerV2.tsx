@@ -175,7 +175,19 @@ export default function PermissionManagerV2() {
 
   // 初始化
   useEffect(() => {
-    checkInitStatus();
+    const init = async () => {
+      const isAuthed = await checkAuth();
+      if (!isAuthed) {
+        setInitStatus({ 
+          initialized: false, 
+          error: '需要管理员权限',
+          message: '请先以管理员身份登录后再访问权限管理'
+        });
+        return;
+      }
+      await checkInitStatus();
+    };
+    init();
   }, []);
 
   useEffect(() => {
@@ -190,7 +202,24 @@ export default function PermissionManagerV2() {
       const data = await res.json();
       setInitStatus(data);
     } catch (e) {
+      console.error('检查初始化状态失败:', e);
       setInitStatus({ initialized: false });
+    }
+  };
+
+  const checkAuth = async (): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/auth/me');
+      const data = await res.json();
+      if (!data.success || !data.user) {
+        return false;
+      }
+      // 检查是否是管理员
+      const roles = data.user.roles || [];
+      const isAdmin = roles.some((r: { role: string }) => r.role === 'admin' || r.role === 'super_admin');
+      return isAdmin;
+    } catch (e) {
+      return false;
     }
   };
 
@@ -211,12 +240,22 @@ export default function PermissionManagerV2() {
       const rolesData = await rolesRes.json();
       const positionsData = await positionsRes.json();
 
+      // 检查是否需要登录
+      if (modulesData.error === '未登录，请先登录' ||
+          actionsData.error === '未登录，请先登录') {
+        alert('请先登录后再访问权限管理');
+        window.location.href = '/';
+        return;
+      }
+
       if (modulesData.success) setModules(modulesData.data || []);
       if (actionsData.success) setActions(actionsData.data || []);
       if (permsData.success) setPermissions(permsData.data || []);
       if (rolesData.success) setRoles(rolesData.data || []);
       if (positionsData.success) setPositions(positionsData.data || []);
 
+    } catch (error) {
+      console.error('加载数据失败:', error);
     } finally {
       setLoading(false);
     }
@@ -390,7 +429,18 @@ export default function PermissionManagerV2() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {initStatus?.initialized ? (
+              {initStatus?.error ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-red-600">
+                    <X className="w-5 h-5" />
+                    <span className="font-medium">{initStatus.error}</span>
+                  </div>
+                  <p className="text-muted-foreground">{initStatus.message}</p>
+                  <Button onClick={() => window.location.href = '/'}>
+                    前往登录
+                  </Button>
+                </div>
+              ) : initStatus?.initialized ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-green-600">
                     <Check className="w-5 h-5" />

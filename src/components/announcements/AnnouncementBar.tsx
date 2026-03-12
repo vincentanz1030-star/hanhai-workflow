@@ -308,7 +308,7 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
   // 加载中
   if (isLoading) {
     return (
-      <div className="border-b bg-muted/30 px-4 py-4">
+      <div className="px-3 sm:px-4 py-3">
         <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <Megaphone className="h-4 w-4 animate-pulse" />
           <span>加载公告...</span>
@@ -320,7 +320,7 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
   // 无公告
   if (announcements.length === 0) {
     return isAdmin ? (
-      <div className="border-b bg-muted/30 px-4 py-3">
+      <div className="px-3 sm:px-4 py-3">
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">暂无公告</span>
           <Button size="sm" variant="outline" onClick={() => handleAdd()}>
@@ -338,109 +338,86 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
 
   return (
     <>
-      {/* 扁平化公告栏 */}
-      <div
-        className={cn('border-b border-l-4', config.lightBg, config.borderColor)}
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-      >
-        <div className="px-3 sm:px-4 py-4 sm:py-5">
-          {/* 移动端顶部标签行 */}
-          <div className="sm:hidden flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className={cn('p-1.5 rounded', config.bgColor)}>
-                <IconComponent className="h-4 w-4 text-white" />
-              </div>
-              {isUnread && <Badge variant="error" className="text-xs">新</Badge>}
-              <span className={cn('text-xs font-medium', config.textColor)}>
-                {current.type === 'info' && '通知'}
-                {current.type === 'warning' && '警告'}
-                {current.type === 'success' && '成功'}
-                {current.type === 'error' && '错误'}
-              </span>
-            </div>
-            {unreadCount > 0 && (
-              <Badge variant="error" className="text-xs">{unreadCount} 条未读</Badge>
-            )}
-          </div>
-
-          {/* 主内容区 */}
+      {/* 公告栏 - 参考通知中心样式 */}
+      <div className="px-3 sm:px-4 py-3">
+        <div
+          className={cn(
+            'p-3 rounded-lg border transition-colors',
+            isUnread
+              ? 'bg-white dark:bg-slate-900 border-primary'
+              : 'bg-slate-50 dark:bg-slate-800'
+          )}
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+        >
           <div className="flex items-start gap-3">
-            {/* 桌面端图标 */}
-            <div className={cn('hidden sm:flex p-2 rounded shrink-0', config.bgColor)}>
-              <IconComponent className="h-5 w-5 text-white" />
+            {/* 左侧图标 - 圆形背景 */}
+            <div className={cn('p-2 rounded-full text-white shrink-0', config.bgColor)}>
+              <IconComponent className="h-4 w-4" />
             </div>
 
             {/* 内容区 */}
             <div className="flex-1 min-w-0">
               {/* 标题行 */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className={cn('font-semibold text-base sm:text-lg', config.textColor, isUnread && 'font-bold')}>
+              <div className="flex items-center justify-between mb-1">
+                <h4 className={cn('font-semibold text-sm truncate', isUnread && 'font-bold')}>
                   {current.title}
-                </span>
-                <div className="hidden sm:flex items-center gap-1.5">
-                  {isUnread && <Badge variant="error" className="text-xs">新</Badge>}
-                  <Badge variant="outline" className={cn('text-xs', config.textColor)}>
-                    {current.type === 'info' && '通知'}
-                    {current.type === 'warning' && '警告'}
-                    {current.type === 'success' && '成功'}
-                    {current.type === 'error' && '错误'}
-                  </Badge>
+                </h4>
+                <div className="flex items-center gap-1 shrink-0">
+                  {!isUnread && (
+                    <Check className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                  {isUnread && (
+                    <Badge variant="secondary" className="text-[10px]">新</Badge>
+                  )}
                 </div>
               </div>
 
-              {/* 内容 - 最多4-5行 */}
+              {/* 内容 */}
               {current.content && (
-                <p className={cn('mt-2 text-sm sm:text-base leading-relaxed line-clamp-4 sm:line-clamp-5', config.textColor, 'opacity-80')}>
+                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
                   {current.content}
                 </p>
               )}
 
-              {/* 操作按钮行 */}
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-black/5 dark:border-white/5">
-                <div className="flex items-center gap-2">
+              {/* 底部：时间 + 操作 */}
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  {new Date(current.created_at).toLocaleString('zh-CN')}
+                </p>
+                <div className="flex items-center gap-1">
                   {/* 预览按钮 */}
                   <Button
                     size="sm"
                     variant="ghost"
-                    className={cn('h-8 gap-1', config.textColor)}
+                    className="h-7 px-2 text-xs"
                     onClick={(e) => openPreview(current, e)}
                   >
-                    <Eye className="h-4 w-4" />
-                    <span className="hidden sm:inline">查看详情</span>
+                    <Eye className="h-3 w-3 mr-1" />
+                    详情
                   </Button>
 
-                  {/* 已读状态 */}
-                  {current.isRead ? (
-                    <span className={cn('flex items-center gap-1 text-xs opacity-60', config.textColor)}>
-                      <CheckCheck className="h-4 w-4" />已读
-                    </span>
-                  ) : (
+                  {/* 已读/标记已读 */}
+                  {isUnread && (
                     <Button
                       size="sm"
                       variant="ghost"
-                      className={cn('h-8 gap-1', config.textColor)}
+                      className="h-7 px-2 text-xs"
                       onClick={(e) => { e.stopPropagation(); markAsRead(current.id); }}
                     >
-                      <Check className="h-4 w-4" />标记已读
+                      <Check className="h-3 w-3 mr-1" />
+                      已读
                     </Button>
                   )}
-                </div>
-
-                {/* 右侧操作 */}
-                <div className="flex items-center gap-1">
-                  {unreadCount > 1 && (
-                    <Button size="sm" variant="ghost" className="text-xs h-8" onClick={markAllAsRead}>
-                      <CheckCheck className="h-3 w-3 mr-1" />全部已读
-                    </Button>
-                  )}
+                  
+                  {/* 管理员操作 */}
                   {isAdmin && (
                     <>
-                      <Button size="sm" variant="ghost" className={cn('h-8 w-8 p-0', config.textColor)} onClick={(e) => handleEdit(current, e)}>
-                        <Pencil className="h-4 w-4" />
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => handleEdit(current, e)}>
+                        <Pencil className="h-3 w-3" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingAnnouncement(current); setIsDeleteDialogOpen(true); }}>
-                        <Trash2 className="h-4 w-4" />
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingAnnouncement(current); setIsDeleteDialogOpen(true); }}>
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </>
                   )}
@@ -449,28 +426,40 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
             </div>
 
             {/* 导航区 */}
-            <div className="flex flex-col items-center gap-1 shrink-0">
-              {announcements.length > 1 && (
-                <>
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handlePrev}>
-                    <ChevronLeft className="h-5 w-5" />
-                  </Button>
-                  <span className="text-xs text-muted-foreground font-medium">
-                    {currentIndex + 1}/{announcements.length}
-                  </span>
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleNext}>
-                    <ChevronRight className="h-5 w-5" />
-                  </Button>
-                </>
-              )}
-              {isAdmin && (
-                <Button size="sm" variant="outline" className="mt-2 text-xs" onClick={() => handleAdd()}>
-                  <Plus className="h-3 w-3 mr-1" />发布
+            {announcements.length > 1 && (
+              <div className="flex flex-col items-center gap-0.5 shrink-0">
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={handlePrev}>
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
-              )}
-            </div>
+                <span className="text-[10px] text-muted-foreground font-medium">
+                  {currentIndex + 1}/{announcements.length}
+                </span>
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={handleNext}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
+          
+          {/* 管理员发布按钮 */}
+          {isAdmin && announcements.length === 1 && (
+            <div className="mt-2 pt-2 border-t flex justify-end">
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleAdd()}>
+                <Plus className="h-3 w-3 mr-1" />发布公告
+              </Button>
+            </div>
+          )}
         </div>
+        
+        {/* 未读数量提示 */}
+        {unreadCount > 1 && (
+          <div className="mt-2 flex justify-end">
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={markAllAsRead}>
+              <CheckCheck className="h-3 w-3 mr-1" />
+              全部标为已读 ({unreadCount})
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* 预览对话框 */}

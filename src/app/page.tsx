@@ -2902,11 +2902,11 @@ function HomePageContent() {
               <CardHeader>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <div>
-                    <CardTitle className="text-lg sm:text-xl">本周工作安排</CardTitle>
+                    <CardTitle className="text-base sm:text-lg">本周工作安排</CardTitle>
                     <CardDescription className="text-xs sm:text-sm">本周重点工作和优先级安排</CardDescription>
                   </div>
                   <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <Badge className="bg-blue-500 w-full sm:w-auto justify-center">
+                    <Badge className="bg-blue-500 flex-1 sm:flex-none justify-center text-xs">
                       {(() => {
                         const now = new Date();
                         const weekStart = new Date(now);
@@ -2935,9 +2935,9 @@ function HomePageContent() {
                         position: '',
                       });
                       setIsWeeklyWorkPlanDialogOpen(true);
-                    }} size="sm" className="w-full sm:w-auto">
-                      <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                      新增工作
+                    }} size="sm" className="flex-1 sm:flex-none shrink-0">
+                      <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                      <span className="text-xs sm:text-sm">新增工作</span>
                     </Button>
                   </div>
                 </div>

@@ -265,99 +265,107 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
 
           {/* 日历网格 - 使用响应式布局 */}
           <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0 touch-pan-x">
-            <div className="min-w-[800px] sm:min-w-full">
-                {/* 日期头 */}
-                <div className="grid grid-cols-[80px_sm:100px_repeat(31,minmax(28px,1fr))] sm:grid-cols-[120px_repeat(31,1fr)] gap-0.5 border-b-2 border-border mb-2">
-                  <div className="p-1.5 sm:p-2 text-[10px] sm:text-xs font-bold bg-muted sticky left-0 z-20 border-r-2 border-border">
+            <table className="w-full border-collapse min-w-[800px] sm:min-w-0">
+              {/* 日期头 */}
+              <thead>
+                <tr className="border-b-2 border-border">
+                  <th className="p-1.5 sm:p-2 text-[10px] sm:text-xs font-bold bg-muted sticky left-0 z-20 border-r-2 border-border w-20 sm:w-28 text-left">
                     品牌
-                  </div>
+                  </th>
                   {Array.from({ length: daysInMonth }, (_, i) => {
                     const day = i + 1;
                     return (
-                      <div
+                      <th
                         key={day}
-                        className={`p-1 sm:p-1.5 text-[10px] sm:text-xs text-center border-l cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${
+                        className={`p-1 sm:p-1.5 text-[10px] sm:text-xs text-center border-l cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors w-7 sm:w-8 ${
                           isWeekend(day) ? 'bg-orange-50 dark:bg-orange-900/20' : 'bg-muted/30'
                         }`}
                         onClick={() => handleDateClick(day)}
-                        title="点击添加排期"
                       >
                         <div className="font-bold">{day}</div>
-                        <div className="text-[8px] sm:text-[10px] text-muted-foreground hidden sm:block">{getDayOfWeek(day)}</div>
-                      </div>
+                        <div className="text-[8px] text-muted-foreground hidden sm:block">{getDayOfWeek(day)}</div>
+                      </th>
                     );
                   })}
-                </div>
-
+                </tr>
+              </thead>
+              <tbody>
                 {/* 品牌行 */}
-                {brandsWithLaunches.map((brand) => {
-                  const launches = brandGroups[brand] || [];
-                  return (
-                    <div key={brand} className="grid grid-cols-[80px_sm:100px_repeat(31,minmax(28px,1fr))] sm:grid-cols-[120px_repeat(31,1fr)] gap-0.5 border-b border-border last:border-b-0 hover:bg-muted/10">
-                      {/* 左侧品牌列 */}
-                      <div className="p-1.5 sm:p-2 text-[10px] sm:text-xs font-semibold sticky left-0 z-10 bg-background border-r border-border flex items-center truncate">
-                        {getBrandName(brand)}
-                      </div>
-                      
-                      {/* 右侧日历网格 */}
-                      {Array.from({ length: daysInMonth }, (_, i) => {
-                        const day = i + 1;
-                        // 找到该品牌在当天的排期
-                        const launch = launches.find((l) => {
-                          const launchDate = new Date(l.salesDate + 'T00:00:00');
-                          return launchDate.getDate() === day;
-                        });
+                {brandsWithLaunches.length === 0 ? (
+                  <tr>
+                    <td colSpan={daysInMonth + 1} className="text-center py-8 text-muted-foreground text-sm">
+                      本月暂无排期
+                    </td>
+                  </tr>
+                ) : (
+                  brandsWithLaunches.map((brand) => {
+                    const launches = brandGroups[brand] || [];
+                    return (
+                      <tr key={brand} className="border-b border-border last:border-b-0 hover:bg-muted/10">
+                        {/* 左侧品牌列 */}
+                        <td className="p-1.5 sm:p-2 text-[10px] sm:text-xs font-semibold sticky left-0 z-10 bg-background border-r border-border w-20 sm:w-28">
+                          <span className="truncate block">{getBrandName(brand)}</span>
+                        </td>
+                        
+                        {/* 右侧日历网格 */}
+                        {Array.from({ length: daysInMonth }, (_, i) => {
+                          const day = i + 1;
+                          // 找到该品牌在当天的排期
+                          const launch = launches.find((l) => {
+                            const launchDate = new Date(l.salesDate + 'T00:00:00');
+                            return launchDate.getDate() === day;
+                          });
 
-                        return (
-                          <div
-                            key={i}
-                            className={`p-0.5 sm:p-1 text-center border-l cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors ${
-                              isWeekend(day) ? 'bg-orange-50 dark:bg-orange-900/10' : 'bg-white dark:bg-slate-900'
-                            }`}
-                            onClick={() => handleDateClick(day, brand)}
-                            title={`点击添加${getBrandName(brand)}的排期`}
-                          >
-                            {launch ? (
-                              <div 
-                                className="w-full h-6 sm:h-8 bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-sm hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors relative group flex items-center justify-center"
-                                title={launch.description || '无描述'}
-                              >
-                                <svg 
-                                  xmlns="http://www.w3.org/2000/svg" 
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 24 24" 
-                                  fill="none" 
-                                  stroke="currentColor" 
-                                  strokeWidth="3" 
-                                  strokeLinecap="round" 
-                                  strokeLinejoin="round" 
-                                  className="text-black dark:text-white sm:w-5 sm:h-5"
+                          return (
+                            <td
+                              key={i}
+                              className={`p-0.5 sm:p-1 text-center border-l cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors ${
+                                isWeekend(day) ? 'bg-orange-50 dark:bg-orange-900/10' : 'bg-white dark:bg-slate-900'
+                              }`}
+                              onClick={() => handleDateClick(day, brand)}
+                              title={`点击添加${getBrandName(brand)}的排期`}
+                            >
+                              {launch ? (
+                                <div 
+                                  className="w-full h-6 sm:h-8 bg-white dark:bg-slate-800 border border-gray-300 dark:border-gray-600 rounded-sm hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors relative group flex items-center justify-center"
+                                  title={launch.description || '无描述'}
                                 >
-                                  <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                {/* 编辑按钮 - 鼠标悬停时显示 */}
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5 p-0 absolute top-0 right-0 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 rounded-sm shadow-sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleLaunchEdit(launch, e);
-                                  }}
-                                >
-                                  <Edit2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                                </Button>
-                              </div>
-                            ) : null}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+                                  <svg 
+                                    xmlns="http://www.w3.org/2000/svg" 
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    strokeWidth="3" 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                    className="text-black dark:text-white sm:w-5 sm:h-5"
+                                  >
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                  </svg>
+                                  {/* 编辑按钮 - 鼠标悬停时显示 */}
+                                  <button
+                                    className="h-5 w-5 p-0 absolute top-0 right-0 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 rounded-sm shadow-sm flex items-center justify-center"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleLaunchEdit(launch, e);
+                                    }}
+                                  >
+                                    <Edit2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                  </button>
+                                </div>
+                              ) : null}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
 
           {/* 统计信息 */}
           <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground">

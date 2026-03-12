@@ -216,23 +216,28 @@ export default function PermissionManagerV2() {
     try {
       const res = await fetch('/api/auth/me');
       const data = await res.json();
-      console.log('[权限管理] 认证响应:', data);
+      console.log('[权限管理] 认证响应:', JSON.stringify(data, null, 2));
       
       if (!data.success || !data.user) {
-        console.log('[权限管理] 未登录或用户数据不存在');
+        console.log('[权限管理] 未登录或用户数据不存在, success:', data.success, 'user:', data.user ? 'exists' : 'null');
         return false;
       }
       
       // 检查是否是管理员
       // 方式1: 检查角色
       const roles = data.user.roles || [];
-      const hasAdminRole = roles.some((r: { role: string }) => r.role === 'admin' || r.role === 'super_admin');
+      console.log('[权限管理] 用户角色数组:', JSON.stringify(roles));
+      
+      const hasAdminRole = roles.some((r: { role: string }) => {
+        console.log('[权限管理] 检查角色:', r);
+        return r.role === 'admin' || r.role === 'super_admin';
+      });
       
       // 方式2: 检查品牌（brand='all' 表示管理员）
       const brand = data.user.brand;
       const isBrandAdmin = brand === 'all';
       
-      console.log('[权限管理] 用户角色:', roles, '品牌:', brand, '是否管理员:', hasAdminRole || isBrandAdmin);
+      console.log('[权限管理] hasAdminRole:', hasAdminRole, 'brand:', brand, 'isBrandAdmin:', isBrandAdmin);
       
       return hasAdminRole || isBrandAdmin;
     } catch (e) {

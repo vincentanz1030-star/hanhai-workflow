@@ -7,7 +7,6 @@ interface UserRole {
   role: string;
 }
 
-// 直接从环境变量获取 Supabase 配置
 interface BackupRecord {
   id: string;
   name: string;
@@ -19,6 +18,40 @@ interface BackupRecord {
   created_at: string;
 }
 
+// 检查管理员权限（支持多种方式）
+async function checkAdminPermission(userId: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  
+  // 方式1: 检查 user_roles 表
+  const { data: userRoles } = await client
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId);
+  
+  const hasAdminRole = userRoles?.some((ur: UserRole) => ur.role === 'admin' || ur.role === 'super_admin');
+  if (hasAdminRole) return true;
+  
+  // 方式2: 检查 user_roles_v2 表
+  const { data: userRolesV2 } = await client
+    .from('user_roles_v2')
+    .select('role_id, roles_v2(code)')
+    .eq('user_id', userId);
+  
+  const hasAdminRoleV2 = userRolesV2?.some((ur: any) => 
+    ur.roles_v2?.code === 'admin' || ur.roles_v2?.code === 'super_admin'
+  );
+  if (hasAdminRoleV2) return true;
+  
+  // 方式3: 检查用户品牌（brand='all' 表示管理员）
+  const { data: user } = await client
+    .from('users')
+    .select('brand')
+    .eq('id', userId)
+    .single();
+  
+  return user?.brand === 'all';
+}
+
 // 获取备份列表
 export async function GET(request: NextRequest) {
   try {
@@ -28,13 +61,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 检查是否有管理员权限
-    const { data: userRoles } = await getSupabaseClient()
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', authResult.userId);
-
-    const hasAdminRole = userRoles?.some((ur: UserRole) => ur.role === 'admin');
-    if (!hasAdminRole) {
+    const isAdmin = await checkAdminPermission(authResult.userId);
+    if (!isAdmin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
@@ -66,13 +94,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查是否有管理员权限
-    const { data: userRoles } = await getSupabaseClient()
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', authResult.userId);
-
-    const hasAdminRole = userRoles?.some((ur: UserRole) => ur.role === 'admin');
-    if (!hasAdminRole) {
+    const isAdmin = await checkAdminPermission(authResult.userId);
+    if (!isAdmin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
@@ -162,13 +185,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 检查是否有管理员权限
-    const { data: userRoles } = await getSupabaseClient()
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', authResult.userId);
-
-    const hasAdminRole = userRoles?.some((ur: UserRole) => ur.role === 'admin');
-    if (!hasAdminRole) {
+    const isAdmin = await checkAdminPermission(authResult.userId);
+    if (!isAdmin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
@@ -206,13 +224,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // 检查是否有管理员权限
-    const { data: userRoles } = await getSupabaseClient()
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', authResult.userId);
-
-    const hasAdminRole = userRoles?.some((ur: UserRole) => ur.role === 'admin');
-    if (!hasAdminRole) {
+    const isAdmin = await checkAdminPermission(authResult.userId);
+    if (!isAdmin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 

@@ -254,8 +254,7 @@ export async function POST(request: NextRequest) {
         .insert({
           product_id: product.id,
           quantity,
-          warehouse_id: null,
-          batch_no: null,
+          warehouse: 'default', // 默认仓库
         });
 
       if (inventoryError) {

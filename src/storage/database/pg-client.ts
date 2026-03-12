@@ -351,23 +351,29 @@ class QueryBuilder {
     }
   }
 
-  // Upsert
-  async upsert(data: any): Promise<{ data: any | null; error: Error | null; count?: number | null }> {
+  // Upsert - 支持自定义冲突字段（支持复合字段如 'role_id,permission_id'）
+  async upsert(data: any, options?: { onConflict?: string }): Promise<{ data: any | null; error: Error | null; count?: number | null }> {
     try {
       const pool = getPool();
       const columns = Object.keys(data);
       const placeholders = columns.map((col, i) => `$${i + 1}`).join(', ');
       const values = Object.values(data);
       
+      // 支持自定义冲突字段，默认为 'id'
+      // 支持复合字段如 'role_id,permission_id'
+      const conflictColumns = options?.onConflict || 'id';
+      
+      // 更新子句：排除冲突字段本身
+      const conflictColumnList = conflictColumns.split(',').map(c => c.trim());
       const updateClause = columns
-        .filter(col => col !== 'id')
-        .map((col, i) => `${col} = EXCLUDED.${col}`)
+        .filter(col => !conflictColumnList.includes(col))
+        .map((col) => `${col} = EXCLUDED.${col}`)
         .join(', ');
       
       const sql = `
         INSERT INTO ${this.tableName} (${columns.join(', ')}) 
         VALUES (${placeholders}) 
-        ON CONFLICT (id) DO UPDATE SET ${updateClause}
+        ON CONFLICT (${conflictColumns}) DO UPDATE SET ${updateClause}
         RETURNING *
       `;
       

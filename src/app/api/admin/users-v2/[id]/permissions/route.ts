@@ -179,7 +179,7 @@ export async function PUT(
 
     // 设置角色
     if (type === 'roles' && Array.isArray(role_ids)) {
-      await supabase.from('user_roles_v2').eq('user_id', id).delete();
+      await supabase.from('user_roles_v2').delete().eq('user_id', id);
       
       if (role_ids.length > 0) {
         const inserts = role_ids.map((roleId: string, index: number) => ({
@@ -196,7 +196,7 @@ export async function PUT(
 
     // 设置岗位
     if (type === 'positions' && Array.isArray(position_ids)) {
-      await supabase.from('user_positions_v2').eq('user_id', id).delete();
+      await supabase.from('user_positions_v2').delete().eq('user_id', id);
       
       if (position_ids.length > 0) {
         const inserts = position_ids.map((posId: string, index: number) => ({
@@ -256,9 +256,9 @@ export async function DELETE(
 
     const result = await supabase
       .from('user_permissions_v2')
+      .delete()
       .eq('user_id', id)
-      .eq('permission_id', permissionId)
-      .delete();
+      .eq('permission_id', permissionId);
 
     if (result.error) throw result.error;
 

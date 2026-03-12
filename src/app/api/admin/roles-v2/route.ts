@@ -125,8 +125,8 @@ export async function PUT(request: NextRequest) {
 
     const result = await supabase
       .from('roles_v2')
-      .eq('id', id)
-      .update(updateData);
+      .update(updateData)
+      .eq('id', id);
 
     if (result.error) throw result.error;
 
@@ -172,12 +172,12 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 删除关联权限
-    await supabase.from('role_permissions_v2').eq('role_id', id).delete();
+    await supabase.from('role_permissions_v2').delete().eq('role_id', id);
 
     const result = await supabase
       .from('roles_v2')
-      .eq('id', id)
-      .delete();
+      .delete()
+      .eq('id', id);
 
     if (result.error) throw result.error;
 

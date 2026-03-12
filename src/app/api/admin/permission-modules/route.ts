@@ -165,8 +165,8 @@ export async function DELETE(request: NextRequest) {
 
     const result = await supabase
       .from('permission_modules')
-      .eq('id', id)
-      .delete();
+      .delete()
+      .eq('id', id);
 
     if (result.error) throw result.error;
 

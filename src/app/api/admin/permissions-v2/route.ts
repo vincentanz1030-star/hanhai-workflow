@@ -167,7 +167,6 @@ export async function PUT(request: NextRequest) {
 
     const result = await supabase
       .from('permissions_v2')
-      .eq('id', id)
       .update({
         name,
         description,
@@ -176,7 +175,8 @@ export async function PUT(request: NextRequest) {
         sort_order,
         is_active,
         updated_at: new Date().toISOString(),
-      });
+      })
+      .eq('id', id);
 
     if (result.error) throw result.error;
 
@@ -211,14 +211,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 先删除关联记录
-    await supabase.from('role_permissions_v2').eq('permission_id', id).delete();
-    await supabase.from('position_permissions_v2').eq('permission_id', id).delete();
-    await supabase.from('user_permissions_v2').eq('permission_id', id).delete();
+    await supabase.from('role_permissions_v2').delete().eq('permission_id', id);
+    await supabase.from('position_permissions_v2').delete().eq('permission_id', id);
+    await supabase.from('user_permissions_v2').delete().eq('permission_id', id);
 
     const result = await supabase
       .from('permissions_v2')
-      .eq('id', id)
-      .delete();
+      .delete()
+      .eq('id', id);
 
     if (result.error) throw result.error;
 

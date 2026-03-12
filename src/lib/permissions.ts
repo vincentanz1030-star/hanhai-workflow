@@ -51,16 +51,11 @@ export async function checkPermission(
 
 /**
  * 检查用户是否可以查看所有品牌数据
- * 条件：用户品牌为 'all' 或者有 system:view_all 权限
+ * 条件：用户品牌必须为 'all'（管理员和超级管理员）
  */
 export async function canViewAllBrands(userId: string, userBrand?: string): Promise<boolean> {
-  // 如果用户品牌为 'all'，直接返回 true
-  if (userBrand === 'all') {
-    return true;
-  }
-  
-  // 否则检查是否有 system:view_all 权限
-  return checkPermission(userId, 'system', 'view_all');
+  // 只有品牌为 'all' 的用户才能查看所有品牌数据
+  return userBrand === 'all';
 }
 
 /**

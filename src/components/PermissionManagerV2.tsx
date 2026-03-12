@@ -139,6 +139,7 @@ const getResourceName = (resource: string): string => {
 export default function PermissionManagerV2() {
   const [activeTab, setActiveTab] = useState('init');
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true); // 添加初始化加载状态
   const [initStatus, setInitStatus] = useState<any>(null);
 
   // 数据
@@ -176,16 +177,20 @@ export default function PermissionManagerV2() {
   // 初始化
   useEffect(() => {
     const init = async () => {
-      const isAuthed = await checkAuth();
-      if (!isAuthed) {
-        setInitStatus({ 
-          initialized: false, 
-          error: '需要管理员权限',
-          message: '请先以管理员身份登录后再访问权限管理'
-        });
-        return;
+      try {
+        const isAuthed = await checkAuth();
+        if (!isAuthed) {
+          setInitStatus({ 
+            initialized: false, 
+            error: '需要管理员权限',
+            message: '请先以管理员身份登录后再访问权限管理'
+          });
+          return;
+        }
+        await checkInitStatus();
+      } finally {
+        setInitializing(false);
       }
-      await checkInitStatus();
     };
     init();
   }, []);
@@ -211,14 +216,27 @@ export default function PermissionManagerV2() {
     try {
       const res = await fetch('/api/auth/me');
       const data = await res.json();
+      console.log('[权限管理] 认证响应:', data);
+      
       if (!data.success || !data.user) {
+        console.log('[权限管理] 未登录或用户数据不存在');
         return false;
       }
+      
       // 检查是否是管理员
+      // 方式1: 检查角色
       const roles = data.user.roles || [];
-      const isAdmin = roles.some((r: { role: string }) => r.role === 'admin' || r.role === 'super_admin');
-      return isAdmin;
+      const hasAdminRole = roles.some((r: { role: string }) => r.role === 'admin' || r.role === 'super_admin');
+      
+      // 方式2: 检查品牌（brand='all' 表示管理员）
+      const brand = data.user.brand;
+      const isBrandAdmin = brand === 'all';
+      
+      console.log('[权限管理] 用户角色:', roles, '品牌:', brand, '是否管理员:', hasAdminRole || isBrandAdmin);
+      
+      return hasAdminRole || isBrandAdmin;
     } catch (e) {
+      console.error('[权限管理] 认证检查失败:', e);
       return false;
     }
   };
@@ -441,7 +459,14 @@ export default function PermissionManagerV2() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {initStatus?.error ? (
+              {initializing ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span className="font-medium">正在检查权限...</span>
+                  </div>
+                </div>
+              ) : initStatus?.error ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-red-600">
                     <X className="w-5 h-5" />

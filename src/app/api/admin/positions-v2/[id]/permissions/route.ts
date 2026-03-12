@@ -121,7 +121,7 @@ export async function PUT(
     }
 
     // 删除旧权限
-    await supabase.from('position_permissions_v2').eq('position_id', id).delete();
+    await supabase.from('position_permissions_v2').delete().eq('position_id', id);
 
     // 插入新权限
     if (permission_ids.length > 0) {
@@ -185,9 +185,9 @@ export async function PATCH(
     if (revoke && revoke.length > 0) {
       await supabase
         .from('position_permissions_v2')
+        .delete()
         .eq('position_id', id)
-        .in('permission_id', revoke)
-        .delete();
+        .in('permission_id', revoke);
     }
 
     return NextResponse.json({

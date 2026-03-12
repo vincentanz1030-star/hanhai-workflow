@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
       
       // 营销活动数据
       supabase
-        .from('campaigns')
+        .from('marketing_campaigns')
         .select('id, name, status, budget, revenue, start_date, end_date'),
     ]);
 

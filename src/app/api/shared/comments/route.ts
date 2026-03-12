@@ -27,14 +27,14 @@ export async function GET(request: NextRequest) {
 
     // 获取评论列表
     const { data: comments, error, count } = await supabase
-      .from('shared_resource_comments')
+      .from('shared_comments')
       .select(`
         id,
         content,
         created_at,
         user_id,
         parent_id,
-        users!shared_resource_comments_user_id_fkey (
+        users!shared_comments_user_id_fkey (
           id,
           name,
           brand
@@ -53,14 +53,14 @@ export async function GET(request: NextRequest) {
     let replies: any[] = [];
     if (commentIds.length > 0) {
       const { data: replyData } = await supabase
-        .from('shared_resource_comments')
+        .from('shared_comments')
         .select(`
           id,
           content,
           created_at,
           user_id,
           parent_id,
-          users!shared_resource_comments_user_id_fkey (
+          users!shared_comments_user_id_fkey (
             id,
             name,
             brand
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const { data, error } = await supabase
-      .from('shared_resource_comments')
+      .from('shared_comments')
       .insert({
         resource_type,
         resource_id,
@@ -147,7 +147,7 @@ export async function DELETE(request: NextRequest) {
   try {
     // 只能删除自己的评论
     const { error } = await supabase
-      .from('shared_resource_comments')
+      .from('shared_comments')
       .delete()
       .eq('id', commentId)
       .eq('user_id', user.id);

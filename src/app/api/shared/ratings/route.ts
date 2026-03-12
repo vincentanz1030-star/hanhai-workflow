@@ -23,14 +23,14 @@ export async function GET(request: NextRequest) {
   try {
     // 获取评分列表
     const { data: ratings, error } = await supabase
-      .from('shared_resource_ratings')
+      .from('shared_ratings')
       .select(`
         id,
         rating,
         review,
         created_at,
         user_id,
-        users!shared_resource_ratings_user_id_fkey (
+        users!shared_ratings_user_id_fkey (
           id,
           name,
           brand
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
   try {
     // 检查是否已评分
     const { data: existing } = await supabase
-      .from('shared_resource_ratings')
+      .from('shared_ratings')
       .select('id')
       .eq('resource_type', resource_type)
       .eq('resource_id', resource_id)
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     if (existing) {
       // 更新评分
       const { error } = await supabase
-        .from('shared_resource_ratings')
+        .from('shared_ratings')
         .update({
           rating,
           review,
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     } else {
       // 新增评分
       const { error } = await supabase
-        .from('shared_resource_ratings')
+        .from('shared_ratings')
         .insert({
           resource_type,
           resource_id,

@@ -1,5 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { execSync } from 'child_process';
+import { PoolClient } from 'pg';
+import { getPgClient, shouldUseLocalDatabase } from './pg-client';
 
 let envLoaded = false;
 
@@ -79,7 +81,18 @@ function getSupabaseCredentials(): SupabaseCredentials {
   return { url, anonKey };
 }
 
-function getSupabaseClient(token?: string): SupabaseClient {
+// 统一的数据库客户端类型
+type DatabaseClient = SupabaseClient | ReturnType<typeof getPgClient>;
+
+function getSupabaseClient(token?: string): DatabaseClient {
+  // 检查是否应该使用本地数据库
+  if (shouldUseLocalDatabase()) {
+    console.log('[DB] Using local PostgreSQL database');
+    return getPgClient();
+  }
+
+  // 否则使用 Supabase HTTP API
+  console.log('[DB] Using Supabase HTTP API');
   const { url, anonKey } = getSupabaseCredentials();
 
   const commonOptions = {
@@ -122,4 +135,20 @@ function getSupabaseClient(token?: string): SupabaseClient {
   return createClient(url, anonKey, commonOptions);
 }
 
-export { loadEnv, getSupabaseCredentials, getSupabaseClient };
+// 获取本地数据库客户端（用于需要原始 pg 访问的场景）
+function getLocalDbClient() {
+  return getPgClient();
+}
+
+// 检查当前是否使用本地数据库
+function isUsingLocalDatabase(): boolean {
+  return shouldUseLocalDatabase();
+}
+
+export { 
+  loadEnv, 
+  getSupabaseCredentials, 
+  getSupabaseClient,
+  getLocalDbClient,
+  isUsingLocalDatabase
+};

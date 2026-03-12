@@ -86,6 +86,56 @@ const ACTION_COLORS: Record<string, string> = {
   manage: 'bg-gray-100 text-gray-700',
 };
 
+// 资源名称映射表
+const RESOURCE_NAMES: Record<string, string> = {
+  users: '用户',
+  roles: '角色',
+  permissions: '权限',
+  logs: '日志',
+  config: '配置',
+  backup: '备份',
+  restore: '恢复',
+  project: '项目',
+  task: '任务',
+  tasks: '任务',
+  assign: '分配',
+  complete: '完成',
+  product: '商品',
+  products: '商品',
+  price: '价格',
+  inventory: '库存',
+  supplier: '供应商',
+  purchase_order: '采购订单',
+  sales_stats: '销售统计',
+  product_feedback: '商品反馈',
+  handle: '处理',
+  campaign: '营销活动',
+  campaign_task: '活动任务',
+  collaboration: '协同项目',
+  member: '成员',
+  knowledge: '知识库',
+  schedule: '日程',
+  approval: '审批',
+  reject: '拒绝',
+  message: '消息',
+  send: '发送',
+  shared_resource: '共享资源',
+  feedback: '反馈',
+  analytics: '数据分析',
+  schedules: '计划',
+  activity: '活动',
+  activities: '活动',
+  coupon: '优惠券',
+  coupons: '优惠券',
+  promotion: '促销',
+  promotions: '促销',
+};
+
+// 获取资源的中文名称
+const getResourceName = (resource: string): string => {
+  return RESOURCE_NAMES[resource] || resource;
+};
+
 export default function PermissionManagerV2() {
   const [activeTab, setActiveTab] = useState('init');
   const [loading, setLoading] = useState(false);
@@ -515,7 +565,7 @@ export default function PermissionManagerV2() {
                       <div className="pl-6 pt-2 space-y-2">
                         {Object.entries(groupByResource(perms)).map(([resource, resourcePerms]) => (
                           <div key={resource} className="flex items-center gap-2 py-1">
-                            <span className="text-sm font-medium w-24">{resource}</span>
+                            <span className="text-sm font-medium w-24">{getResourceName(resource)}</span>
                             <div className="flex flex-wrap gap-1">
                               {resourcePerms.map(perm => (
                                 <Badge 
@@ -606,7 +656,7 @@ export default function PermissionManagerV2() {
                   <div className="pl-8 pt-2">
                     {Object.entries(groupByResource(perms)).map(([resource, resourcePerms]) => (
                       <div key={resource} className="flex items-center gap-3 py-2 border-b">
-                        <span className="text-sm font-medium w-24">{resource}</span>
+                        <span className="text-sm font-medium w-24">{getResourceName(resource)}</span>
                         <div className="flex flex-wrap gap-2">
                           {resourcePerms.map(perm => (
                             <label key={perm.id} className="flex items-center gap-1 cursor-pointer">

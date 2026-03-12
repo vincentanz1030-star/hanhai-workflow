@@ -10,6 +10,7 @@ import TrendChart from '@/components/analytics/TrendChart';
 import BrandDistributionChart from '@/components/analytics/BrandDistributionChart';
 import PositionEfficiencyChart from '@/components/analytics/PositionEfficiencyChart';
 import TaskStatusChart from '@/components/analytics/TaskStatusChart';
+import AnnouncementBar from '@/components/announcements/AnnouncementBar';
 
 interface AnalyticsData {
   stats: {
@@ -47,6 +48,30 @@ export default function AnalyticsPage() {
   const [selectedBrand, setSelectedBrand] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<AnalyticsData | null>(null);
+  const [userRole, setUserRole] = useState<{ isAdmin: boolean; brand: string }>({ isAdmin: false, brand: 'all' });
+
+  // 获取用户信息
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        const result = await response.json();
+        if (result.success && result.user) {
+          const roles = result.user.roles || [];
+          const isAdmin = roles.some((r: { role: string }) => 
+            r.role === 'admin' || r.role === 'super_admin'
+          );
+          setUserRole({
+            isAdmin,
+            brand: result.user.brand || 'all'
+          });
+        }
+      } catch (error) {
+        console.error('获取用户信息失败:', error);
+      }
+    };
+    fetchUserInfo();
+  }, []);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -86,6 +111,9 @@ export default function AnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* 公告栏 */}
+      <AnnouncementBar isAdmin={userRole.isAdmin} userBrand={userRole.brand} />
+      
       {/* 头部 */}
       <div className="border-b">
         <div className="container mx-auto px-4 py-6">

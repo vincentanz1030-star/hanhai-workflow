@@ -2572,22 +2572,44 @@ function HomePageContent() {
             loadCriticalPath();
           }
         }} className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-12 gap-1 h-auto justify-items-center">
-            <TabsTrigger value="dashboard" className="sm:text-base py-2 px-2">数据看板</TabsTrigger>
-            <TabsTrigger value="projects" className="sm:text-base py-2 px-2">项目列表</TabsTrigger>
-            <TabsTrigger value="timeline" className="sm:text-base py-2 px-2">时间线</TabsTrigger>
-            <TabsTrigger value="roles" className="sm:text-base py-2 px-2">岗位进度</TabsTrigger>
-            <TabsTrigger value="product-center" className="sm:text-base py-2 px-2 text-blue-600 dark:text-blue-400">商品中心</TabsTrigger>
-            <TabsTrigger value="marketing" className="sm:text-base py-2 px-2 text-purple-600 dark:text-purple-400">营销中台</TabsTrigger>
-            <TabsTrigger value="collaboration" className="sm:text-base py-2 px-2 text-green-600 dark:text-green-400">协同平台</TabsTrigger>
-            <TabsTrigger value="shared-resource" className="sm:text-base py-2 px-2 text-orange-600 dark:text-orange-400">资源共享</TabsTrigger>
-            <TabsTrigger value="weekly-feedbacks" className="sm:text-base py-2 px-2 text-cyan-600 dark:text-cyan-400" asChild>
+          {/* 移动端：横向滚动 Tab 栏 */}
+          <div className="sm:hidden overflow-x-auto -mx-2 px-2 pb-2 hide-scrollbar">
+            <TabsList className="flex flex-nowrap gap-1 h-auto w-max bg-muted/50 p-1 rounded-lg">
+              <TabsTrigger value="dashboard" className="text-sm py-2 px-3 whitespace-nowrap rounded-md">📊 看板</TabsTrigger>
+              <TabsTrigger value="projects" className="text-sm py-2 px-3 whitespace-nowrap rounded-md">📁 项目</TabsTrigger>
+              <TabsTrigger value="timeline" className="text-sm py-2 px-3 whitespace-nowrap rounded-md">📅 时间线</TabsTrigger>
+              <TabsTrigger value="roles" className="text-sm py-2 px-3 whitespace-nowrap rounded-md">👥 岗位</TabsTrigger>
+              <TabsTrigger value="product-center" className="text-sm py-2 px-3 whitespace-nowrap rounded-md text-blue-600 dark:text-blue-400">📦 商品</TabsTrigger>
+              <TabsTrigger value="marketing" className="text-sm py-2 px-3 whitespace-nowrap rounded-md text-purple-600 dark:text-purple-400">📢 营销</TabsTrigger>
+              <TabsTrigger value="collaboration" className="text-sm py-2 px-3 whitespace-nowrap rounded-md text-green-600 dark:text-green-400">🤝 协同</TabsTrigger>
+              <TabsTrigger value="shared-resource" className="text-sm py-2 px-3 whitespace-nowrap rounded-md text-orange-600 dark:text-orange-400">🔗 资源</TabsTrigger>
+              <TabsTrigger value="weekly-feedbacks" className="text-sm py-2 px-3 whitespace-nowrap rounded-md text-cyan-600 dark:text-cyan-400" asChild>
+                <a href="/weekly-feedbacks">💬 反馈</a>
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="text-sm py-2 px-3 whitespace-nowrap rounded-md" asChild>
+                <a href="/analytics">📈 分析</a>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="text-sm py-2 px-3 whitespace-nowrap rounded-md">⚙️ 设置</TabsTrigger>
+            </TabsList>
+          </div>
+          
+          {/* 桌面端：网格布局 Tab 栏 */}
+          <TabsList className="hidden sm:grid w-full grid-cols-12 gap-1 h-auto justify-items-center">
+            <TabsTrigger value="dashboard" className="text-base py-2 px-2">数据看板</TabsTrigger>
+            <TabsTrigger value="projects" className="text-base py-2 px-2">项目列表</TabsTrigger>
+            <TabsTrigger value="timeline" className="text-base py-2 px-2">时间线</TabsTrigger>
+            <TabsTrigger value="roles" className="text-base py-2 px-2">岗位进度</TabsTrigger>
+            <TabsTrigger value="product-center" className="text-base py-2 px-2 text-blue-600 dark:text-blue-400">商品中心</TabsTrigger>
+            <TabsTrigger value="marketing" className="text-base py-2 px-2 text-purple-600 dark:text-purple-400">营销中台</TabsTrigger>
+            <TabsTrigger value="collaboration" className="text-base py-2 px-2 text-green-600 dark:text-green-400">协同平台</TabsTrigger>
+            <TabsTrigger value="shared-resource" className="text-base py-2 px-2 text-orange-600 dark:text-orange-400">资源共享</TabsTrigger>
+            <TabsTrigger value="weekly-feedbacks" className="text-base py-2 px-2 text-cyan-600 dark:text-cyan-400" asChild>
               <a href="/weekly-feedbacks">客户反馈</a>
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="sm:text-base py-2 px-2" asChild>
+            <TabsTrigger value="analytics" className="text-base py-2 px-2" asChild>
               <a href="/analytics">数据分析</a>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="sm:text-base py-2 px-2">系统设置</TabsTrigger>
+            <TabsTrigger value="settings" className="text-base py-2 px-2">系统设置</TabsTrigger>
           </TabsList>
 
           {/* 品牌过滤器已禁用 - 总是显示所有品牌的项目 */}

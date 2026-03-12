@@ -388,49 +388,70 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
           )} />
         )}
 
-        <div className="relative container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            {/* 左侧导航 */}
+        {/* 移动端：纵向布局 | 桌面端：横向布局 */}
+        <div className="relative container mx-auto px-3 sm:px-4 py-6 sm:py-8">
+          {/* 移动端顶部：标题行 */}
+          <div className="sm:hidden flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              {isUnread && (
+                <Badge variant="error" className="text-xs animate-pulse">新</Badge>
+              )}
+              <Badge className={cn('text-xs text-white', config.badge)}>
+                {currentAnnouncement.type === 'info' && '通知'}
+                {currentAnnouncement.type === 'warning' && '警告'}
+                {currentAnnouncement.type === 'success' && '成功'}
+                {currentAnnouncement.type === 'error' && '错误'}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-1">
+              {unreadCount > 0 && (
+                <Badge variant="error" className="text-xs">{unreadCount} 条未读</Badge>
+              )}
+            </div>
+          </div>
+
+          {/* 主内容区 */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            {/* 左侧导航 - 移动端隐藏 */}
             {announcements.length > 1 && (
               <Button
                 size="icon"
                 variant="ghost"
-                className={cn('h-8 w-8 shrink-0 rounded-full', config.text)}
+                className={cn('hidden sm:flex h-10 w-10 shrink-0 rounded-full', config.text)}
                 onClick={handlePrev}
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-6 w-6" />
               </Button>
             )}
 
             {/* 公告内容 - 可点击 */}
             <div
-              className={cn('flex-1 flex items-center gap-4 min-w-0 cursor-pointer group')}
+              className={cn('flex-1 flex items-center gap-3 sm:gap-4 min-w-0 cursor-pointer group')}
               onClick={() => handleAnnouncementClick(currentAnnouncement)}
             >
-              {/* 图标 */}
+              {/* 图标 - 移动端更大 */}
               <div className={cn(
-                'relative shrink-0 p-2.5 rounded-xl bg-gradient-to-br shadow-lg transition-transform group-hover:scale-110',
+                'relative shrink-0 p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-gradient-to-br shadow-lg transition-transform group-hover:scale-105 sm:group-hover:scale-110',
                 config.gradient,
                 config.glow
               )}>
-                <IconComponent className="h-5 w-5 text-white" />
+                <IconComponent className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
                 {isUnread && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-900 animate-pulse" />
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-900 animate-pulse" />
                 )}
               </div>
 
               {/* 文字内容 */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={cn('font-semibold text-base truncate', config.text, isUnread && 'font-bold')}>
+                {/* 桌面端：标题和标签同行 */}
+                <div className="hidden sm:flex items-center gap-2 flex-wrap">
+                  <span className={cn('font-semibold text-lg truncate', config.text, isUnread && 'font-bold')}>
                     {currentAnnouncement.title}
                   </span>
                   
                   <div className="flex items-center gap-1.5">
                     {isUnread && (
-                      <Badge variant="error" className="text-xs animate-pulse">
-                        新
-                      </Badge>
+                      <Badge variant="error" className="text-xs animate-pulse">新</Badge>
                     )}
                     <Badge className={cn('text-xs text-white', config.badge)}>
                       {currentAnnouncement.type === 'info' && '通知'}
@@ -440,15 +461,73 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
                     </Badge>
                   </div>
                 </div>
+
+                {/* 移动端：标题单独一行，更大字体 */}
+                <span className={cn('sm:hidden font-bold text-lg leading-tight block', config.text)}>
+                  {currentAnnouncement.title}
+                </span>
                 
+                {/* 内容 - 移动端显示2行 */}
                 {currentAnnouncement.content && (
-                  <p className={cn('text-sm mt-1 line-clamp-1 opacity-75', config.text)}>
+                  <p className={cn(
+                    'text-sm sm:text-base mt-1.5 sm:mt-1 line-clamp-2 sm:line-clamp-1 opacity-75',
+                    config.text
+                  )}>
                     {currentAnnouncement.content}
                   </p>
                 )}
+
+                {/* 移动端：已读状态和操作 */}
+                <div className="sm:hidden flex items-center justify-between mt-3">
+                  {currentAnnouncement.isRead ? (
+                    <div className={cn('flex items-center gap-1 text-xs opacity-60', config.text)}>
+                      <CheckCheck className="h-4 w-4" />
+                      <span>已读</span>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className={cn('h-8 gap-1', config.text)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markAsRead(currentAnnouncement.id);
+                      }}
+                    >
+                      <Check className="h-4 w-4" />
+                      <span>标记已读</span>
+                    </Button>
+                  )}
+                  
+                  {/* 管理员操作 - 移动端 */}
+                  {isAdmin && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className={cn('h-8 w-8', config.text)}
+                        onClick={(e) => handleEdit(currentAnnouncement, e)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingAnnouncement(currentAnnouncement);
+                          setIsDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* 已读状态 */}
+              {/* 桌面端：已读状态 */}
               {currentAnnouncement.isRead ? (
                 <div className={cn('hidden sm:flex items-center gap-1 text-xs opacity-60', config.text)}>
                   <CheckCheck className="h-4 w-4" />
@@ -458,7 +537,7 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
                 <Button
                   size="sm"
                   variant="ghost"
-                  className={cn('hidden sm:flex gap-1', config.text)}
+                  className={cn('hidden sm:flex gap-1 h-9', config.text)}
                   onClick={(e) => {
                     e.stopPropagation();
                     markAsRead(currentAnnouncement.id);
@@ -470,8 +549,8 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
               )}
             </div>
 
-            {/* 右侧操作区 */}
-            <div className="flex items-center gap-2 shrink-0">
+            {/* 右侧操作区 - 桌面端 */}
+            <div className="hidden sm:flex items-center gap-2 shrink-0">
               {/* 未读数量 */}
               {unreadCount > 0 && (
                 <Badge variant="error" className="animate-pulse">
@@ -529,15 +608,56 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
                   <Button
                     size="icon"
                     variant="ghost"
-                    className={cn('h-8 w-8', config.text)}
+                    className={cn('h-10 w-10', config.text)}
                     onClick={handleNext}
                   >
-                    <ChevronRight className="h-5 w-5" />
+                    <ChevronRight className="h-6 w-6" />
                   </Button>
                 </>
               )}
             </div>
           </div>
+
+          {/* 移动端底部：导航 + 发布按钮 */}
+          {announcements.length > 1 && (
+            <div className="sm:hidden flex items-center justify-between mt-3 pt-3 border-t border-black/5 dark:border-white/5">
+              <Button
+                size="sm"
+                variant="ghost"
+                className={cn('gap-1', config.text)}
+                onClick={handlePrev}
+              >
+                <ChevronLeft className="h-5 w-5" />
+                <span>上一条</span>
+              </Button>
+              
+              <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                <span>{currentIndex + 1}</span>
+                <span>/</span>
+                <span>{announcements.length}</span>
+              </div>
+              
+              <Button
+                size="sm"
+                variant="ghost"
+                className={cn('gap-1', config.text)}
+                onClick={handleNext}
+              >
+                <span>下一条</span>
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
+
+          {/* 移动端：发布按钮 */}
+          {isAdmin && (
+            <div className="sm:hidden flex justify-center mt-3 pt-3 border-t border-black/5 dark:border-white/5">
+              <Button size="sm" variant="outline" onClick={handleAdd} className="gap-1">
+                <Plus className="h-4 w-4" />
+                <span>发布新公告</span>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

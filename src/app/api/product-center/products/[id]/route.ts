@@ -31,61 +31,10 @@ export async function PUT(
     const supabase = getSupabaseClient();
     const body = await request.json();
 
-    const {
-      sku_code,
-      name,
-      description,
-      category_id,
-      brand,
-      main_image,
-      images,
-      video_url,
-      attributes,
-      tags,
-      status,
-      lifecycle_stage,
-      updated_by,
-      // 新增字段
-      designer,
-      supplier_id,
-      spec_code,
-      color,
-      delivery_days,
-      remarks,
-      // 价格信息
-      cost_price,
-      cost_with_tax_shipping,
-      wholesale_price,
-      retail_price,
-    } = body;
-
-    // 验证必填字段
-    if (!sku_code || !name || !brand) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: '缺少必填字段：sku_code、name、brand',
-        },
-        { status: 400 }
-      );
-    }
-
-    // 品牌权限验证
-    const canManageAll = await canManageAllBrands(user.brand);
-    if (!canManageAll && brand !== user.brand) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: '无权限操作该品牌的数据',
-        },
-        { status: 403 }
-      );
-    }
-
     // 检查原商品是否存在且用户有权限修改
     const { data: existingProduct, error: fetchError } = await supabase
       .from('products')
-      .select('id, brand')
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -96,6 +45,8 @@ export async function PUT(
       );
     }
 
+    // 品牌权限验证
+    const canManageAll = await canManageAllBrands(user.brand);
     if (!canManageAll && existingProduct.brand !== user.brand) {
       return NextResponse.json(
         {
@@ -106,82 +57,117 @@ export async function PUT(
       );
     }
 
-    // 处理空字符串的 supplier_id，转为 null
-    const normalizedSupplierId = supplier_id && supplier_id.trim() !== '' ? supplier_id : null;
+    // 如果传入了新的品牌，检查是否有权限操作该品牌
+    const newBrand = body.brand || existingProduct.brand;
+    if (!canManageAll && newBrand !== user.brand) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '无权限操作该品牌的数据',
+        },
+        { status: 403 }
+      );
+    }
+
+    // 构建更新对象，只更新传入的字段，保留原有值
+    const updateData: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+      updated_by: user.userId,
+    };
+
+    // 基础字段更新（如果传入）
+    if (body.sku_code !== undefined) updateData.sku_code = body.sku_code;
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.category_id !== undefined) updateData.category_id = body.category_id;
+    if (body.brand !== undefined) updateData.brand = body.brand;
+    if (body.main_image !== undefined) updateData.main_image = body.main_image;
+    if (body.images !== undefined) updateData.images = body.images;
+    if (body.video_url !== undefined) updateData.video_url = body.video_url;
+    if (body.attributes !== undefined) updateData.attributes = body.attributes;
+    if (body.tags !== undefined) updateData.tags = body.tags;
+    if (body.status !== undefined) updateData.status = body.status;
+    if (body.lifecycle_stage !== undefined) updateData.lifecycle_stage = body.lifecycle_stage;
+
+    // 新增字段更新
+    if (body.designer !== undefined) updateData.designer = body.designer;
+    if (body.spec_code !== undefined) updateData.spec_code = body.spec_code;
+    if (body.color !== undefined) updateData.color = body.color;
+    if (body.delivery_days !== undefined) updateData.delivery_days = body.delivery_days;
+    if (body.remarks !== undefined) updateData.remarks = body.remarks;
+
+    // 处理 supplier_id：空字符串转为 null
+    if (body.supplier_id !== undefined) {
+      updateData.supplier_id = body.supplier_id && body.supplier_id.trim() !== '' ? body.supplier_id : null;
+    }
 
     // 更新商品
     const { data: product, error: productError } = await supabase
       .from('products')
-      .update({
-        sku_code,
-        name,
-        description,
-        category_id,
-        brand,
-        main_image,
-        images,
-        video_url,
-        attributes,
-        tags,
-        status,
-        lifecycle_stage,
-        updated_by,
-        updated_at: new Date().toISOString(),
-        designer,
-        supplier_id: normalizedSupplierId,
-        spec_code,
-        color,
-        delivery_days,
-        remarks,
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
 
-    if (productError) throw productError;
+    if (productError) {
+      console.error('[Products API] Update error:', productError);
+      throw productError;
+    }
 
-    // 更新价格记录（如果存在）
-    if (cost_price || cost_with_tax_shipping || wholesale_price || retail_price) {
+    // 更新价格记录（如果传入了价格信息）
+    if (body.cost_price !== undefined || body.cost_with_tax_shipping !== undefined || 
+        body.wholesale_price !== undefined || body.retail_price !== undefined) {
+      
+      const priceData: Record<string, any> = {
+        product_id: id,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (body.cost_price !== undefined) priceData.cost_price = body.cost_price;
+      if (body.cost_with_tax_shipping !== undefined) priceData.cost_with_tax_shipping = body.cost_with_tax_shipping;
+      if (body.wholesale_price !== undefined) priceData.wholesale_price = body.wholesale_price;
+      if (body.retail_price !== undefined) priceData.retail_price = body.retail_price;
+
       const { error: priceError } = await supabase
         .from('product_prices')
-        .upsert({
-          product_id: id,
-          cost_price,
-          cost_with_tax_shipping,
-          wholesale_price,
-          retail_price,
-          updated_at: new Date().toISOString(),
-        }, {
+        .upsert(priceData, {
           onConflict: 'product_id'
         });
 
-      if (priceError) throw priceError;
+      if (priceError) {
+        console.error('[Products API] Price update error:', priceError);
+        // 价格更新失败不影响整体更新结果
+      }
     }
 
     // 更新库存记录
-    const quantity = body.quantity;
-    if (quantity !== undefined) {
-      // 先检查是否存在库存记录
-      const { data: existingInventory } = await supabase
-        .from('product_inventory')
-        .select('id')
-        .eq('product_id', id)
-        .limit(1);
+    if (body.quantity !== undefined) {
+      try {
+        // 先检查是否存在库存记录
+        const { data: existingInventory } = await supabase
+          .from('product_inventory')
+          .select('id')
+          .eq('product_id', id)
+          .limit(1);
 
-      if (existingInventory && existingInventory.length > 0) {
-        // 更新现有记录
-        await supabase
-          .from('product_inventory')
-          .update({ quantity })
-          .eq('id', existingInventory[0].id);
-      } else if (quantity > 0) {
-        // 创建新记录
-        await supabase
-          .from('product_inventory')
-          .insert({
-            product_id: id,
-            quantity,
-          });
+        if (existingInventory && existingInventory.length > 0) {
+          // 更新现有记录
+          await supabase
+            .from('product_inventory')
+            .update({ quantity: body.quantity })
+            .eq('id', existingInventory[0].id);
+        } else if (body.quantity > 0) {
+          // 创建新记录
+          await supabase
+            .from('product_inventory')
+            .insert({
+              product_id: id,
+              quantity: body.quantity,
+            });
+        }
+      } catch (inventoryError) {
+        console.error('[Products API] Inventory update error:', inventoryError);
+        // 库存更新失败不影响整体更新结果
       }
     }
 
@@ -278,6 +264,75 @@ export async function DELETE(
       {
         success: false,
         error: error instanceof Error ? error.message : '删除商品失败',
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// GET - 获取单个商品详情
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const user = authResult;
+
+  try {
+    const { id } = await params;
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: '缺少商品ID' },
+        { status: 400 }
+      );
+    }
+
+    const supabase = getSupabaseClient();
+
+    // 获取商品详情
+    const { data: product, error } = await supabase
+      .from('products')
+      .select(`
+        *,
+        product_prices(*),
+        product_inventory(*)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error || !product) {
+      return NextResponse.json(
+        { success: false, error: '商品不存在' },
+        { status: 404 }
+      );
+    }
+
+    // 品牌权限验证
+    const canViewAll = await canViewAllBrands(user.userId, user.brand);
+    if (!canViewAll && product.brand !== user.brand) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '无权限查看该商品',
+        },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: product,
+    });
+  } catch (error) {
+    console.error('[Products API] Error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : '获取商品详情失败',
       },
       { status: 500 }
     );

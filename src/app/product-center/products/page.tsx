@@ -127,6 +127,8 @@ export default function ProductsPage() {
   // 编辑
   const handleEdit = (product: Product) => {
     setCurrentProduct(product);
+    // product_prices 是数组，取第一个元素
+    const priceData = product.product_prices?.[0];
     setFormData({
       sku_code: product.sku_code || '',
       name: product.name || '',
@@ -136,8 +138,8 @@ export default function ProductsPage() {
       spec_code: product.spec_code || '',
       color: product.color || '',
       quantity: product.product_inventory?.[0]?.quantity || 0,
-      cost_with_tax_shipping: product.product_prices?.cost_with_tax_shipping || 0,
-      retail_price: product.product_prices?.retail_price || 0,
+      cost_with_tax_shipping: priceData?.cost_with_tax_shipping || 0,
+      retail_price: priceData?.retail_price || 0,
       delivery_days: product.delivery_days || 0,
       remarks: product.remarks || '',
       main_image: product.main_image || '',
@@ -357,8 +359,10 @@ export default function ProductsPage() {
                 <tbody>
                   {products.map(p => {
                     const qty = p.product_inventory?.reduce((s, i) => s + i.quantity, 0) || 0;
-                    const cost = p.product_prices?.cost_with_tax_shipping || 0;
-                    const retail = p.product_prices?.retail_price || 0;
+                    // product_prices 是数组，取第一个元素
+                    const priceData = p.product_prices?.[0];
+                    const cost = priceData?.cost_with_tax_shipping || 0;
+                    const retail = priceData?.retail_price || 0;
                     const margin = calcMargin(cost, retail);
 
                     return (
@@ -424,9 +428,9 @@ export default function ProductsPage() {
                 <div><Label className="text-muted-foreground">规格码</Label><p className="font-mono">{currentProduct.spec_code || '-'}</p></div>
                 <div><Label className="text-muted-foreground">颜色</Label><p>{currentProduct.color || '-'}</p></div>
                 <div><Label className="text-muted-foreground">数量</Label><p>{currentProduct.product_inventory?.reduce((s, i) => s + i.quantity, 0) || 0}</p></div>
-                <div><Label className="text-muted-foreground">含税运成本</Label><p className="font-medium">{currentProduct.product_prices?.cost_with_tax_shipping ? `¥${currentProduct.product_prices.cost_with_tax_shipping.toFixed(2)}` : '-'}</p></div>
-                <div><Label className="text-muted-foreground">零售价</Label><p className="font-medium">{currentProduct.product_prices?.retail_price ? `¥${currentProduct.product_prices.retail_price.toFixed(2)}` : '-'}</p></div>
-                <div><Label className="text-muted-foreground">毛利率</Label><p>{calcMargin(currentProduct.product_prices?.cost_with_tax_shipping || 0, currentProduct.product_prices?.retail_price || 0)}</p></div>
+                <div><Label className="text-muted-foreground">含税运成本</Label><p className="font-medium">{currentProduct.product_prices?.[0]?.cost_with_tax_shipping ? `¥${currentProduct.product_prices[0].cost_with_tax_shipping.toFixed(2)}` : '-'}</p></div>
+                <div><Label className="text-muted-foreground">零售价</Label><p className="font-medium">{currentProduct.product_prices?.[0]?.retail_price ? `¥${currentProduct.product_prices[0].retail_price.toFixed(2)}` : '-'}</p></div>
+                <div><Label className="text-muted-foreground">毛利率</Label><p>{calcMargin(currentProduct.product_prices?.[0]?.cost_with_tax_shipping || 0, currentProduct.product_prices?.[0]?.retail_price || 0)}</p></div>
                 <div><Label className="text-muted-foreground">货期</Label><p>{currentProduct.delivery_days ? `${currentProduct.delivery_days}天` : '-'}</p></div>
                 <div><Label className="text-muted-foreground">状态</Label><p>{getStatusBadge(currentProduct.status)}</p></div>
               </div>

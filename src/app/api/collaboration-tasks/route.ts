@@ -1,6 +1,7 @@
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { createCollaborationNotification } from '@/lib/notifications';
+import { requireAuth } from '@/lib/api-auth';
 
 // 蛇形转驼峰
 function toCamelCase(obj: any): any {
@@ -25,6 +26,12 @@ function toCamelCase(obj: any): any {
 
 export async function GET(request: NextRequest) {
   try {
+    // 验证用户身份
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const client = getSupabaseClient();
     const { searchParams } = new URL(request.url);
     const brand = searchParams.get('brand');
@@ -63,6 +70,12 @@ export async function GET(request: NextRequest) {
 // 创建协同合作任务
 export async function POST(request: NextRequest) {
   try {
+    // 验证用户身份
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const client = getSupabaseClient();
     const body = await request.json();
     const {

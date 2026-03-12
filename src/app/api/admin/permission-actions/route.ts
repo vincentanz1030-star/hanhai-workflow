@@ -4,10 +4,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { requireAuth } from '@/lib/api-auth';
 
 // GET - 获取所有操作类型
 export async function GET(request: NextRequest) {
   try {
+    // 验证用户身份
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const supabase = getSupabaseClient();
 
     const { data, error } = await supabase
@@ -42,6 +49,12 @@ export async function GET(request: NextRequest) {
 // POST - 创建操作类型
 export async function POST(request: NextRequest) {
   try {
+    // 验证用户身份
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const supabase = getSupabaseClient();
     const body = await request.json();
     const { code, name, description, icon, color, sort_order } = body;

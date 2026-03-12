@@ -6,10 +6,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDataPlatform } from '@/lib/data-platform/core';
 import { aggregators } from '@/lib/data-platform/aggregators';
+import { requireAuth } from '@/lib/api-auth';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
+
+// 检查是否是管理员
+async function isAdmin(userId: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  const { data: userRoles } = await client
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId);
+  return userRoles?.some((r: { role: string }) => r.role === 'admin') || false;
+}
 
 export async function GET(request: NextRequest) {
+  // 验证用户身份
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const action = searchParams.get('action');
+
+  // 敏感操作需要管理员权限
+  if (action === 'clear-cache') {
+    const adminCheck = await isAdmin(authResult.userId);
+    if (!adminCheck) {
+      return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
+    }
+  }
 
   try {
     const dataPlatform = getDataPlatform();

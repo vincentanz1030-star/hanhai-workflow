@@ -4,10 +4,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { requireAuth } from '@/lib/api-auth';
 
 // GET - 获取所有模块（含权限统计）
 export async function GET(request: NextRequest) {
   try {
+    // 验证用户身份
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const supabase = getSupabaseClient();
 
     // 获取模块列表

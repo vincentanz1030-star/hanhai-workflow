@@ -4360,17 +4360,9 @@ function HomePageContent() {
               </TabsList>
 
               <TabsContent value="products" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold">商品列表</h3>
-                    <p className="text-sm text-muted-foreground">查看和管理所有商品</p>
-                  </div>
-                  <Button asChild>
-                    <Link href="/product-center/products">
-                      <ImageIcon className="h-4 w-4 mr-2" />
-                      查看图片列表
-                    </Link>
-                  </Button>
+                <div>
+                  <h3 className="text-lg font-semibold">商品列表</h3>
+                  <p className="text-sm text-muted-foreground">查看和管理所有商品</p>
                 </div>
                 <ProductList />
               </TabsContent>

@@ -1,8 +1,16 @@
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
+
 // GET - 获取反馈列表
 export async function GET(request: NextRequest) {
   try {
+    // 验证用户身份
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const { searchParams } = new URL(request.url);
     const brand = searchParams.get('brand');
     const status = searchParams.get('status');
@@ -63,6 +71,12 @@ export async function GET(request: NextRequest) {
 // POST - 创建新反馈
 export async function POST(request: NextRequest) {
   try {
+    // 验证用户身份
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const body = await request.json();
     const {
       brand,

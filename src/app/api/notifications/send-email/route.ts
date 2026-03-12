@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { requireAuth } from '@/lib/api-auth';
 
 // 直接从环境变量获取 Supabase 配置
 export interface EmailNotificationPayload {
@@ -12,6 +13,12 @@ export interface EmailNotificationPayload {
 // 发送邮件通知
 export async function POST(request: NextRequest) {
   try {
+    // 验证用户身份
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
     const body: EmailNotificationPayload = await request.json();
     const { to, subject, htmlContent, textContent } = body;
 

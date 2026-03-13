@@ -1215,8 +1215,6 @@ function HomePageContent() {
   const [salesTargets, setSalesTargets] = useState<AnnualSalesTarget[]>([]);
   const [isSalesTargetDialogOpen, setIsSalesTargetDialogOpen] = useState(false);
   const [editingSalesTarget, setEditingSalesTarget] = useState<AnnualSalesTarget | null>(null);
-  // 使用 ref 存储输入框元素，避免受控组件的状态同步问题
-  const monthlyInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [newSalesTarget, setNewSalesTarget] = useState({
     year: new Date().getFullYear(),
     brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
@@ -2053,20 +2051,15 @@ function HomePageContent() {
     }
   };
 
-  // 更新月度销售目标 - 使用非受控组件 + ref
+  // 更新月度销售目标 - 简化版本
   // 提交实际完成值更新
-  const submitActualAmount = async (monthlyId: string, targetId: string) => {
-    const inputEl = monthlyInputRefs.current[monthlyId];
-    if (!inputEl) return;
-    
-    const numValue = parseInt(inputEl.value) || 0;
-    
+  const submitActualAmount = async (monthlyId: string, targetId: string, newValue: number) => {
     // 获取原始值进行比较
     const target = salesTargets.find(t => t.id === targetId);
     const monthly = target?.monthlyTargets?.find(m => m.id === monthlyId);
     const originalValue = monthly?.actualAmount || 0;
     
-    if (numValue === originalValue) return; // 值未改变，不提交
+    if (newValue === originalValue) return; // 值未改变，不提交
     
     // 乐观更新本地状态
     setSalesTargets(prevTargets => {
@@ -2075,7 +2068,7 @@ function HomePageContent() {
         
         const updatedMonthlyTargets = t.monthlyTargets?.map(mt => {
           if (mt.id === monthlyId) {
-            return { ...mt, actualAmount: numValue };
+            return { ...mt, actualAmount: newValue };
           }
           return mt;
         });
@@ -2090,7 +2083,7 @@ function HomePageContent() {
       const response = await fetch('/api/sales-targets/monthly', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: monthlyId, actualAmount: numValue }),
+        body: JSON.stringify({ id: monthlyId, actualAmount: newValue }),
       });
 
       if (!response.ok) {
@@ -3045,19 +3038,24 @@ function HomePageContent() {
                                     <tr className="border-b">
                                       <td className="px-2 sm:px-3 py-1 sm:py-2 font-medium whitespace-nowrap">实际（万元）</td>
                                       {target.monthlyTargets.map((monthly) => {
-                                        // 确保 monthly.id 存在，否则使用 month 作为备用 key
-                                        const rowKey = monthly.id || `month-${monthly.month}`;
                                         const monthlyRate = monthly.targetAmount > 0
                                           ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(1)
                                           : '0.0';
                                         const isComplete = parseFloat(monthlyRate) >= 100;
                                         return (
-                                          <td key={`actual-${rowKey}`} className="px-2 py-2 text-center">
+                                          <td key={`actual-${monthly.id || monthly.month}`} className="px-2 py-2 text-center">
                                             <input
                                               type="number"
-                                              ref={(el) => { if (el && monthly.id) monthlyInputRefs.current[monthly.id] = el; }}
+                                              key={`input-${target.id}-${monthly.id || monthly.month}-${monthly.actualAmount}`}
                                               defaultValue={monthly.actualAmount ?? 0}
-                                              onBlur={() => monthly.id && submitActualAmount(monthly.id, target.id)}
+                                              onBlur={(e) => {
+                                                if (!monthly.id) return;
+                                                const newValue = parseInt(e.target.value) || 0;
+                                                const originalValue = monthly.actualAmount || 0;
+                                                if (newValue !== originalValue) {
+                                                  submitActualAmount(monthly.id, target.id, newValue);
+                                                }
+                                              }}
                                               className={`w-full h-7 text-center text-xs border rounded px-1 focus:outline-none focus:ring-2 focus:ring-primary/20 ${isComplete ? 'border-green-500' : 'border-border/50'}`}
                                               style={{ minWidth: '40px' }}
                                             />

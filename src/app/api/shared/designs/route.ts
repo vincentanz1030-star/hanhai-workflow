@@ -3,17 +3,16 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth, isAuthUser } from '@/lib/api-auth';
 import { S3Storage } from 'coze-coding-dev-sdk';
 
-;
-;
-
-// 初始化对象存储
-const storage = new S3Storage({
-  endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
-  accessKey: '',
-  secretKey: '',
-  bucketName: process.env.COZE_BUCKET_NAME,
-  region: 'cn-beijing',
-});
+// 初始化对象存储 - 使用函数延迟初始化
+const getStorage = () => {
+  return new S3Storage({
+    endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
+    accessKey: '',
+    secretKey: '',
+    bucketName: process.env.COZE_BUCKET_NAME,
+    region: 'cn-beijing',
+  });
+};
 
 // 获取设计素材列表
 export async function GET(request: NextRequest) {
@@ -68,7 +67,7 @@ export async function GET(request: NextRequest) {
       }
 
       // 生成内部存储的下载链接
-      const downloadUrl = await storage.generatePresignedUrl({
+      const downloadUrl = await getStorage().generatePresignedUrl({
         key: asset.file_key,
         expireTime: 60 * 60, // 1小时
       });
@@ -109,7 +108,7 @@ export async function GET(request: NextRequest) {
       // 使用 preview_key 生成预览URL
       if (asset.preview_key) {
         try {
-          const previewUrl = await storage.generatePresignedUrl({
+          const previewUrl = await getStorage().generatePresignedUrl({
             key: asset.preview_key,
             expireTime: 24 * 60 * 60, // 24小时
           });

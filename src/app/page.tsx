@@ -2051,31 +2051,9 @@ function HomePageContent() {
     }
   };
 
-  // 更新月度销售目标 - 本地编辑状态
-  const [editingMonthlyValues, setEditingMonthlyValues] = useState<Record<string, string>>({});
-  
-  // 处理月度目标输入变化（只更新本地状态，不提交）
-  const handleMonthlyInputChange = (id: string, value: string) => {
-    setEditingMonthlyValues(prev => ({
-      ...prev,
-      [id]: value
-    }));
-  };
-
+  // 更新月度销售目标
   // 处理月度目标输入框失去焦点时提交更新
-  const handleMonthlyInputBlur = async (id: string, targetId: string) => {
-    const inputValue = editingMonthlyValues[id];
-    if (inputValue === undefined) return;
-    
-    const actualAmount = parseInt(inputValue) || 0;
-    
-    // 清除本地编辑状态
-    setEditingMonthlyValues(prev => {
-      const newState = { ...prev };
-      delete newState[id];
-      return newState;
-    });
-
+  const handleMonthlyInputBlur = async (id: string, targetId: string, actualAmount: number) => {
     // 乐观更新本地状态
     setSalesTargets(prevTargets => {
       return prevTargets.map(target => {
@@ -3063,17 +3041,17 @@ function HomePageContent() {
                                           ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(1)
                                           : '0.0';
                                         const isComplete = parseFloat(monthlyRate) >= 100;
-                                        // 使用本地编辑状态或原始值（确保是字符串类型）
-                                        const displayValue = editingMonthlyValues[monthly.id] !== undefined 
-                                          ? editingMonthlyValues[monthly.id] 
-                                          : String(monthly.actualAmount || '');
                                         return (
                                           <td key={`actual-${monthly.month}`} className="px-2 py-2 text-center">
                                             <Input
                                               type="number"
-                                              value={displayValue}
-                                              onChange={(e) => handleMonthlyInputChange(monthly.id, e.target.value)}
-                                              onBlur={() => handleMonthlyInputBlur(monthly.id, target.id)}
+                                              defaultValue={monthly.actualAmount || ''}
+                                              onBlur={(e) => {
+                                                const value = e.target.value;
+                                                if (value !== '' && value !== String(monthly.actualAmount)) {
+                                                  handleMonthlyInputBlur(monthly.id, target.id, parseInt(value) || 0);
+                                                }
+                                              }}
                                               className={`text-[10px] sm:text-xs h-6 sm:h-7 w-full text-center ${isComplete ? 'border-green-500' : ''}`}
                                             />
                                           </td>

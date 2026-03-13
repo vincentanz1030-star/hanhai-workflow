@@ -631,8 +631,8 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isThumbnail = false) => {
     const file = e.target.files?.[0];
-    console.log('handleFileUpload called, file:', file, 'isThumbnail:', isThumbnail);
     if (!file) return;
+    
     const maxSize = isThumbnail ? 5 * 1024 * 1024 : 100 * 1024 * 1024;
     if (file.size > maxSize) {
       toast.error(isThumbnail ? '缩略图大小不能超过5MB' : '文件大小不能超过100MB');
@@ -643,12 +643,9 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
     const isImage = file.type.startsWith('image/') || 
       /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
     
-    console.log('isImage:', isImage, 'file.type:', file.type, 'file.name:', file.name);
-    
     // 如果是图片类型，立即创建本地预览
     if (isImage) {
       const url = URL.createObjectURL(file);
-      console.log('Created blob URL:', url);
       if (isThumbnail) {
         setThumbnailPreviewUrl(url);
       } else {
@@ -667,12 +664,21 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
         headers: { 'Authorization': `Bearer ${token}` },
         body: uploadFormData,
       });
-      const data = await response.json();
-      console.log('Upload response:', data);
+      
+      // 先获取响应文本，再尝试解析JSON
+      const responseText = await response.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        console.error('Invalid JSON response:', responseText.substring(0, 200));
+        toast.error('服务器响应异常，请重试');
+        return;
+      }
+      
       if (data.success) {
         // 使用服务器返回的URL作为预览URL（覆盖本地blob URL）
-        if (data.data.url && (data.data.fileType === 'image' || isImage)) {
-          console.log('Setting preview URL to:', data.data.url);
+        if (data.data?.url && (data.data.fileType === 'image' || isImage)) {
           if (isThumbnail) {
             setThumbnailPreviewUrl(data.data.url);
           } else {
@@ -755,10 +761,9 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
       {uploadMode === 'file' && !item && (
         <div className="space-y-2">
           <Label>素材文件</Label>
-          <Input type="file" accept=".zip,.rar,.7z,.gz,.jpg,.jpeg,.png,.gif,.webp,.svg,.mp4,.webm" onChange={(e) => handleFileUpload(e, false)} disabled={uploading} />
+          <Input type="file" accept=".zip,.rar,.7z,.gz,.jpg,.jpeg,.png,.gif,.webp,.svg,.mp4,.webm,.mov,.avi" onChange={(e) => handleFileUpload(e, false)} disabled={uploading} />
           {formData.file_name && <div className="text-sm text-muted-foreground">已上传: {formData.file_name}</div>}
-          {/* 图片预览 - 显示当前 previewUrl 状态 */}
-          <div className="text-xs text-muted-foreground">预览状态: {previewUrl ? '有预览' : '无预览'}</div>
+          {/* 图片预览 */}
           {previewUrl && (
             <div className="mt-2 relative">
               <div className="text-xs text-muted-foreground mb-1">预览:</div>
@@ -767,8 +772,6 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
                   src={previewUrl} 
                   alt="预览" 
                   className="max-w-[200px] max-h-[200px] rounded border object-contain" 
-                  onError={(e) => console.error('Image load error:', e)}
-                  onLoad={() => console.log('Image loaded successfully')}
                 />
                 {uploading && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded">

@@ -3042,19 +3042,23 @@ function HomePageContent() {
                                           : '0.0';
                                         const isComplete = parseFloat(monthlyRate) >= 100;
                                         return (
-                                          <td key={`actual-${monthly.month}`} className="px-2 py-2 text-center">
+                                          <td key={`actual-${monthly.id}`} className="px-2 py-2 text-center">
                                             <input
                                               type="number"
-                                              key={`input-${monthly.id}-${monthly.actualAmount}`}
-                                              defaultValue={monthly.actualAmount || 0}
+                                              data-monthly-id={monthly.id}
+                                              data-target-id={target.id}
+                                              data-actual={monthly.actualAmount}
+                                              defaultValue={monthly.actualAmount ?? ''}
                                               onBlur={(e) => {
                                                 const value = e.target.value;
                                                 const numValue = parseInt(value) || 0;
-                                                if (numValue !== monthly.actualAmount) {
+                                                const originalValue = parseInt(e.target.dataset.actual || '0') || 0;
+                                                if (numValue !== originalValue) {
                                                   handleMonthlyInputBlur(monthly.id, target.id, numValue);
                                                 }
                                               }}
                                               className={`w-full h-7 text-center text-xs border rounded px-1 focus:outline-none focus:ring-2 focus:ring-primary/20 ${isComplete ? 'border-green-500' : 'border-border/50'}`}
+                                              style={{ minWidth: '40px' }}
                                             />
                                           </td>
                                         );

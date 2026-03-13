@@ -3,13 +3,15 @@ import { S3Storage } from 'coze-coding-dev-sdk';
 import { requireAuth } from '@/lib/api-auth';
 
 // 初始化对象存储
-const storage = new S3Storage({
-  endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
-  accessKey: '',
-  secretKey: '',
-  bucketName: process.env.COZE_BUCKET_NAME,
-  region: 'cn-beijing',
-});
+const getStorage = () => {
+  return new S3Storage({
+    endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
+    accessKey: '',
+    secretKey: '',
+    bucketName: process.env.COZE_BUCKET_NAME,
+    region: 'cn-beijing',
+  });
+};
 
 // 支持的压缩包格式
 const ALLOWED_COMPRESSED_TYPES = [
@@ -21,16 +23,28 @@ const ALLOWED_COMPRESSED_TYPES = [
   'application/x-gzip',
 ];
 
-// 支持的图片和视频格式
+// 支持的图片和视频格式（扩展MIME类型支持）
 const ALLOWED_MEDIA_TYPES = [
   'image/jpeg',
   'image/png',
   'image/gif',
   'image/webp',
   'image/svg+xml',
+  'image/bmp',
   'video/mp4',
   'video/webm',
+  'video/quicktime', // .mov
+  'video/x-msvideo', // .avi
 ];
+
+// 通过文件扩展名判断类型
+const isImageByExtension = (filename: string): boolean => {
+  return /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(filename);
+};
+
+const isVideoByExtension = (filename: string): boolean => {
+  return /\.(mp4|webm|mov|avi|mkv)$/i.test(filename);
+};
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
@@ -53,13 +67,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '文件大小超过限制（最大100MB）' }, { status: 400 });
     }
 
-    // 验证文件类型
+    // 验证文件类型（通过MIME类型或扩展名）
     const isCompressed = ALLOWED_COMPRESSED_TYPES.includes(file.type);
-    const isMedia = ALLOWED_MEDIA_TYPES.includes(file.type);
+    const isImage = ALLOWED_MEDIA_TYPES.includes(file.type) && file.type.startsWith('image/') || isImageByExtension(file.name);
+    const isVideo = ALLOWED_MEDIA_TYPES.includes(file.type) && file.type.startsWith('video/') || isVideoByExtension(file.name);
+    const isMedia = isImage || isVideo;
 
     if (!isCompressed && !isMedia) {
       return NextResponse.json({ 
-        error: '不支持的文件格式。支持：ZIP、RAR、7Z、GZ压缩包，以及常见图片/视频格式' 
+        error: '不支持的文件格式。支持：ZIP、RAR、7Z、GZ压缩包，以及常见图片(jpg/png/gif/webp/svg)/视频(mp4/webm/mov)格式' 
       }, { status: 400 });
     }
 
@@ -73,6 +89,7 @@ export async function POST(request: NextRequest) {
     const fileContent = Buffer.from(arrayBuffer);
 
     // 上传到对象存储
+    const storage = getStorage();
     const fileKey = await storage.uploadFile({
       fileContent,
       fileName,
@@ -89,9 +106,9 @@ export async function POST(request: NextRequest) {
     let fileType = 'other';
     if (isCompressed) {
       fileType = 'compressed';
-    } else if (file.type.startsWith('image/')) {
+    } else if (isImage) {
       fileType = 'image';
-    } else if (file.type.startsWith('video/')) {
+    } else if (isVideo) {
       fileType = 'video';
     }
 
@@ -127,6 +144,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const storage = getStorage();
     // 生成下载URL（有效期1小时）
     const downloadUrl = await storage.generatePresignedUrl({
       key: fileKey,
@@ -157,6 +175,7 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
+    const storage = getStorage();
     const deleted = await storage.deleteFile({ fileKey });
 
     return NextResponse.json({

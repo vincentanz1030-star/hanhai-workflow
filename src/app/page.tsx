@@ -1215,6 +1215,8 @@ function HomePageContent() {
   const [salesTargets, setSalesTargets] = useState<AnnualSalesTarget[]>([]);
   const [isSalesTargetDialogOpen, setIsSalesTargetDialogOpen] = useState(false);
   const [editingSalesTarget, setEditingSalesTarget] = useState<AnnualSalesTarget | null>(null);
+  // 编辑中的实际完成值（受控组件）- 格式: { [monthlyTargetId]: string }
+  const [editingActualValues, setEditingActualValues] = useState<Record<string, string>>({});
   const [newSalesTarget, setNewSalesTarget] = useState({
     year: new Date().getFullYear(),
     brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
@@ -2051,29 +2053,39 @@ function HomePageContent() {
     }
   };
 
-  // 更新月度销售目标
-  // 处理月度目标输入框失去焦点时提交更新
-  const handleMonthlyInputBlur = async (id: string, targetId: string, actualAmount: number) => {
+  // 更新月度销售目标 - 使用受控组件方式
+  // 更新编辑中的值（仅更新本地状态，不提交）
+  const handleActualAmountChange = (monthlyId: string, value: string) => {
+    setEditingActualValues(prev => ({ ...prev, [monthlyId]: value }));
+  };
+
+  // 提交实际完成值更新
+  const submitActualAmount = async (monthlyId: string, targetId: string) => {
+    const inputValue = editingActualValues[monthlyId];
+    const numValue = parseInt(inputValue) || 0;
+    
+    // 获取原始值进行比较
+    const target = salesTargets.find(t => t.id === targetId);
+    const monthly = target?.monthlyTargets?.find(m => m.id === monthlyId);
+    const originalValue = monthly?.actualAmount || 0;
+    
+    if (numValue === originalValue) return; // 值未改变，不提交
+    
     // 乐观更新本地状态
     setSalesTargets(prevTargets => {
-      return prevTargets.map(target => {
-        if (target.id !== targetId) return target;
+      return prevTargets.map(t => {
+        if (t.id !== targetId) return t;
         
-        const updatedMonthlyTargets = target.monthlyTargets?.map(mt => {
-          if (mt.id === id) {
-            return { ...mt, actualAmount };
+        const updatedMonthlyTargets = t.monthlyTargets?.map(mt => {
+          if (mt.id === monthlyId) {
+            return { ...mt, actualAmount: numValue };
           }
           return mt;
         });
         
-        // 计算新的年度实际完成总额
         const newActualAmount = updatedMonthlyTargets?.reduce((sum, mt) => sum + (mt.actualAmount || 0), 0) || 0;
         
-        return {
-          ...target,
-          actualAmount: newActualAmount,
-          monthlyTargets: updatedMonthlyTargets
-        };
+        return { ...t, actualAmount: newActualAmount, monthlyTargets: updatedMonthlyTargets };
       });
     });
 
@@ -2081,11 +2093,10 @@ function HomePageContent() {
       const response = await fetch('/api/sales-targets/monthly', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, actualAmount }),
+        body: JSON.stringify({ id: monthlyId, actualAmount: numValue }),
       });
 
       if (!response.ok) {
-        // 如果API调用失败，重新加载数据恢复状态
         loadSalesTargets();
       }
     } catch (error) {
@@ -3041,22 +3052,15 @@ function HomePageContent() {
                                           ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(1)
                                           : '0.0';
                                         const isComplete = parseFloat(monthlyRate) >= 100;
+                                        // 受控组件：value 优先从编辑状态获取，否则使用实际值
+                                        const inputValue = editingActualValues[monthly.id] ?? (monthly.actualAmount ?? '');
                                         return (
                                           <td key={`actual-${monthly.id}`} className="px-2 py-2 text-center">
                                             <input
                                               type="number"
-                                              data-monthly-id={monthly.id}
-                                              data-target-id={target.id}
-                                              data-actual={monthly.actualAmount}
-                                              defaultValue={monthly.actualAmount ?? ''}
-                                              onBlur={(e) => {
-                                                const value = e.target.value;
-                                                const numValue = parseInt(value) || 0;
-                                                const originalValue = parseInt(e.target.dataset.actual || '0') || 0;
-                                                if (numValue !== originalValue) {
-                                                  handleMonthlyInputBlur(monthly.id, target.id, numValue);
-                                                }
-                                              }}
+                                              value={inputValue}
+                                              onChange={(e) => handleActualAmountChange(monthly.id, e.target.value)}
+                                              onBlur={() => submitActualAmount(monthly.id, target.id)}
                                               className={`w-full h-7 text-center text-xs border rounded px-1 focus:outline-none focus:ring-2 focus:ring-primary/20 ${isComplete ? 'border-green-500' : 'border-border/50'}`}
                                               style={{ minWidth: '40px' }}
                                             />

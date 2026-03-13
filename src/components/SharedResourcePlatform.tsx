@@ -628,73 +628,83 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
+  
+  // 存储 blob URL 引用，用于组件卸载时清理
+  const blobUrlsRef = useRef<string[]>([]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isThumbnail = false) => {
+  // 组件卸载时清理所有 blob URL
+  useEffect(() => {
+    return () => {
+      blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, []);
+
+  // 选择文件后立即预览（无需等待上传）
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, isThumbnail = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
+    // 检查文件大小
     const maxSize = isThumbnail ? 5 * 1024 * 1024 : 100 * 1024 * 1024;
     if (file.size > maxSize) {
       toast.error(isThumbnail ? '缩略图大小不能超过5MB' : '文件大小不能超过100MB');
+      e.target.value = '';
       return;
     }
 
-    // 判断是否为图片类型（通过 MIME 类型或文件扩展名）
-    const isImage = file.type.startsWith('image/') || 
-      /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
+    // 判断是否为图片
+    const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
     
-    // 如果是图片类型，立即创建本地预览
     if (isImage) {
-      const url = URL.createObjectURL(file);
+      // 创建预览 URL
+      const blobUrl = URL.createObjectURL(file);
+      blobUrlsRef.current.push(blobUrl);
+      
       if (isThumbnail) {
-        setThumbnailPreviewUrl(url);
+        setThumbnailPreviewUrl(blobUrl);
       } else {
-        setPreviewUrl(url);
+        setPreviewUrl(blobUrl);
       }
     }
 
+    // 立即开始上传
+    uploadFile(file, isThumbnail);
+  };
+
+  // 上传文件到服务器
+  const uploadFile = async (file: File, isThumbnail: boolean) => {
     setUploading(true);
     try {
       const token = localStorage.getItem('auth_token');
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
       uploadFormData.append('category', isThumbnail ? 'thumbnails' : 'designs');
+      
       const response = await fetch('/api/shared/upload', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: uploadFormData,
       });
       
-      // 先获取响应文本，再尝试解析JSON
-      const responseText = await response.text();
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch {
-        console.error('Invalid JSON response:', responseText.substring(0, 200));
-        toast.error('服务器响应异常，请重试');
-        return;
-      }
+      const data = await response.json();
       
       if (data.success) {
-        // 使用服务器返回的URL作为预览URL（覆盖本地blob URL）
-        if (data.data?.url && (data.data.fileType === 'image' || isImage)) {
-          if (isThumbnail) {
-            setThumbnailPreviewUrl(data.data.url);
-          } else {
-            setPreviewUrl(data.data.url);
-          }
-        }
-        
         if (isThumbnail) {
           setFormData(prev => ({ ...prev, thumbnail_key: data.data.fileKey }));
           toast.success('缩略图上传成功');
         } else {
-          setFormData(prev => ({ ...prev, file_key: data.data.fileKey, file_name: data.data.fileName, file_size: data.data.fileSize, name: prev.name || data.data.fileName.replace(/\.[^/.]+$/, '') }));
+          setFormData(prev => ({ 
+            ...prev, 
+            file_key: data.data.fileKey, 
+            file_name: data.data.fileName, 
+            file_size: data.data.fileSize,
+            name: prev.name || data.data.fileName.replace(/\.[^/.]+$/, '')
+          }));
           toast.success('文件上传成功');
         }
       } else {
         toast.error(data.error || '上传失败');
+        // 清除预览
         if (isThumbnail) {
           setThumbnailPreviewUrl(null);
         } else {
@@ -711,7 +721,6 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
       }
     } finally {
       setUploading(false);
-      e.target.value = '';
     }
   };
 
@@ -761,7 +770,7 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
       {uploadMode === 'file' && !item && (
         <div className="space-y-2">
           <Label>素材文件</Label>
-          <Input type="file" accept=".zip,.rar,.7z,.gz,.jpg,.jpeg,.png,.gif,.webp,.svg,.mp4,.webm,.mov,.avi" onChange={(e) => handleFileUpload(e, false)} disabled={uploading} />
+          <Input type="file" accept=".zip,.rar,.7z,.gz,.jpg,.jpeg,.png,.gif,.webp,.svg,.mp4,.webm,.mov,.avi" onChange={(e) => handleFileSelect(e, false)} disabled={uploading} />
           {formData.file_name && <div className="text-sm text-muted-foreground">已上传: {formData.file_name}</div>}
           {/* 图片预览 */}
           {previewUrl && (
@@ -788,7 +797,7 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
       )}
       <div className="space-y-2">
         <Label>缩略图（可选）</Label>
-        <Input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, true)} disabled={uploading} />
+        <Input type="file" accept="image/*" onChange={(e) => handleFileSelect(e, true)} disabled={uploading} />
         {/* 缩略图预览 */}
         {thumbnailPreviewUrl && (
           <div className="mt-2 relative">

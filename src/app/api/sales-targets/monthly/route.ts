@@ -29,8 +29,8 @@ function toCamelCase(obj: any): any {
 
 export async function PATCH(request: NextRequest) {
   try {
-    // 认证和权限检查
-    const authResult = await requireAuth(request, 'sales_target', 'edit');
+    // 认证检查（只检查登录状态，品牌隔离在后续逻辑中处理）
+    const authResult = await requireAuth(request);
     if (authResult instanceof NextResponse) {
       return authResult;
     }

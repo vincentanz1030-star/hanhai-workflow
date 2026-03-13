@@ -1,12 +1,26 @@
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
+
 /**
  * 环境变量诊断 API
  * 用于检查环境变量是否正确配置
+ * 安全警告：此接口需要管理员权限
  */
 
-import { NextResponse } from 'next/server';
+export async function GET(request: NextRequest) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
 
-export async function GET() {
+  // 检查是否是管理员
+  const isAdmin = authResult.roles?.some((r: { role: string }) => r.role === 'admin');
+  if (!isAdmin) {
+    return NextResponse.json({ error: '无权限执行此操作，仅限管理员' }, { status: 403 });
+  }
+
   const envCheck = {
     nodeEnv: process.env.NODE_ENV,
     // REMOVED: supabaseUrl: process.env.COZE_SUPABASE_URL ? '已设置' : '未设置',

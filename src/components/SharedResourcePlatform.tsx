@@ -626,6 +626,31 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
     thumbnail_key: item?.preview_key || '',
   });
   const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
+
+  // 创建本地预览URL（选择文件后立即预览）
+  const createLocalPreview = (file: File, isThumbnail = false): string => {
+    const url = URL.createObjectURL(file);
+    if (isThumbnail) {
+      setThumbnailPreviewUrl(url);
+    } else {
+      setPreviewUrl(url);
+    }
+    return url;
+  };
+
+  // 清理预览URL
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      if (thumbnailPreviewUrl && thumbnailPreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(thumbnailPreviewUrl);
+      }
+    };
+  }, [previewUrl, thumbnailPreviewUrl]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isThumbnail = false) => {
     const file = e.target.files?.[0];
@@ -635,6 +660,12 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
       toast.error(isThumbnail ? '缩略图大小不能超过5MB' : '文件大小不能超过100MB');
       return;
     }
+
+    // 如果是图片类型，立即创建本地预览
+    if (file.type.startsWith('image/')) {
+      createLocalPreview(file, isThumbnail);
+    }
+
     setUploading(true);
     try {
       const token = localStorage.getItem('auth_token');
@@ -648,6 +679,15 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
       });
       const data = await response.json();
       if (data.success) {
+        // 使用服务器返回的URL作为预览URL（覆盖本地blob URL）
+        if (data.data.url && data.data.fileType === 'image') {
+          if (isThumbnail) {
+            setThumbnailPreviewUrl(data.data.url);
+          } else {
+            setPreviewUrl(data.data.url);
+          }
+        }
+        
         if (isThumbnail) {
           setFormData(prev => ({ ...prev, thumbnail_key: data.data.fileKey }));
           toast.success('缩略图上传成功');
@@ -657,9 +697,21 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
         }
       } else {
         toast.error(data.error || '上传失败');
+        // 上传失败时清除本地预览
+        if (isThumbnail) {
+          setThumbnailPreviewUrl(null);
+        } else {
+          setPreviewUrl(null);
+        }
       }
     } catch (error) {
       toast.error('上传失败，请重试');
+      // 上传失败时清除本地预览
+      if (isThumbnail) {
+        setThumbnailPreviewUrl(null);
+      } else {
+        setPreviewUrl(null);
+      }
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -714,12 +766,43 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
           <Label>素材文件</Label>
           <Input type="file" accept=".zip,.rar,.7z,.gz,.jpg,.jpeg,.png,.gif,.webp,.svg,.mp4,.webm" onChange={(e) => handleFileUpload(e, false)} disabled={uploading} />
           {formData.file_name && <div className="text-sm text-muted-foreground">已上传: {formData.file_name}</div>}
+          {/* 图片预览 */}
+          {previewUrl && (
+            <div className="mt-2 relative">
+              <div className="text-xs text-muted-foreground mb-1">预览:</div>
+              <div className="relative inline-block">
+                <img src={previewUrl} alt="预览" className="max-w-[200px] max-h-[200px] rounded border object-contain" />
+                {uploading && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded">
+                    <div className="text-white text-sm">上传中...</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
       {uploadMode === 'link' && (
         <div><Label>下载链接 *</Label><Input value={formData.download_url} onChange={(e) => setFormData({ ...formData, download_url: e.target.value })} placeholder="输入网盘链接" required /></div>
       )}
-      <div><Label>缩略图（可选）</Label><Input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, true)} disabled={uploading} /></div>
+      <div className="space-y-2">
+        <Label>缩略图（可选）</Label>
+        <Input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, true)} disabled={uploading} />
+        {/* 缩略图预览 */}
+        {thumbnailPreviewUrl && (
+          <div className="mt-2 relative">
+            <div className="text-xs text-muted-foreground mb-1">缩略图预览:</div>
+            <div className="relative inline-block">
+              <img src={thumbnailPreviewUrl} alt="缩略图预览" className="max-w-[150px] max-h-[150px] rounded border object-contain" />
+              {uploading && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded">
+                  <div className="text-white text-sm">上传中...</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
       <div><Label>素材名称 *</Label><Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required /></div>
       <div><Label>素材类型</Label>
         <Select value={formData.asset_type} onValueChange={(v) => setFormData({ ...formData, asset_type: v })}>

@@ -105,10 +105,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 计算当前周的起始日期和结束日期（如果未提供）
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const weekStartDate = new Date(now);
+    weekStartDate.setDate(now.getDate() - dayOfWeek + 1); // 周一
+    const weekEndDate = new Date(weekStartDate);
+    weekEndDate.setDate(weekStartDate.getDate() + 6); // 周日
+
+    const formatDateToYMD = (date: Date): string => {
+      return date.toISOString().split('T')[0];
+    };
+
     const insertData = {
       brand: body.brand || user.brand || 'he_zhe',
-      week_start: body.weekStart || null,
-      week_end: body.weekEnd || null,
+      week_start: body.weekStart || formatDateToYMD(weekStartDate),
+      week_end: body.weekEnd || formatDateToYMD(weekEndDate),
       customer_name: body.customerName || null,
       contact_info: body.contactInfo || null,
       feedback_type: body.feedbackType || 'general',

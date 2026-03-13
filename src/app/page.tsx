@@ -1988,6 +1988,27 @@ function HomePageContent() {
 
   // 更新月度销售目标
   const handleUpdateMonthlyTarget = async (id: string, actualAmount: number) => {
+    // 先乐观更新本地状态，让用户立即看到变化
+    setSalesTargets(prevTargets => {
+      return prevTargets.map(target => {
+        const updatedMonthlyTargets = target.monthlyTargets?.map(mt => {
+          if (mt.id === id) {
+            return { ...mt, actualAmount };
+          }
+          return mt;
+        });
+        
+        // 计算新的年度实际完成总额
+        const newActualAmount = updatedMonthlyTargets?.reduce((sum, mt) => sum + (mt.actualAmount || 0), 0) || 0;
+        
+        return {
+          ...target,
+          actualAmount: newActualAmount,
+          monthlyTargets: updatedMonthlyTargets
+        };
+      });
+    });
+
     try {
       const response = await fetch('/api/sales-targets/monthly', {
         method: 'PATCH',
@@ -1995,11 +2016,14 @@ function HomePageContent() {
         body: JSON.stringify({ id, actualAmount }),
       });
 
-      if (response.ok) {
+      if (!response.ok) {
+        // 如果API调用失败，重新加载数据恢复状态
         loadSalesTargets();
       }
     } catch (error) {
       console.error('更新月度销售目标失败:', error);
+      // 如果出错，重新加载数据恢复状态
+      loadSalesTargets();
     }
   };
 

@@ -183,6 +183,49 @@ export async function DELETE(
       return NextResponse.json({ error: '用户不存在' }, { status: 404 });
     }
 
+    // 删除关联的外键记录（没有 CASCADE 删除的表）
+    // 1. 将 weekly_feedbacks 的 created_by 设置为 null
+    await supabase
+      .from('weekly_feedbacks')
+      .update({ created_by: null })
+      .eq('created_by', id);
+
+    // 2. 将 campaign_tasks 的 assignee 设置为 null
+    await supabase
+      .from('campaign_tasks')
+      .update({ assignee: null })
+      .eq('assignee', id);
+
+    // 3. 将 marketing_campaigns 的 created_by 和 approved_by 设置为 null
+    await supabase
+      .from('marketing_campaigns')
+      .update({ created_by: null })
+      .eq('created_by', id);
+    await supabase
+      .from('marketing_campaigns')
+      .update({ approved_by: null })
+      .eq('approved_by', id);
+
+    // 4. 将 product_trials 的 user_id 设置为 null
+    await supabase
+      .from('product_trials')
+      .update({ user_id: null })
+      .eq('user_id', id);
+
+    // 5. 将 purchase_orders 的 reviewer_id 设置为 null
+    await supabase
+      .from('purchase_orders')
+      .update({ reviewer_id: null })
+      .eq('reviewer_id', id);
+
+    // 6. 删除身份认证相关记录（如果有）
+    await supabase.from('identities').delete().eq('user_id', id);
+    await supabase.from('sessions').delete().eq('user_id', id);
+    await supabase.from('mfa_factors').delete().eq('user_id', id);
+    await supabase.from('one_time_tokens').delete().eq('user_id', id);
+    await supabase.from('oauth_authorizations').delete().eq('user_id', id);
+    await supabase.from('oauth_consents').delete().eq('user_id', id);
+
     // 删除用户（由于有外键约束，user_roles和user_audit_logs会自动删除）
     const { error } = await supabase
       .from('users')
@@ -190,7 +233,8 @@ export async function DELETE(
       .eq('id', id);
 
     if (error) {
-      return NextResponse.json({ error: '删除失败' }, { status: 500 });
+      console.error('删除用户失败:', error);
+      return NextResponse.json({ error: `删除失败: ${error.message}` }, { status: 500 });
     }
 
     return NextResponse.json({

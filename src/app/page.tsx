@@ -1215,8 +1215,8 @@ function HomePageContent() {
   const [salesTargets, setSalesTargets] = useState<AnnualSalesTarget[]>([]);
   const [isSalesTargetDialogOpen, setIsSalesTargetDialogOpen] = useState(false);
   const [editingSalesTarget, setEditingSalesTarget] = useState<AnnualSalesTarget | null>(null);
-  // 编辑中的实际完成值（受控组件）- 格式: { [monthlyTargetId]: string }
-  const [editingActualValues, setEditingActualValues] = useState<Record<string, string>>({});
+  // 使用 ref 存储输入框元素，避免受控组件的状态同步问题
+  const monthlyInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [newSalesTarget, setNewSalesTarget] = useState({
     year: new Date().getFullYear(),
     brand: '' as 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan',
@@ -2053,16 +2053,13 @@ function HomePageContent() {
     }
   };
 
-  // 更新月度销售目标 - 使用受控组件方式
-  // 更新编辑中的值（仅更新本地状态，不提交）
-  const handleActualAmountChange = (monthlyId: string, value: string) => {
-    setEditingActualValues(prev => ({ ...prev, [monthlyId]: value }));
-  };
-
+  // 更新月度销售目标 - 使用非受控组件 + ref
   // 提交实际完成值更新
   const submitActualAmount = async (monthlyId: string, targetId: string) => {
-    const inputValue = editingActualValues[monthlyId];
-    const numValue = parseInt(inputValue) || 0;
+    const inputEl = monthlyInputRefs.current[monthlyId];
+    if (!inputEl) return;
+    
+    const numValue = parseInt(inputEl.value) || 0;
     
     // 获取原始值进行比较
     const target = salesTargets.find(t => t.id === targetId);
@@ -3048,19 +3045,19 @@ function HomePageContent() {
                                     <tr className="border-b">
                                       <td className="px-2 sm:px-3 py-1 sm:py-2 font-medium whitespace-nowrap">实际（万元）</td>
                                       {target.monthlyTargets.map((monthly) => {
+                                        // 确保 monthly.id 存在，否则使用 month 作为备用 key
+                                        const rowKey = monthly.id || `month-${monthly.month}`;
                                         const monthlyRate = monthly.targetAmount > 0
                                           ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(1)
                                           : '0.0';
                                         const isComplete = parseFloat(monthlyRate) >= 100;
-                                        // 受控组件：value 优先从编辑状态获取，否则使用实际值
-                                        const inputValue = editingActualValues[monthly.id] ?? (monthly.actualAmount ?? '');
                                         return (
-                                          <td key={`actual-${monthly.id}`} className="px-2 py-2 text-center">
+                                          <td key={`actual-${rowKey}`} className="px-2 py-2 text-center">
                                             <input
                                               type="number"
-                                              value={inputValue}
-                                              onChange={(e) => handleActualAmountChange(monthly.id, e.target.value)}
-                                              onBlur={() => submitActualAmount(monthly.id, target.id)}
+                                              ref={(el) => { if (el && monthly.id) monthlyInputRefs.current[monthly.id] = el; }}
+                                              defaultValue={monthly.actualAmount ?? 0}
+                                              onBlur={() => monthly.id && submitActualAmount(monthly.id, target.id)}
                                               className={`w-full h-7 text-center text-xs border rounded px-1 focus:outline-none focus:ring-2 focus:ring-primary/20 ${isComplete ? 'border-green-500' : 'border-border/50'}`}
                                               style={{ minWidth: '40px' }}
                                             />

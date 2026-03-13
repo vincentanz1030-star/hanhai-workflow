@@ -1333,7 +1333,12 @@ function HomePageContent() {
     const subtab = searchParams.get('subtab');
     const openProjectId = searchParams.get('openProjectId');
 
-    if (tab && ['dashboard', 'projects', 'timeline', 'roles', 'product-framework', 'workload', 'feedback'].includes(tab)) {
+    // 支持所有主Tab
+    if (tab && [
+      'dashboard', 'projects', 'timeline', 'roles', 
+      'product-center', 'sales-center', 'marketing', 
+      'collaboration', 'shared-resource', 'weekly-feedbacks', 'settings'
+    ].includes(tab)) {
       setActiveTab(tab);
     }
     // 协同平台子Tabs

@@ -675,8 +675,12 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
       return;
     }
 
+    // 判断是否为图片类型（通过 MIME 类型或文件扩展名）
+    const isImage = file.type.startsWith('image/') || 
+      /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
+    
     // 如果是图片类型，立即创建本地预览
-    if (file.type.startsWith('image/')) {
+    if (isImage) {
       createLocalPreview(file, isThumbnail);
     }
 
@@ -694,7 +698,8 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
       const data = await response.json();
       if (data.success) {
         // 使用服务器返回的URL作为预览URL（覆盖本地blob URL）
-        if (data.data.url && data.data.fileType === 'image') {
+        // 只有当服务器返回的 URL 存在且文件类型为图片时才更新预览
+        if (data.data.url && (data.data.fileType === 'image' || isImage)) {
           if (isThumbnail) {
             setThumbnailPreviewUrl(data.data.url);
           } else {

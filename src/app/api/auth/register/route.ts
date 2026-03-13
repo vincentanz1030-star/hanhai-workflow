@@ -1,10 +1,17 @@
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { hashPassword, generateToken, setTokenCookie } from '@/lib/auth';
+import { rateLimit, rateLimitPresets } from '@/lib/rate-limit';
 
 // 直接从环境变量获取 Supabase 配置
 
 export async function POST(request: NextRequest) {
+  // 速率限制检查（基于 IP）
+  const rateLimitResponse = rateLimit(request, rateLimitPresets.register);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   try {
     const body = await request.json();
     const { email, password, name, brand, role } = body;

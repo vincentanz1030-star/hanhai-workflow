@@ -6,6 +6,30 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * 安全日志：仅在开发环境输出
+ */
+export function secureLog(message: string, data?: any) {
+  if (process.env.NODE_ENV !== 'production') {
+    if (data) {
+      console.log(message, data);
+    } else {
+      console.log(message);
+    }
+  }
+}
+
+/**
+ * 安全错误日志：始终输出，但不输出敏感数据
+ */
+export function secureError(message: string, error?: any) {
+  if (error) {
+    console.error(message, error.message || error);
+  } else {
+    console.error(message);
+  }
+}
+
+/**
  * 将蛇形命名转换为驼峰命名
  * @param obj 要转换的对象
  * @returns 转换后的对象

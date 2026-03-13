@@ -24,9 +24,10 @@ coverage/
 .env.test.local
 .env.production.local
 .env.coze
+.env.production
 
-# Note: .env.production is intentionally NOT ignored for deployment
-# All other .env.* files should be excluded from version control
+# Security: Never commit any .env files to version control
+# Use environment variable injection in your deployment platform instead
 
 # Logs
 logs/

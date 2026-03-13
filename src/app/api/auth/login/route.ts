@@ -95,20 +95,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[${requestId}] [登录API] 用户查询成功:`, {
-      email: user.email,
       id: user.id,
       is_active: user.is_active,
-      status: user.status,
-      has_password_hash: !!user.password_hash,
-      password_hash_length: user.password_hash ? user.password_hash.length : 0
+      status: user.status
     });
 
     // 验证密码哈希是否存在
     if (!user.password_hash || user.password_hash.length === 0) {
-      console.error(`[${requestId}] [登录API] 密码哈希为空或无效:`, {
-        email: user.email,
-        has_password_hash: false
-      });
+      console.error(`[${requestId}] [登录API] 密码哈希为空或无效`);
       return NextResponse.json(
         { error: '账户数据异常，请联系管理员' },
         { status: 500 }

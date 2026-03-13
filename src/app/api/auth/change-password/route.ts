@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { hashPassword, verifyPassword } from '@/lib/auth';
 import { getSupabaseClient } from '@/lib/db-pool';
 import { getCurrentUser } from '@/lib/auth';
+import { rateLimit, rateLimitPresets } from '@/lib/rate-limit';
 
 // 修改密码 API
 export async function POST(request: NextRequest) {
+  // 速率限制检查（基于 IP）
+  const rateLimitResponse = rateLimit(request, rateLimitPresets.changePassword);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   try {
     // 获取当前用户
     const user = await getCurrentUser(request);

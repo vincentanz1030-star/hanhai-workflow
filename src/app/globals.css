@@ -276,7 +276,6 @@ body {
 .transition-modern {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-}
 
 /* 移动端响应式优化 */
 @layer utilities {

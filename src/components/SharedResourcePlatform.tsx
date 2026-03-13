@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -628,6 +628,19 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
+  
+  // 使用 ref 跟踪当前的预览 URL，用于清理
+  const previewUrlRef = useRef<string | null>(null);
+  const thumbnailPreviewUrlRef = useRef<string | null>(null);
+
+  // 更新 ref
+  useEffect(() => {
+    previewUrlRef.current = previewUrl;
+  }, [previewUrl]);
+  
+  useEffect(() => {
+    thumbnailPreviewUrlRef.current = thumbnailPreviewUrl;
+  }, [thumbnailPreviewUrl]);
 
   // 创建本地预览URL（选择文件后立即预览）
   const createLocalPreview = (file: File, isThumbnail = false): string => {
@@ -643,14 +656,14 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
   // 清理预览URL - 只在组件卸载时清理
   useEffect(() => {
     return () => {
-      if (previewUrl && previewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(previewUrl);
+      // 使用 ref 获取最新的 URL 值
+      if (previewUrlRef.current && previewUrlRef.current.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrlRef.current);
       }
-      if (thumbnailPreviewUrl && thumbnailPreviewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(thumbnailPreviewUrl);
+      if (thumbnailPreviewUrlRef.current && thumbnailPreviewUrlRef.current.startsWith('blob:')) {
+        URL.revokeObjectURL(thumbnailPreviewUrlRef.current);
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isThumbnail = false) => {

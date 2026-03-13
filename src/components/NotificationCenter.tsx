@@ -300,13 +300,13 @@ export default function NotificationCenter({
     if (notification.projectId) {
       router.push(`/?tab=projects&project=${notification.projectId}`);
     } else if (notification.taskId) {
-      router.push(`/?tab=tasks&task=${notification.taskId}`);
+      router.push(`/?tab=collaboration&subtab=projects&task=${notification.taskId}`);
     } else if (notification.approvalId) {
-      // 审批通知跳转到审批中心
-      router.push(`/?tab=approvals&approval=${notification.approvalId}`);
+      // 审批通知跳转到协同平台-审批流程
+      router.push(`/?tab=collaboration&subtab=approval&approvalId=${notification.approvalId}`);
     } else if (notification.collaborationId) {
-      // 协同任务跳转到任务中心
-      router.push(`/?tab=tasks&collaboration=${notification.collaborationId}`);
+      // 协同任务跳转到协同平台-项目协同
+      router.push(`/?tab=collaboration&subtab=projects&collaboration=${notification.collaborationId}`);
     } else if (notification.campaignId) {
       // 营销活动跳转到营销中台
       router.push(`/?tab=marketing&campaign=${notification.campaignId}`);
@@ -315,16 +315,16 @@ export default function NotificationCenter({
       router.push(`/?tab=marketing&task=${notification.campaignTaskId}`);
     } else if (notification.feedbackId) {
       // 周反馈跳转到反馈中心
-      router.push(`/?tab=feedback&feedback=${notification.feedbackId}`);
+      router.push(`/?tab=weekly-feedbacks&feedback=${notification.feedbackId}`);
     } else if (notification.type === 'approval') {
-      // 审批类型但没有ID，跳转到审批中心
-      router.push('/?tab=approvals');
+      // 审批类型但没有ID，跳转到协同平台-审批流程
+      router.push('/?tab=collaboration&subtab=approval');
     } else if (notification.type === 'collaboration') {
-      // 协同类型，跳转到任务中心
-      router.push('/?tab=tasks');
+      // 协同类型，跳转到协同平台-项目协同
+      router.push('/?tab=collaboration&subtab=projects');
     } else if (notification.type === 'weekly') {
       // 周报类型，跳转到反馈中心
-      router.push('/?tab=feedback');
+      router.push('/?tab=weekly-feedbacks');
     } else if (notification.type === 'campaign' || notification.type === 'campaign_task') {
       // 营销类型，跳转到营销中台
       router.push('/?tab=marketing');

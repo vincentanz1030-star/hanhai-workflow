@@ -3058,10 +3058,10 @@ function HomePageContent() {
                                           ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(1)
                                           : '0.0';
                                         const isComplete = parseFloat(monthlyRate) >= 100;
-                                        // 使用本地编辑状态或原始值
+                                        // 使用本地编辑状态或原始值（确保是字符串类型）
                                         const displayValue = editingMonthlyValues[monthly.id] !== undefined 
                                           ? editingMonthlyValues[monthly.id] 
-                                          : monthly.actualAmount;
+                                          : String(monthly.actualAmount || '');
                                         return (
                                           <td key={`actual-${monthly.month}`} className="px-2 py-2 text-center">
                                             <Input

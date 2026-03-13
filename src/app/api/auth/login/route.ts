@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     if (!user.password_hash || user.password_hash.length === 0) {
       console.error(`[${requestId}] [登录API] 密码哈希为空或无效:`, {
         email: user.email,
-        password_hash: user.password_hash
+        has_password_hash: false
       });
       return NextResponse.json(
         { error: '账户数据异常，请联系管理员' },

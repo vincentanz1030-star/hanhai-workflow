@@ -2276,7 +2276,8 @@ function HomePageContent() {
     loadWeeklyWorkPlans();
     loadCollaborationTasks();
     loadNotifications();
-  }, [brandFilter, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandFilter, user?.id]);
 
   if (loading && !initTimeout) {
     return (

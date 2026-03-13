@@ -313,7 +313,8 @@ export default function NotificationCenter({
 
   return (
     <Card className="border-0 shadow-sm bg-gradient-to-br from-card to-muted/20">
-      <div className="grid grid-cols-2 divide-x divide-border/50">
+      {/* 移动端：上下排列；桌面端：左右排列 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border/50">
         {/* 左侧：公告区 */}
         <div className="flex flex-col">
           {/* 标题栏 */}

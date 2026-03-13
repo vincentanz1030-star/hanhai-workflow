@@ -105,7 +105,7 @@ export function SystemSettings() {
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsTotal, setLogsTotal] = useState(0);
   const [logsPage, setLogsPage] = useState(0);
-  const [logsFilter, setLogsFilter] = useState({ action: '', resourceType: '' });
+  const [logsFilter, setLogsFilter] = useState({ action: 'all', resourceType: '' });
 
   // 数据备份状态
   const [backups, setBackups] = useState<any[]>([]);
@@ -174,7 +174,7 @@ export function SystemSettings() {
       const params = new URLSearchParams();
       params.append('limit', '50');
       params.append('offset', (logsPage * 50).toString());
-      if (logsFilter.action) params.append('action', logsFilter.action);
+      if (logsFilter.action && logsFilter.action !== 'all') params.append('action', logsFilter.action);
       if (logsFilter.resourceType) params.append('resourceType', logsFilter.resourceType);
 
       const response = await fetch(`/api/audit-logs?${params.toString()}`);
@@ -762,7 +762,7 @@ export function SystemSettings() {
                         <SelectValue placeholder="操作类型" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">全部操作</SelectItem>
+                        <SelectItem value="all">全部操作</SelectItem>
                         <SelectItem value="create">创建</SelectItem>
                         <SelectItem value="update">更新</SelectItem>
                         <SelectItem value="delete">删除</SelectItem>
@@ -926,49 +926,25 @@ export function SystemSettings() {
           <TabsContent value="permissions" className="space-y-4">
             <Card className="border-0 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-base">权限管理</CardTitle>
-                <CardDescription>查看和管理系统权限配置</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base">权限管理</CardTitle>
+                    <CardDescription>管理各岗位、角色、用户的权限配置</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {permissionsLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                   </div>
-                ) : Object.keys(permissionsGrouped).length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Lock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>暂无权限配置</p>
-                  </div>
                 ) : (
-                  <div className="space-y-4">
-                    {Object.entries(permissionsGrouped).map(([moduleCode, perms]) => (
-                      <div key={moduleCode} className="border rounded-lg overflow-hidden">
-                        <div className="bg-muted/50 px-4 py-2 border-b">
-                          <h4 className="font-medium text-sm">
-                            {perms[0]?.module?.name || moduleCode}
-                            <span className="ml-2 text-xs text-muted-foreground">
-                              ({perms.length} 个权限)
-                            </span>
-                          </h4>
-                        </div>
-                        <div className="p-4">
-                          <div className="flex flex-wrap gap-2">
-                            {perms.map((perm: any) => (
-                              <div key={perm.id} className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded-lg">
-                                <span className="text-sm">{perm.name}</span>
-                                <Badge variant="outline" className="text-xs">
-                                  {perm.action?.name || perm.code}
-                                </Badge>
-                                {perm.is_system && (
-                                  <Badge variant="secondary" className="text-xs">系统</Badge>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <PermissionManagementContent
+                    permissions={permissions}
+                    permissionsGrouped={permissionsGrouped}
+                    users={users}
+                    onRefresh={fetchPermissions}
+                  />
                 )}
               </CardContent>
             </Card>
@@ -1206,6 +1182,444 @@ export function SystemSettings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// 权限管理内容组件
+function PermissionManagementContent({ 
+  permissions, 
+  permissionsGrouped, 
+  users,
+  onRefresh 
+}: { 
+  permissions: any[]; 
+  permissionsGrouped: Record<string, any[]>; 
+  users: any[];
+  onRefresh: () => void;
+}) {
+  const [activeTab, setActiveTab] = useState<'positions' | 'roles' | 'users'>('positions');
+  const [positions, setPositions] = useState<any[]>([]);
+  const [roles, setRoles] = useState<any[]>([]);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // 加载岗位和角色列表
+  useEffect(() => {
+    fetchPositions();
+    fetchRoles();
+  }, []);
+
+  const fetchPositions = async () => {
+    try {
+      const response = await fetch('/api/admin/positions-v2');
+      const data = await response.json();
+      if (data.success) {
+        setPositions(data.data || []);
+      }
+    } catch (error) {
+      console.error('获取岗位列表错误:', error);
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const response = await fetch('/api/admin/roles-v2');
+      const data = await response.json();
+      if (data.success) {
+        setRoles(data.data || []);
+      }
+    } catch (error) {
+      console.error('获取角色列表错误:', error);
+    }
+  };
+
+  // 加载选中项的权限
+  const loadItemPermissions = async (item: any, type: 'position' | 'role' | 'user') => {
+    setLoading(true);
+    try {
+      let url = '';
+      if (type === 'position') {
+        url = `/api/admin/positions-v2/${item.id}/permissions`;
+      } else if (type === 'role') {
+        url = `/api/admin/roles-v2/${item.id}/permissions`;
+      } else {
+        url = `/api/admin/users-v2/${item.id}/permissions`;
+      }
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (data.success) {
+        if (type === 'user') {
+          // 用户权限是合并后的结果，包含 is_granted 和 is_denied
+          const grantedIds = (data.data?.merged_permissions || [])
+            .filter((p: any) => p.is_granted)
+            .map((p: any) => p.id);
+          setSelectedPermissions(new Set(grantedIds));
+        } else {
+          // 岗位/角色权限
+          const permIds = data.data?.permission_ids || [];
+          setSelectedPermissions(new Set(permIds));
+        }
+        setSelectedItem({ ...item, type });
+      }
+    } catch (error) {
+      console.error('获取权限错误:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 保存权限
+  const savePermissions = async () => {
+    if (!selectedItem) return;
+    
+    setSaving(true);
+    try {
+      const type = selectedItem.type;
+      let url = '';
+      let body: any = { permission_ids: [...selectedPermissions] };
+      
+      if (type === 'position') {
+        url = `/api/admin/positions-v2/${selectedItem.id}/permissions`;
+      } else if (type === 'role') {
+        url = `/api/admin/roles-v2/${selectedItem.id}/permissions`;
+      } else {
+        url = `/api/admin/users-v2/${selectedItem.id}/permissions`;
+        body = { 
+          grant: [...selectedPermissions],
+          revoke: [] 
+        };
+      }
+      
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        alert('权限保存成功');
+        onRefresh();
+        // 刷新列表
+        if (type === 'position') fetchPositions();
+        else if (type === 'role') fetchRoles();
+      } else {
+        alert(data.error || '保存失败');
+      }
+    } catch (error) {
+      console.error('保存权限错误:', error);
+      alert('保存失败');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 切换权限
+  const togglePermission = (permId: string) => {
+    setSelectedPermissions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(permId)) {
+        newSet.delete(permId);
+      } else {
+        newSet.add(permId);
+      }
+      return newSet;
+    });
+  };
+
+  // 全选/取消全选模块权限
+  const toggleModulePermissions = (modulePerms: any[], select: boolean) => {
+    setSelectedPermissions(prev => {
+      const newSet = new Set(prev);
+      modulePerms.forEach(p => {
+        if (select) {
+          newSet.add(p.id);
+        } else {
+          newSet.delete(p.id);
+        }
+      });
+      return newSet;
+    });
+  };
+
+  // 获取选中项的权限数量
+  const getSelectedPermCount = (item: any, type: 'position' | 'role' | 'user') => {
+    return item.permission_count || 0;
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* 左侧：选择列表 */}
+      <div className="lg:col-span-1 border rounded-lg overflow-hidden">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+          <div className="bg-muted/30 border-b">
+            <TabsList className="w-full bg-transparent p-1">
+              <TabsTrigger value="positions" className="flex-1 text-xs">
+                岗位 ({positions.length})
+              </TabsTrigger>
+              <TabsTrigger value="roles" className="flex-1 text-xs">
+                角色 ({roles.length})
+              </TabsTrigger>
+              <TabsTrigger value="users" className="flex-1 text-xs">
+                用户 ({users.length})
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <ScrollArea className="h-[400px]">
+            {/* 岗位列表 */}
+            <TabsContent value="positions" className="m-0 p-0">
+              {positions.length === 0 ? (
+                <div className="p-4 text-center text-muted-foreground text-sm">暂无岗位数据</div>
+              ) : (
+                <div className="divide-y">
+                  {positions.map((pos) => (
+                    <div 
+                      key={pos.id}
+                      className={`p-3 cursor-pointer hover:bg-muted/50 transition-colors ${
+                        selectedItem?.id === pos.id && selectedItem?.type === 'position' ? 'bg-primary/10' : ''
+                      }`}
+                      onClick={() => loadItemPermissions(pos, 'position')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="h-6 w-6 rounded flex items-center justify-center text-white text-xs"
+                            style={{ backgroundColor: pos.color || '#10b981' }}
+                          >
+                            {(pos.name || 'P')[0]}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{pos.name}</p>
+                            {pos.department && (
+                              <p className="text-xs text-muted-foreground">{pos.department}</p>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {pos.permission_count || 0}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* 角色列表 */}
+            <TabsContent value="roles" className="m-0 p-0">
+              {roles.length === 0 ? (
+                <div className="p-4 text-center text-muted-foreground text-sm">暂无角色数据</div>
+              ) : (
+                <div className="divide-y">
+                  {roles.map((role) => (
+                    <div 
+                      key={role.id}
+                      className={`p-3 cursor-pointer hover:bg-muted/50 transition-colors ${
+                        selectedItem?.id === role.id && selectedItem?.type === 'role' ? 'bg-primary/10' : ''
+                      }`}
+                      onClick={() => loadItemPermissions(role, 'role')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="h-6 w-6 rounded flex items-center justify-center text-white text-xs"
+                            style={{ backgroundColor: role.color || '#3b82f6' }}
+                          >
+                            {(role.name || 'R')[0]}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{role.name}</p>
+                            {role.description && (
+                              <p className="text-xs text-muted-foreground truncate max-w-[120px]">{role.description}</p>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {role.permission_count || 0}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* 用户列表 */}
+            <TabsContent value="users" className="m-0 p-0">
+              {users.length === 0 ? (
+                <div className="p-4 text-center text-muted-foreground text-sm">暂无用户数据</div>
+              ) : (
+                <div className="divide-y">
+                  {users.map((user) => (
+                    <div 
+                      key={user.id}
+                      className={`p-3 cursor-pointer hover:bg-muted/50 transition-colors ${
+                        selectedItem?.id === user.id && selectedItem?.type === 'user' ? 'bg-primary/10' : ''
+                      }`}
+                      onClick={() => loadItemPermissions(user, 'user')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs">
+                            {(user.name || user.email || 'U')[0]}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{user.name || user.email}</p>
+                            <p className="text-xs text-muted-foreground">{user.email}</p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {BRAND_NAMES[user.brand] || user.brand}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </ScrollArea>
+        </Tabs>
+      </div>
+
+      {/* 右侧：权限列表 */}
+      <div className="lg:col-span-2 border rounded-lg overflow-hidden">
+        <div className="bg-muted/30 px-4 py-3 border-b flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {selectedItem ? (
+              <>
+                <div 
+                  className="h-6 w-6 rounded flex items-center justify-center text-white text-xs"
+                  style={{ backgroundColor: selectedItem.color || '#6b7280' }}
+                >
+                  {(selectedItem.name || 'S')[0]}
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{selectedItem.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedItem.type === 'position' ? '岗位权限' : 
+                     selectedItem.type === 'role' ? '角色权限' : '用户权限'}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">请从左侧选择岗位、角色或用户</p>
+            )}
+          </div>
+          {selectedItem && (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">
+                已选 {selectedPermissions.size} / {permissions.length}
+              </Badge>
+              <Button size="sm" onClick={savePermissions} disabled={saving || loading}>
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    保存中...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-1" />
+                    保存
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center h-[400px]">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : !selectedItem ? (
+          <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
+            <Lock className="h-12 w-12 mb-4 opacity-50" />
+            <p>请从左侧选择岗位、角色或用户来管理权限</p>
+          </div>
+        ) : Object.keys(permissionsGrouped).length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
+            <Lock className="h-12 w-12 mb-4 opacity-50" />
+            <p>暂无权限数据</p>
+          </div>
+        ) : (
+          <ScrollArea className="h-[400px]">
+            <div className="p-4 space-y-4">
+              {Object.entries(permissionsGrouped).map(([moduleCode, modulePerms]) => {
+                const perms = modulePerms as any[];
+                const selectedCount = perms.filter(p => selectedPermissions.has(p.id)).length;
+                const allSelected = selectedCount === perms.length;
+                const someSelected = selectedCount > 0 && selectedCount < perms.length;
+
+                return (
+                  <div key={moduleCode} className="border rounded-lg overflow-hidden">
+                    <div className="bg-muted/50 px-4 py-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          ref={(el) => {
+                            if (el) el.indeterminate = someSelected;
+                          }}
+                          onChange={(e) => toggleModulePermissions(perms, e.target.checked)}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                        <h4 className="font-medium text-sm">
+                          {perms[0]?.module?.name || moduleCode}
+                        </h4>
+                        <span className="text-xs text-muted-foreground">
+                          ({selectedCount}/{perms.length})
+                        </span>
+                      </div>
+                    </div>
+                    <div className="p-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {perms.map((perm) => (
+                          <div 
+                            key={perm.id} 
+                            className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
+                              selectedPermissions.has(perm.id) 
+                                ? 'bg-primary/10 border border-primary/30' 
+                                : 'bg-muted/30 hover:bg-muted/50 border border-transparent'
+                            }`}
+                            onClick={() => togglePermission(perm.id)}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedPermissions.has(perm.id)}
+                              onChange={() => togglePermission(perm.id)}
+                              className="h-4 w-4 rounded border-gray-300"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm truncate">{perm.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">{perm.code}</p>
+                            </div>
+                            {perm.action && (
+                              <Badge 
+                                variant="outline" 
+                                className="text-[10px] shrink-0"
+                                style={{ color: perm.action.color || undefined }}
+                              >
+                                {perm.action.name}
+                              </Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        )}
+      </div>
     </div>
   );
 }

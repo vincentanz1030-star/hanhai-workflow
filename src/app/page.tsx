@@ -1860,13 +1860,73 @@ function HomePageContent() {
     try {
       const response = await fetch('/api/notifications/dashboard');
       const data = await response.json();
-      setNotifications({
+      
+      const newNotifications = {
         collaborations: data.collaborations || [],
         reminders: data.reminders || [],
         weeklyPlans: data.weeklyPlans || [],
         projectNotifications: data.projectNotifications || [],
         approvalNotifications: data.approvalNotifications || [],
-      });
+      };
+      
+      // 计算总通知数
+      const totalNew = 
+        newNotifications.collaborations.length + 
+        newNotifications.reminders.length + 
+        newNotifications.weeklyPlans.length + 
+        newNotifications.projectNotifications.length + 
+        newNotifications.approvalNotifications.length;
+      
+      const totalOld = 
+        notifications.collaborations.length + 
+        notifications.reminders.length + 
+        notifications.weeklyPlans.length + 
+        notifications.projectNotifications.length + 
+        notifications.approvalNotifications.length;
+      
+      // 检测新通知并发送桌面提醒
+      if (totalNew > totalOld && totalOld > 0) {
+        const { sendDesktopNotification } = require('@/lib/desktop-notification');
+        // 获取新增的通知
+        const newItems: { title: string; content?: string }[] = [];
+        
+        // 检查各类通知的变化
+        if (newNotifications.approvalNotifications.length > notifications.approvalNotifications.length) {
+          const latest = newNotifications.approvalNotifications[0];
+          if (latest) {
+            newItems.push({ title: '审批通知', content: latest.title || latest.content });
+          }
+        }
+        if (newNotifications.projectNotifications.length > notifications.projectNotifications.length) {
+          const latest = newNotifications.projectNotifications[0];
+          if (latest) {
+            newItems.push({ title: '项目通知', content: latest.title || latest.content });
+          }
+        }
+        if (newNotifications.collaborations.length > notifications.collaborations.length) {
+          const latest = newNotifications.collaborations[0];
+          if (latest) {
+            newItems.push({ title: '协同任务', content: latest.task_title || latest.title });
+          }
+        }
+        
+        // 发送桌面通知
+        if (newItems.length > 0) {
+          sendDesktopNotification({
+            title: newItems[0].title,
+            body: newItems[0].content || `您有 ${totalNew - totalOld} 条新通知`,
+            tag: 'new-notification',
+          });
+        } else {
+          sendDesktopNotification({
+            title: '新通知',
+            body: `您有 ${totalNew - totalOld} 条新通知`,
+            tag: 'new-notification',
+          });
+        }
+      }
+      
+      setNotifications(newNotifications);
     } catch (error) {
       console.error('加载通知数据失败:', error);
     }
@@ -1986,11 +2046,36 @@ function HomePageContent() {
     }
   };
 
-  // 更新月度销售目标
-  const handleUpdateMonthlyTarget = async (id: string, actualAmount: number) => {
-    // 先乐观更新本地状态，让用户立即看到变化
+  // 更新月度销售目标 - 本地编辑状态
+  const [editingMonthlyValues, setEditingMonthlyValues] = useState<Record<string, string>>({});
+  
+  // 处理月度目标输入变化（只更新本地状态，不提交）
+  const handleMonthlyInputChange = (id: string, value: string) => {
+    setEditingMonthlyValues(prev => ({
+      ...prev,
+      [id]: value
+    }));
+  };
+
+  // 处理月度目标输入框失去焦点时提交更新
+  const handleMonthlyInputBlur = async (id: string, targetId: string) => {
+    const inputValue = editingMonthlyValues[id];
+    if (inputValue === undefined) return;
+    
+    const actualAmount = parseInt(inputValue) || 0;
+    
+    // 清除本地编辑状态
+    setEditingMonthlyValues(prev => {
+      const newState = { ...prev };
+      delete newState[id];
+      return newState;
+    });
+
+    // 乐观更新本地状态
     setSalesTargets(prevTargets => {
       return prevTargets.map(target => {
+        if (target.id !== targetId) return target;
+        
         const updatedMonthlyTargets = target.monthlyTargets?.map(mt => {
           if (mt.id === id) {
             return { ...mt, actualAmount };
@@ -2022,7 +2107,6 @@ function HomePageContent() {
       }
     } catch (error) {
       console.error('更新月度销售目标失败:', error);
-      // 如果出错，重新加载数据恢复状态
       loadSalesTargets();
     }
   };
@@ -2169,6 +2253,13 @@ function HomePageContent() {
       setLoading(false);
       return;
     }
+
+    // 初始化桌面通知系统
+    const initNotifications = async () => {
+      const { initNotificationSystem } = require('@/lib/desktop-notification');
+      await initNotificationSystem();
+    };
+    initNotifications();
 
     // 用户已登录，加载数据
     loadProjects();
@@ -2967,12 +3058,17 @@ function HomePageContent() {
                                           ? ((monthly.actualAmount / monthly.targetAmount) * 100).toFixed(1)
                                           : '0.0';
                                         const isComplete = parseFloat(monthlyRate) >= 100;
+                                        // 使用本地编辑状态或原始值
+                                        const displayValue = editingMonthlyValues[monthly.id] !== undefined 
+                                          ? editingMonthlyValues[monthly.id] 
+                                          : monthly.actualAmount;
                                         return (
                                           <td key={`actual-${monthly.month}`} className="px-2 py-2 text-center">
                                             <Input
                                               type="number"
-                                              value={monthly.actualAmount}
-                                              onChange={(e) => handleUpdateMonthlyTarget(monthly.id, parseInt(e.target.value) || 0)}
+                                              value={displayValue}
+                                              onChange={(e) => handleMonthlyInputChange(monthly.id, e.target.value)}
+                                              onBlur={() => handleMonthlyInputBlur(monthly.id, target.id)}
                                               className={`text-[10px] sm:text-xs h-6 sm:h-7 w-full text-center ${isComplete ? 'border-green-500' : ''}`}
                                             />
                                           </td>

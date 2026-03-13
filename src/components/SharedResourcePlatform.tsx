@@ -640,7 +640,7 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
     return url;
   };
 
-  // 清理预览URL
+  // 清理预览URL - 只在组件卸载时清理
   useEffect(() => {
     return () => {
       if (previewUrl && previewUrl.startsWith('blob:')) {
@@ -650,7 +650,8 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
         URL.revokeObjectURL(thumbnailPreviewUrl);
       }
     };
-  }, [previewUrl, thumbnailPreviewUrl]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isThumbnail = false) => {
     const file = e.target.files?.[0];

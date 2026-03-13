@@ -454,25 +454,23 @@ export function NotificationCenter({
   };
 
   return (
-    <Card className="border shadow-sm overflow-hidden">
+    <Card className="shadow-sm">
       {/* 两段式内容区：公告 + 通知 */}
       <div className="grid grid-cols-2 divide-x divide-border">
         {/* 左侧：公告区 */}
         <div className="flex flex-col">
-          <div className="flex items-center justify-between px-4 py-2.5 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800/50">
+          <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
             <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-md bg-amber-500 flex items-center justify-center">
-                <Megaphone className="h-3.5 w-3.5 text-white" />
-              </div>
-              <span className="font-semibold text-sm">公告</span>
+              <Megaphone className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium text-sm">公告</span>
               {unreadAnnouncements > 0 && (
                 <Badge variant="destructive" className="text-[10px] h-4 px-1.5">
-                  {unreadAnnouncements} 未读
+                  {unreadAnnouncements}
                 </Badge>
               )}
             </div>
             {isAdmin && (
-              <Button size="sm" variant="outline" className="h-6 text-xs" onClick={handleAddAnnouncement}>
+              <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={handleAddAnnouncement}>
                 <Plus className="h-3 w-3 mr-1" />发布
               </Button>
             )}
@@ -492,34 +490,37 @@ export function NotificationCenter({
                     <div 
                       key={announcement.id} 
                       className={cn(
-                        'p-2.5 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors group',
-                        !announcement.isRead && 'bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30'
+                        'p-2 rounded-md cursor-pointer hover:bg-muted transition-colors group',
+                        !announcement.isRead && 'bg-primary/5'
                       )}
                       onClick={() => openAnnouncementPreview(announcement)}
                     >
-                      <div className="flex items-start gap-2.5">
-                        <div className={cn('p-1.5 rounded-md text-white shrink-0', config.bgColor)}>
-                          <IconComponent className="h-3.5 w-3.5" />
-                        </div>
+                      <div className="flex items-start gap-2">
+                        <IconComponent className={cn('h-4 w-4 mt-0.5 shrink-0', 
+                          announcement.type === 'info' && 'text-blue-500',
+                          announcement.type === 'warning' && 'text-amber-500',
+                          announcement.type === 'success' && 'text-emerald-500',
+                          announcement.type === 'error' && 'text-red-500'
+                        )} />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className={cn('text-sm truncate', !announcement.isRead && 'font-semibold')}>
+                          <div className="flex items-center gap-1.5">
+                            <span className={cn('text-sm truncate', !announcement.isRead && 'font-medium')}>
                               {announcement.title}
                             </span>
                             {!announcement.isRead && (
-                              <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0">新</Badge>
+                              <Badge variant="secondary" className="text-[9px] h-3.5 px-1 shrink-0">新</Badge>
                             )}
                           </div>
                           {announcement.content && (
-                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{announcement.content}</p>
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">{announcement.content}</p>
                           )}
                         </div>
                         {isAdmin && (
-                          <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => handleEditAnnouncement(announcement, e)}>
+                          <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                            <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={(e) => handleEditAnnouncement(announcement, e)}>
                               <Pencil className="h-3 w-3" />
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingAnnouncement(announcement); setIsDeleteDialogOpen(true); }}>
+                            <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingAnnouncement(announcement); setIsDeleteDialogOpen(true); }}>
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
@@ -535,20 +536,18 @@ export function NotificationCenter({
 
         {/* 右侧：通知区 */}
         <div className="flex flex-col">
-          <div className="flex items-center justify-between px-4 py-2.5 bg-blue-50 dark:bg-blue-950/30 border-b border-blue-200 dark:border-blue-800/50">
+          <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
             <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-md bg-blue-500 flex items-center justify-center">
-                <Bell className="h-3.5 w-3.5 text-white" />
-              </div>
-              <span className="font-semibold text-sm">通知</span>
+              <Bell className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium text-sm">通知</span>
               {totalNotifications > 0 && (
                 <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
                   {totalNotifications}
                 </Badge>
               )}
             </div>
-            {(highPriorityCount > 0) && (
-              <Badge variant="destructive" className="text-[10px] h-4 px-1.5 animate-pulse">
+            {highPriorityCount > 0 && (
+              <Badge variant="destructive" className="text-[10px] h-4 px-1.5">
                 {highPriorityCount} 紧急
               </Badge>
             )}
@@ -558,7 +557,6 @@ export function NotificationCenter({
               <div className="text-center py-8 text-muted-foreground">
                 <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-40" />
                 <p className="text-sm">暂无通知</p>
-                <p className="text-xs text-muted-foreground mt-1">所有工作进展顺利</p>
               </div>
             ) : (
               <div className="p-2 space-y-1">
@@ -571,34 +569,33 @@ export function NotificationCenter({
                   .map((notification) => {
                     const { type, priority } = notification;
                     const icon = getTypeIcon(type);
-                    const priorityColor = getPriorityColor(priority);
                     const isOverdue = notification.deadline && new Date(notification.deadline) < new Date();
 
                     return (
                       <div 
                         key={notification.id} 
                         className={cn(
-                          'p-2.5 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors',
-                          priority === 'high' && 'bg-red-50/80 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/30',
-                          isOverdue && priority !== 'high' && 'bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/50 dark:border-orange-800/30'
+                          'p-2 rounded-md cursor-pointer hover:bg-muted transition-colors',
+                          priority === 'high' && 'bg-destructive/5',
+                          isOverdue && priority !== 'high' && 'bg-amber-500/5'
                         )}
                         onClick={() => handleNotificationClick(notification)}
                       >
-                        <div className="flex items-start gap-2.5">
-                          <div className={cn('mt-0.5 shrink-0', priority === 'high' ? 'text-red-600' : isOverdue ? 'text-orange-600' : 'text-muted-foreground')}>
+                        <div className="flex items-start gap-2">
+                          <div className={cn('mt-0.5 shrink-0', priority === 'high' ? 'text-destructive' : isOverdue ? 'text-amber-600' : 'text-muted-foreground')}>
                             {icon}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="text-sm font-medium truncate">{notification.title}</span>
-                              <Badge className={`${priorityColor} text-[10px] h-4 px-1`}>
-                                {priority === 'high' ? '紧急' : priority === 'medium' ? '重要' : '普通'}
-                              </Badge>
+                              {priority === 'high' && (
+                                <Badge variant="destructive" className="text-[9px] h-3.5 px-1">紧急</Badge>
+                              )}
                               {isOverdue && (
-                                <Badge variant="destructive" className="text-[10px] h-4 px-1">逾期</Badge>
+                                <Badge variant="outline" className="text-[9px] h-3.5 px-1 text-amber-600 border-amber-300">逾期</Badge>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{notification.content}</p>
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">{notification.content}</p>
                           </div>
                           <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
                             {formatTime(notification.createdAt)}

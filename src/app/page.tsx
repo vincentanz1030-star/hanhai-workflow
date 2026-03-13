@@ -2766,10 +2766,10 @@ function HomePageContent() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               {/* 左侧：项目概览 */}
               <div className="lg:col-span-2">
-                <Card className="border-0 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/?tab=projects')}>
-                  <div className="bg-gradient-to-br from-violet-500 to-purple-600 px-4 py-3">
-                    <div className="flex items-center gap-2 text-white">
-                      <Activity className="h-4 w-4" />
+                <Card className="shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/?tab=projects')}>
+                  <div className="px-4 py-3 border-b bg-muted/50">
+                    <div className="flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium text-sm">项目概览</span>
                     </div>
                   </div>
@@ -2777,29 +2777,29 @@ function HomePageContent() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="text-center">
                         <p className="text-2xl font-bold">{stats.total}</p>
-                        <p className="text-[10px] text-muted-foreground">总项目</p>
+                        <p className="text-xs text-muted-foreground">总项目</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.inProgress}</p>
-                        <p className="text-[10px] text-muted-foreground">进行中</p>
+                        <p className="text-2xl font-bold text-primary">{stats.inProgress}</p>
+                        <p className="text-xs text-muted-foreground">进行中</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.completed}</p>
-                        <p className="text-[10px] text-muted-foreground">已完成</p>
+                        <p className="text-2xl font-bold text-emerald-600">{stats.completed}</p>
+                        <p className="text-xs text-muted-foreground">已完成</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">{stats.delayed}</p>
-                        <p className="text-[10px] text-muted-foreground">已延期</p>
+                        <p className="text-2xl font-bold text-destructive">{stats.delayed}</p>
+                        <p className="text-xs text-muted-foreground">已延期</p>
                       </div>
                     </div>
-                    <div className="mt-3 pt-3 border-t border-border/50">
+                    <div className="mt-3 pt-3 border-t">
                       <div className="flex items-center justify-between text-xs mb-1">
                         <span className="text-muted-foreground">待开始</span>
                         <span className="font-medium">{stats.pending}</span>
                       </div>
                       <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-gradient-to-r from-violet-400 to-purple-500 rounded-full transition-all"
+                          className="h-full bg-primary rounded-full transition-all"
                           style={{ width: `${stats.total > 0 ? (stats.pending / stats.total) * 100 : 0}%` }}
                         />
                       </div>

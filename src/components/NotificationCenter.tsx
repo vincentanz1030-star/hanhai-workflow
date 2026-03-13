@@ -454,194 +454,227 @@ export function NotificationCenter({
   };
 
   return (
-    <Card className="border-0 shadow-sm bg-gradient-to-br from-card to-muted/20">
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-              <Bell className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <CardTitle className="flex items-center gap-2 text-base">
-                消息中心
-                {grandTotal > 0 && (
-                  <Badge variant="secondary" className="text-xs font-normal">
-                    {grandTotal}
-                  </Badge>
-                )}
-              </CardTitle>
-              <CardDescription className="text-xs">
-                公告、协同、提醒等通知
-              </CardDescription>
-            </div>
+    <Card className="border-0 shadow-sm overflow-hidden">
+      {/* 顶部标题栏 */}
+      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-b border-amber-100 dark:border-amber-900/50">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-md">
+            <Bell className="h-4 w-4 text-white" />
           </div>
+          <div>
+            <h3 className="font-semibold text-sm">消息中心</h3>
+            <p className="text-xs text-muted-foreground">公告、协同、提醒等通知</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {grandTotal > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {grandTotal} 条
+            </Badge>
+          )}
           {(highPriorityCount > 0 || unreadAnnouncements > 0) && (
-            <Badge variant="destructive" className="animate-pulse text-xs">
+            <Badge variant="destructive" className="text-xs animate-pulse">
               {highPriorityCount + unreadAnnouncements}条待处理
             </Badge>
           )}
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        {grandTotal === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>暂无通知</p>
-            <p className="text-xs mt-2">所有工作进展顺利</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* 左侧：公告区 */}
-            <div className="border rounded-lg overflow-hidden flex flex-col">
-              <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
-                <div className="flex items-center gap-2">
-                  <Megaphone className="h-4 w-4 text-amber-600" />
-                  <span className="font-medium text-sm">公告</span>
-                  <Badge variant={unreadAnnouncements > 0 ? "destructive" : "secondary"} className="text-xs h-4 px-1.5">
-                    {totalAnnouncements}
-                  </Badge>
-                </div>
-                {isAdmin && (
-                  <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={handleAddAnnouncement}>
-                    <Plus className="h-3 w-3 mr-0.5" />发布
-                  </Button>
-                )}
+      </div>
+      
+      {/* 三段式内容区 */}
+      {grandTotal === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <CheckCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p className="font-medium">暂无通知</p>
+          <p className="text-xs mt-1">所有工作进展顺利</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
+          {/* 左侧：公告区 */}
+          <div className="flex flex-col min-h-0">
+            <div className="flex items-center justify-between px-3 py-2 bg-muted/30 border-b shrink-0">
+              <div className="flex items-center gap-1.5">
+                <Megaphone className="h-3.5 w-3.5 text-amber-600" />
+                <span className="font-medium text-xs">公告</span>
+                <Badge variant={unreadAnnouncements > 0 ? "destructive" : "secondary"} className="text-[10px] h-4 px-1">
+                  {totalAnnouncements}
+                </Badge>
               </div>
-              <ScrollArea className="flex-1" style={{ maxHeight: '280px' }}>
-                {announcements.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Megaphone className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">暂无公告</p>
-                  </div>
-                ) : (
-                  <div className="p-2 space-y-1.5">
-                    {announcements.map((announcement) => {
-                      const config = announcementTypeConfig[announcement.type];
-                      const IconComponent = config.icon;
-                      return (
-                        <div 
-                          key={announcement.id} 
-                          className={cn(
-                            'p-2.5 rounded-lg border cursor-pointer hover:shadow-sm transition-all group',
-                            announcement.isRead ? 'bg-muted/20 border-transparent' : `${config.lightBg} ${config.borderColor} border`
-                          )}
-                          onClick={() => openAnnouncementPreview(announcement)}
-                        >
-                          <div className="flex items-start gap-2">
-                            <div className={cn('p-1 rounded text-white shrink-0', config.bgColor)}>
-                              <IconComponent className="h-3 w-3" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className={cn('text-sm truncate', !announcement.isRead && 'font-semibold')}>
-                                  {announcement.title}
-                                </span>
-                                {!announcement.isRead && (
-                                  <Badge variant="secondary" className="text-[10px] h-3.5 px-1">新</Badge>
-                                )}
-                              </div>
-                              {announcement.content && (
-                                <p className="text-xs text-muted-foreground truncate mt-0.5">{announcement.content}</p>
+              {isAdmin && (
+                <Button size="sm" variant="ghost" className="h-5 px-1.5 text-[10px]" onClick={handleAddAnnouncement}>
+                  <Plus className="h-2.5 w-2.5" />
+                </Button>
+              )}
+            </div>
+            <ScrollArea className="flex-1" style={{ height: '240px' }}>
+              {announcements.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Megaphone className="h-6 w-6 mx-auto mb-1.5 opacity-40" />
+                  <p className="text-xs">暂无公告</p>
+                </div>
+              ) : (
+                <div className="p-1.5 space-y-1">
+                  {announcements.map((announcement) => {
+                    const config = announcementTypeConfig[announcement.type];
+                    const IconComponent = config.icon;
+                    return (
+                      <div 
+                        key={announcement.id} 
+                        className={cn(
+                          'p-2 rounded-md cursor-pointer hover:bg-muted/50 transition-colors group',
+                          !announcement.isRead && 'bg-amber-50/50 dark:bg-amber-950/20'
+                        )}
+                        onClick={() => openAnnouncementPreview(announcement)}
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className={cn('p-1 rounded text-white shrink-0', config.bgColor)}>
+                            <IconComponent className="h-3 w-3" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1">
+                              <span className={cn('text-xs truncate', !announcement.isRead && 'font-semibold')}>
+                                {announcement.title}
+                              </span>
+                              {!announcement.isRead && (
+                                <Badge variant="secondary" className="text-[9px] h-3 px-0.5">新</Badge>
                               )}
                             </div>
-                            {isAdmin && (
-                              <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                                <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={(e) => handleEditAnnouncement(announcement, e)}>
-                                  <Pencil className="h-2.5 w-2.5" />
-                                </Button>
-                                <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingAnnouncement(announcement); setIsDeleteDialogOpen(true); }}>
-                                  <Trash2 className="h-2.5 w-2.5" />
-                                </Button>
-                              </div>
+                            {announcement.content && (
+                              <p className="text-[10px] text-muted-foreground truncate mt-0.5">{announcement.content}</p>
                             )}
+                          </div>
+                          {isAdmin && (
+                            <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                              <Button size="sm" variant="ghost" className="h-4 w-4 p-0" onClick={(e) => handleEditAnnouncement(announcement, e)}>
+                                <Pencil className="h-2 w-2" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-4 w-4 p-0 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingAnnouncement(announcement); setIsDeleteDialogOpen(true); }}>
+                                <Trash2 className="h-2 w-2" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+
+          {/* 中间：通知区 */}
+          <div className="flex flex-col min-h-0">
+            <div className="flex items-center justify-between px-3 py-2 bg-muted/30 border-b shrink-0">
+              <div className="flex items-center gap-1.5">
+                <Bell className="h-3.5 w-3.5 text-blue-600" />
+                <span className="font-medium text-xs">通知</span>
+                <Badge variant="secondary" className="text-[10px] h-4 px-1">
+                  {totalNotifications}
+                </Badge>
+              </div>
+            </div>
+            <ScrollArea className="flex-1" style={{ height: '240px' }}>
+              {totalNotifications === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Bell className="h-6 w-6 mx-auto mb-1.5 opacity-40" />
+                  <p className="text-xs">暂无通知</p>
+                </div>
+              ) : (
+                <div className="p-1.5 space-y-1">
+                  {[...collaborations, ...reminders, ...weeklyPlans, ...projectNotifications, ...approvalNotifications]
+                    .sort((a, b) => {
+                      if (a.priority === 'high' && b.priority !== 'high') return -1;
+                      if (a.priority !== 'high' && b.priority === 'high') return 1;
+                      return 0;
+                    })
+                    .map((notification) => {
+                      const { type, priority } = notification;
+                      const icon = getTypeIcon(type);
+                      const priorityColor = getPriorityColor(priority);
+                      const isOverdue = notification.deadline && new Date(notification.deadline) < new Date();
+
+                      return (
+                        <div 
+                          key={notification.id} 
+                          className={cn(
+                            'p-2 rounded-md cursor-pointer hover:bg-muted/50 transition-colors',
+                            priority === 'high' && 'bg-red-50/50 dark:bg-red-950/20',
+                            isOverdue && priority !== 'high' && 'bg-orange-50/50 dark:bg-orange-950/20'
+                          )}
+                          onClick={() => handleNotificationClick(notification)}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className={cn('mt-0.5 shrink-0', priority === 'high' ? 'text-red-600' : isOverdue ? 'text-orange-600' : 'text-muted-foreground')}>
+                              {icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1 flex-wrap">
+                                <span className="text-xs font-medium truncate">{notification.title}</span>
+                                <Badge className={`${priorityColor} text-[9px] h-3 px-0.5`}>
+                                  {priority === 'high' ? '紧急' : priority === 'medium' ? '重要' : '普通'}
+                                </Badge>
+                                {isOverdue && (
+                                  <Badge variant="destructive" className="text-[9px] h-3 px-0.5">逾期</Badge>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-muted-foreground truncate mt-0.5">{notification.content}</p>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
+                              {formatTime(notification.createdAt)}
+                            </span>
                           </div>
                         </div>
                       );
                     })}
-                  </div>
-                )}
-              </ScrollArea>
-            </div>
+                </div>
+              )}
+            </ScrollArea>
+          </div>
 
-            {/* 右侧：通知区 */}
-            <div className="border rounded-lg overflow-hidden flex flex-col">
-              <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
-                <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-blue-600" />
-                  <span className="font-medium text-sm">通知</span>
-                  <Badge variant="secondary" className="text-xs h-4 px-1.5">
-                    {totalNotifications}
+          {/* 右侧：快捷统计 */}
+          <div className="flex flex-col min-h-0">
+            <div className="flex items-center justify-between px-3 py-2 bg-muted/30 border-b shrink-0">
+              <div className="flex items-center gap-1.5">
+                <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+                <span className="font-medium text-xs">统计</span>
+              </div>
+            </div>
+            <div className="flex-1 p-3 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 text-center">
+                  <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{collaborations.length}</p>
+                  <p className="text-[10px] text-muted-foreground">协同请求</p>
+                </div>
+                <div className="p-2 rounded-lg bg-red-50/50 dark:bg-red-950/20 text-center">
+                  <p className="text-lg font-bold text-red-600 dark:text-red-400">{highPriorityCount}</p>
+                  <p className="text-[10px] text-muted-foreground">紧急事项</p>
+                </div>
+                <div className="p-2 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 text-center">
+                  <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{reminders.length}</p>
+                  <p className="text-[10px] text-muted-foreground">催促提醒</p>
+                </div>
+                <div className="p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 text-center">
+                  <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{weeklyPlans.length}</p>
+                  <p className="text-[10px] text-muted-foreground">本周安排</p>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-border/50">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>审批待处理</span>
+                  <Badge variant={approvalNotifications.length > 0 ? "destructive" : "secondary"} className="text-[10px]">
+                    {approvalNotifications.length}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground mt-1.5">
+                  <span>项目通知</span>
+                  <Badge variant="secondary" className="text-[10px]">
+                    {projectNotifications.length}
                   </Badge>
                 </div>
               </div>
-              <ScrollArea className="flex-1" style={{ maxHeight: '280px' }}>
-                {totalNotifications === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">暂无通知</p>
-                  </div>
-                ) : (
-                  <div className="p-2 space-y-1.5">
-                    {/* 高优先级通知优先显示 */}
-                    {[...collaborations, ...reminders, ...weeklyPlans, ...projectNotifications, ...approvalNotifications]
-                      .sort((a, b) => {
-                        if (a.priority === 'high' && b.priority !== 'high') return -1;
-                        if (a.priority !== 'high' && b.priority === 'high') return 1;
-                        return 0;
-                      })
-                      .slice(0, 6)
-                      .map((notification) => {
-                        const { type, priority } = notification;
-                        const icon = getTypeIcon(type);
-                        const priorityColor = getPriorityColor(priority);
-                        const isOverdue = notification.deadline && new Date(notification.deadline) < new Date();
-
-                        return (
-                          <div 
-                            key={notification.id} 
-                            className={cn(
-                              'p-2.5 rounded-lg border cursor-pointer hover:shadow-sm transition-all',
-                              priority === 'high' ? 'border-red-200 bg-red-50/50 dark:bg-red-900/10' :
-                              isOverdue ? 'border-orange-200 bg-orange-50/50 dark:bg-orange-900/10' :
-                              'border-transparent bg-muted/20'
-                            )}
-                            onClick={() => handleNotificationClick(notification)}
-                          >
-                            <div className="flex items-start gap-2">
-                              <div className={cn('mt-0.5 shrink-0', priority === 'high' ? 'text-red-600' : isOverdue ? 'text-orange-600' : 'text-muted-foreground')}>
-                                {icon}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-medium text-sm truncate">{notification.title}</span>
-                                  <Badge className={`${priorityColor} text-[10px] h-3.5 px-1`}>
-                                    {priority === 'high' ? '紧急' : priority === 'medium' ? '重要' : '普通'}
-                                  </Badge>
-                                  {isOverdue && (
-                                    <Badge variant="destructive" className="text-[10px] h-3.5 px-1">逾期</Badge>
-                                  )}
-                                </div>
-                                <p className="text-xs text-muted-foreground truncate mt-0.5">{notification.content}</p>
-                              </div>
-                              <div className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
-                                {formatTime(notification.createdAt)}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    {totalNotifications > 6 && (
-                      <div className="text-center py-1.5">
-                        <span className="text-xs text-muted-foreground">还有 {totalNotifications - 6} 条通知...</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </ScrollArea>
             </div>
           </div>
-        )}
-      </CardContent>
+        </div>
+      )}
       
       {/* 公告预览对话框 */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
@@ -667,9 +700,11 @@ export function NotificationCenter({
               </div>
             </div>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm whitespace-pre-wrap">{previewAnnouncement?.content}</p>
-          </div>
+          <ScrollArea className="max-h-[50vh]">
+            <div className="py-4 pr-4">
+              <p className="text-sm whitespace-pre-wrap">{previewAnnouncement?.content}</p>
+            </div>
+          </ScrollArea>
           <div className="flex justify-end gap-2">
             {isAdmin && previewAnnouncement && (
               <>
@@ -695,43 +730,45 @@ export function NotificationCenter({
               {editingAnnouncement ? '修改公告内容' : '发布新公告'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title">标题 *</Label>
-              <Input id="title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="公告标题" />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="content">内容</Label>
-              <Textarea id="content" value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} placeholder="公告内容" rows={4} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+          <ScrollArea className="max-h-[60vh]">
+            <div className="grid gap-4 py-4 pr-4">
               <div className="grid gap-2">
-                <Label htmlFor="type">类型</Label>
-                <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v as Announcement['type'] })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="info">通知</SelectItem>
-                    <SelectItem value="warning">警告</SelectItem>
-                    <SelectItem value="success">成功</SelectItem>
-                    <SelectItem value="error">错误</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="title">标题 *</Label>
+                <Input id="title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="公告标题" />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="brand">品牌</Label>
-                <Select value={formData.brand} onValueChange={(v) => setFormData({ ...formData, brand: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">全部品牌</SelectItem>
-                    <SelectItem value="he_zhe">禾哲</SelectItem>
-                    <SelectItem value="baobao">BAOBAO</SelectItem>
-                    <SelectItem value="ai_he">爱禾</SelectItem>
-                    <SelectItem value="bao_deng_yuan">宝登源</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="content">内容</Label>
+                <Textarea id="content" value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} placeholder="公告内容" rows={4} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="type">类型</Label>
+                  <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v as Announcement['type'] })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="info">通知</SelectItem>
+                      <SelectItem value="warning">警告</SelectItem>
+                      <SelectItem value="success">成功</SelectItem>
+                      <SelectItem value="error">错误</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="brand">品牌</Label>
+                  <Select value={formData.brand} onValueChange={(v) => setFormData({ ...formData, brand: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">全部品牌</SelectItem>
+                      <SelectItem value="he_zhe">禾哲</SelectItem>
+                      <SelectItem value="baobao">BAOBAO</SelectItem>
+                      <SelectItem value="ai_he">爱禾</SelectItem>
+                      <SelectItem value="bao_deng_yuan">宝登源</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-          </div>
+          </ScrollArea>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>取消</Button>
             <Button onClick={handleSubmitAnnouncement} disabled={isSubmitting}>

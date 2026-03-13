@@ -2762,71 +2762,55 @@ function HomePageContent() {
               userBrand={user?.brand || 'all'}
             />
 
-            {/* 统计卡片 - 横向一排 */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              <Card className="group relative overflow-hidden border-0 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800/50 shadow-sm hover:shadow-md transition-all duration-300">
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center shadow-md shrink-0">
-                    <FolderOpen className="h-4.5 w-4.5 text-white" />
+            {/* 统计概览 + 新品排期 并排 */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+              {/* 统计概览 - 紧凑型 */}
+              <Card className="border-0 shadow-sm bg-gradient-to-br from-card to-muted/20 lg:col-span-1">
+                <CardHeader className="pb-2 pt-3 px-4">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" />
+                    项目概览
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 px-4 pb-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-0.5">
+                      <p className="text-2xl font-bold">{stats.total}</p>
+                      <p className="text-xs text-muted-foreground">总项目</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.inProgress}</p>
+                      <p className="text-xs text-muted-foreground">进行中</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.completed}</p>
+                      <p className="text-xs text-muted-foreground">已完成</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">{stats.delayed}</p>
+                      <p className="text-xs text-muted-foreground">已延期</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <div className="text-xl font-bold leading-tight">{stats.total}</div>
-                    <div className="text-xs text-muted-foreground leading-tight">总项目</div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="group relative overflow-hidden border-0 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800/50 shadow-sm hover:shadow-md transition-all duration-300">
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center shadow-md shrink-0">
-                    <Clock className="h-4.5 w-4.5 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xl font-bold leading-tight">{stats.pending}</div>
-                    <div className="text-xs text-muted-foreground leading-tight">待开始</div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="group relative overflow-hidden border-0 bg-gradient-to-r from-blue-50 to-blue-100/70 dark:from-blue-950/60 dark:to-blue-900/40 shadow-sm hover:shadow-md hover:shadow-blue-500/10 transition-all duration-300">
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
-                    <TrendingUp className="h-4.5 w-4.5 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xl font-bold leading-tight text-blue-600 dark:text-blue-400">{stats.inProgress}</div>
-                    <div className="text-xs text-blue-500/70 dark:text-blue-400/70 leading-tight">进行中</div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="group relative overflow-hidden border-0 bg-gradient-to-r from-emerald-50 to-emerald-100/70 dark:from-emerald-950/60 dark:to-emerald-900/40 shadow-sm hover:shadow-md hover:shadow-emerald-500/10 transition-all duration-300">
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
-                    <CheckCircle className="h-4.5 w-4.5 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xl font-bold leading-tight text-emerald-600 dark:text-emerald-400">{stats.completed}</div>
-                    <div className="text-xs text-emerald-500/70 dark:text-emerald-400/70 leading-tight">已完成</div>
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">待开始</span>
+                      <span className="font-medium">{stats.pending}</span>
+                    </div>
+                    <div className="mt-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-slate-400 to-slate-500 rounded-full transition-all"
+                        style={{ width: `${stats.total > 0 ? (stats.pending / stats.total) * 100 : 0}%` }}
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="group relative overflow-hidden border-0 bg-gradient-to-r from-rose-50 to-rose-100/70 dark:from-rose-950/60 dark:to-rose-900/40 shadow-sm hover:shadow-md hover:shadow-rose-500/10 transition-all duration-300">
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-rose-500 to-rose-600 flex items-center justify-center shadow-md shadow-rose-500/20 shrink-0">
-                    <AlertCircle className="h-4.5 w-4.5 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xl font-bold leading-tight text-rose-600 dark:text-rose-400">{stats.delayed}</div>
-                    <div className="text-xs text-rose-500/70 dark:text-rose-400/70 leading-tight">已延期</div>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* 新品排期日历 - 占3/4 */}
+              <div className="lg:col-span-3">
+                <ProductScheduleCalendar />
+              </div>
             </div>
-
-            {/* 新品排期日历 - 单独一排 */}
-            <ProductScheduleCalendar />
 
             {/* 销售目标 */}
             <Card className="border-0 shadow-sm bg-gradient-to-br from-card to-muted/20">

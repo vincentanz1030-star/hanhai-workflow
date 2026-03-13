@@ -1,9 +1,23 @@
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 
-// 直接从环境变量获取 Supabase 配置
-
+// 完整诊断 - 需要管理员权限
 export async function GET(request: NextRequest) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const user = authResult;
+
+  // 只允许 brand=all 的管理员访问
+  if (user.brand !== 'all') {
+    return NextResponse.json(
+      { error: '无权限访问此接口' },
+      { status: 403 }
+    );
+  }
+
   const logs: string[] = [];
   const timestamp = Date.now();
 
@@ -67,44 +81,16 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 3. 查询所有项目
-    addLog('\n步骤3: 查询所有项目');
-    const { data: allProjects, error: allError } = await client
+    // 3. 查询所有项目（仅统计）
+    addLog('\n步骤3: 统计所有项目');
+    const { count: allProjectsCount, error: allError } = await client
       .from('projects')
-      .select('id, name, brand, created_at')
-      .order('created_at', { ascending: false });
+      .select('*', { count: 'exact', head: true });
 
     if (allError) {
-      addLog(`❌ 查询所有项目失败: ${allError.message}`);
+      addLog(`❌ 统计项目失败: ${allError.message}`);
     } else {
-      addLog(`✅ 总项目数: ${allProjects?.length || 0}`);
-
-      // 统计各品牌项目数量
-      const brandCount: Record<string, number> = {};
-      allProjects?.forEach((p: any) => {
-        brandCount[p.brand] = (brandCount[p.brand] || 0) + 1;
-      });
-      addLog(`各品牌分布:`);
-      Object.entries(brandCount).forEach(([brand, count]) => {
-        addLog(`   ${brand}: ${count} 个`);
-      });
-
-      // 显示最近5个项目
-      addLog(`最近5个项目:`);
-      allProjects?.slice(0, 5).forEach((p: any, i: number) => {
-        addLog(`   ${i + 1}. ${p.name} (${p.brand}) - 创建于: ${p.created_at}`);
-      });
-    }
-
-    // 4. 检查项目是否在"最近项目"列表中
-    addLog('\n步骤4: 验证项目位置');
-    if (allProjects) {
-      const index = allProjects.findIndex((p: any) => p.id === projectId);
-      if (index !== -1) {
-        addLog(`✅ 项目在所有项目列表中，位置: ${index + 1}/${allProjects.length}`);
-      } else {
-        addLog(`❌ 项目不在所有项目列表中！`);
-      }
+      addLog(`✅ 总项目数: ${allProjectsCount || 0}`);
     }
 
     addLog('\n=== 诊断完成 ===');
@@ -112,10 +98,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       logs,
-      project,
-      tasks,
-      allProjectsCount: allProjects?.length || 0,
+      project: {
+        id: project.id,
+        name: project.name,
+        brand: project.brand,
+        category: project.category,
+        status: project.status,
+      },
       tasksCount: tasks?.length || 0,
+      allProjectsCount: allProjectsCount || 0,
     });
 
   } catch (error: any) {

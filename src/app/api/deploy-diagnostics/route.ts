@@ -1,9 +1,23 @@
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 
-// 直接从环境变量获取 Supabase 配置
-
+// 部署环境诊断 - 需要管理员权限
 export async function GET(request: NextRequest) {
+  // 认证检查
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const user = authResult;
+
+  // 只允许 brand=all 的管理员访问
+  if (user.brand !== 'all') {
+    return NextResponse.json(
+      { error: '无权限访问此接口' },
+      { status: 403 }
+    );
+  }
+
   const logs: string[] = [];
 
   const addLog = (message: string) => {
@@ -14,11 +28,9 @@ export async function GET(request: NextRequest) {
   try {
     addLog('=== 部署环境诊断开始 ===');
 
-    // 1. 环境变量检查
+    // 1. 环境变量检查（不暴露敏感信息）
     addLog('步骤1: 检查环境变量');
     const envCheck = {
-      // REMOVED: supabaseUrl: process.env.COZE_SUPABASE_URL ? '已配置' : '未配置',
-      // REMOVED: supabaseKey: process.env.COZE_SUPABASE_ANON_KEY ? '已配置' : '未配置',
       jwtSecret: process.env.JWT_SECRET ? '已配置' : '未配置',
       nodeEnv: process.env.NODE_ENV || '未配置',
     };
@@ -36,7 +48,7 @@ export async function GET(request: NextRequest) {
     addLog('步骤3: 测试数据库连接');
     try {
       const client = getSupabaseClient();
-      addLog('Supabase客户端创建成功');
+      addLog('数据库客户端创建成功');
 
       // 测试查询
       const { data, error, count } = await client
@@ -45,8 +57,6 @@ export async function GET(request: NextRequest) {
 
       if (error) {
         addLog(`❌ 数据库查询失败: ${error.message}`);
-        addLog(`错误代码: ${error.code}`);
-        addLog(`错误详情: ${JSON.stringify(error)}`);
       } else {
         addLog(`✅ 数据库连接成功`);
         addLog(`项目总数: ${count || 0}`);
@@ -55,88 +65,8 @@ export async function GET(request: NextRequest) {
       addLog(`❌ 数据库连接异常: ${error.message}`);
     }
 
-    // 4. 测试创建项目（不保存到数据库）
-    addLog('步骤4: 测试项目创建逻辑');
-    try {
-      const testProjectData = {
-        name: `诊断测试_${Date.now()}`,
-        brand: 'he_zhe',
-        category: 'product_development',
-        sales_date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-        project_confirm_date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'pending' as const,
-      };
-      addLog(`测试项目数据: ${JSON.stringify(testProjectData)}`);
-
-      // 实际创建项目
-      const client = getSupabaseClient();
-      const { data: project, error: insertError } = await client
-        .from('projects')
-        .insert(testProjectData)
-        .select()
-        .single();
-
-      if (insertError) {
-        addLog(`❌ 创建项目失败: ${insertError.message}`);
-        addLog(`错误代码: ${insertError.code}`);
-        addLog(`错误详情: ${JSON.stringify(insertError)}`);
-      } else {
-        addLog(`✅ 创建项目成功，ID: ${project.id}`);
-        addLog(`项目名称: ${project.name}`);
-        addLog(`项目品牌: ${project.brand}`);
-
-        // 立即查询刚创建的项目
-        addLog('立即查询刚创建的项目...');
-        const { data: checkProject, error: checkError } = await client
-          .from('projects')
-          .select('*')
-          .eq('id', project.id)
-          .single();
-
-        if (checkError) {
-          addLog(`❌ 立即查询失败: ${checkError.message}`);
-        } else {
-          addLog(`✅ 立即查询成功`);
-          addLog(`项目存在: ${checkProject.name}`);
-        }
-
-        // 2秒后再次查询
-        addLog('等待2秒后再次查询...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        const { data: checkProject2, error: checkError2 } = await client
-          .from('projects')
-          .select('*')
-          .eq('id', project.id)
-          .single();
-
-        if (checkError2) {
-          addLog(`❌ 2秒后查询失败: ${checkError2.message}`);
-        } else {
-          addLog(`✅ 2秒后查询成功`);
-          addLog(`项目仍然存在: ${checkProject2.name}`);
-
-          // 删除测试项目
-          addLog('删除测试项目...');
-          const { error: deleteError } = await client
-            .from('projects')
-            .delete()
-            .eq('id', project.id);
-
-          if (deleteError) {
-            addLog(`⚠️ 删除测试项目失败: ${deleteError.message}`);
-          } else {
-            addLog(`✅ 测试项目已删除`);
-          }
-        }
-      }
-    } catch (error: any) {
-      addLog(`❌ 测试项目创建异常: ${error.message}`);
-      addLog(`错误堆栈: ${error.stack}`);
-    }
-
-    // 5. 检查最近创建的项目
-    addLog('步骤5: 查询最近创建的5个项目');
+    // 4. 检查最近创建的项目
+    addLog('步骤4: 查询最近创建的5个项目');
     try {
       const client = getSupabaseClient();
       const { data: recentProjects, error } = await client

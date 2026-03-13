@@ -629,34 +629,9 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
 
-  // 创建本地预览URL（选择文件后立即预览）
-  const createLocalPreview = (file: File, isThumbnail = false): string => {
-    const url = URL.createObjectURL(file);
-    console.log('创建本地预览URL:', url, 'isThumbnail:', isThumbnail);
-    if (isThumbnail) {
-      setThumbnailPreviewUrl(url);
-    } else {
-      setPreviewUrl(url);
-    }
-    return url;
-  };
-
-  // 清理预览URL - 只在组件卸载时清理
-  useEffect(() => {
-    return () => {
-      console.log('组件卸载，清理预览URL');
-      if (previewUrl && previewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(previewUrl);
-      }
-      if (thumbnailPreviewUrl && thumbnailPreviewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(thumbnailPreviewUrl);
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isThumbnail = false) => {
     const file = e.target.files?.[0];
+    console.log('handleFileUpload called, file:', file, 'isThumbnail:', isThumbnail);
     if (!file) return;
     const maxSize = isThumbnail ? 5 * 1024 * 1024 : 100 * 1024 * 1024;
     if (file.size > maxSize) {
@@ -668,9 +643,17 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
     const isImage = file.type.startsWith('image/') || 
       /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
     
+    console.log('isImage:', isImage, 'file.type:', file.type, 'file.name:', file.name);
+    
     // 如果是图片类型，立即创建本地预览
     if (isImage) {
-      createLocalPreview(file, isThumbnail);
+      const url = URL.createObjectURL(file);
+      console.log('Created blob URL:', url);
+      if (isThumbnail) {
+        setThumbnailPreviewUrl(url);
+      } else {
+        setPreviewUrl(url);
+      }
     }
 
     setUploading(true);
@@ -685,10 +668,11 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
         body: uploadFormData,
       });
       const data = await response.json();
+      console.log('Upload response:', data);
       if (data.success) {
         // 使用服务器返回的URL作为预览URL（覆盖本地blob URL）
-        // 只有当服务器返回的 URL 存在且文件类型为图片时才更新预览
         if (data.data.url && (data.data.fileType === 'image' || isImage)) {
+          console.log('Setting preview URL to:', data.data.url);
           if (isThumbnail) {
             setThumbnailPreviewUrl(data.data.url);
           } else {
@@ -705,7 +689,6 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
         }
       } else {
         toast.error(data.error || '上传失败');
-        // 上传失败时清除本地预览
         if (isThumbnail) {
           setThumbnailPreviewUrl(null);
         } else {
@@ -713,8 +696,8 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
         }
       }
     } catch (error) {
+      console.error('Upload error:', error);
       toast.error('上传失败，请重试');
-      // 上传失败时清除本地预览
       if (isThumbnail) {
         setThumbnailPreviewUrl(null);
       } else {
@@ -774,12 +757,19 @@ function DesignForm({ item, onSuccess }: { item: any; onSuccess: () => void }) {
           <Label>素材文件</Label>
           <Input type="file" accept=".zip,.rar,.7z,.gz,.jpg,.jpeg,.png,.gif,.webp,.svg,.mp4,.webm" onChange={(e) => handleFileUpload(e, false)} disabled={uploading} />
           {formData.file_name && <div className="text-sm text-muted-foreground">已上传: {formData.file_name}</div>}
-          {/* 图片预览 */}
+          {/* 图片预览 - 显示当前 previewUrl 状态 */}
+          <div className="text-xs text-muted-foreground">预览状态: {previewUrl ? '有预览' : '无预览'}</div>
           {previewUrl && (
             <div className="mt-2 relative">
               <div className="text-xs text-muted-foreground mb-1">预览:</div>
               <div className="relative inline-block">
-                <img src={previewUrl} alt="预览" className="max-w-[200px] max-h-[200px] rounded border object-contain" />
+                <img 
+                  src={previewUrl} 
+                  alt="预览" 
+                  className="max-w-[200px] max-h-[200px] rounded border object-contain" 
+                  onError={(e) => console.error('Image load error:', e)}
+                  onLoad={() => console.log('Image loaded successfully')}
+                />
                 {uploading && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded">
                     <div className="text-white text-sm">上传中...</div>

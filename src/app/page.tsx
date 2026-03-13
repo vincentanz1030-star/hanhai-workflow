@@ -3043,16 +3043,18 @@ function HomePageContent() {
                                         const isComplete = parseFloat(monthlyRate) >= 100;
                                         return (
                                           <td key={`actual-${monthly.month}`} className="px-2 py-2 text-center">
-                                            <Input
+                                            <input
                                               type="number"
-                                              defaultValue={monthly.actualAmount || ''}
+                                              key={`input-${monthly.id}-${monthly.actualAmount}`}
+                                              defaultValue={monthly.actualAmount || 0}
                                               onBlur={(e) => {
                                                 const value = e.target.value;
-                                                if (value !== '' && value !== String(monthly.actualAmount)) {
-                                                  handleMonthlyInputBlur(monthly.id, target.id, parseInt(value) || 0);
+                                                const numValue = parseInt(value) || 0;
+                                                if (numValue !== monthly.actualAmount) {
+                                                  handleMonthlyInputBlur(monthly.id, target.id, numValue);
                                                 }
                                               }}
-                                              className={`text-[10px] sm:text-xs h-6 sm:h-7 w-full text-center ${isComplete ? 'border-green-500' : ''}`}
+                                              className={`w-full h-7 text-center text-xs border rounded px-1 focus:outline-none focus:ring-2 focus:ring-primary/20 ${isComplete ? 'border-green-500' : 'border-border/50'}`}
                                             />
                                           </td>
                                         );

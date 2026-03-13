@@ -21,7 +21,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { NotificationBell } from '@/components/NotificationBell';
 import { WorkloadMonitor } from '@/components/WorkloadMonitor';
-import { NotificationCenter } from '@/components/NotificationCenter';
+import NotificationCenter from '@/components/NotificationCenter';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { getPositionName } from '@/lib/config';
 import ProductScheduleCalendar from '@/components/calendar/ProductScheduleCalendar';
@@ -2766,40 +2766,42 @@ function HomePageContent() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               {/* 左侧：项目概览 */}
               <div className="lg:col-span-2">
-                <Card className="shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/?tab=projects')}>
-                  <div className="px-4 py-3 border-b bg-muted/50">
-                    <div className="flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm">项目概览</span>
+                <Card className="border-0 shadow-sm bg-gradient-to-br from-card to-muted/20 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/?tab=projects')}>
+                  <div className="px-4 py-3 border-b border-border/50">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                        <Activity className="h-4 w-4 text-white" />
+                      </div>
+                      <span className="font-semibold text-sm">项目概览</span>
                     </div>
                   </div>
                   <CardContent className="p-4">
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="text-center">
-                        <p className="text-2xl font-bold">{stats.total}</p>
+                      <div className="text-center p-2 rounded-lg bg-muted/30">
+                        <p className="text-xl font-bold">{stats.total}</p>
                         <p className="text-xs text-muted-foreground">总项目</p>
                       </div>
-                      <div className="text-center">
-                        <p className="text-2xl font-bold text-primary">{stats.inProgress}</p>
+                      <div className="text-center p-2 rounded-lg bg-blue-500/10">
+                        <p className="text-xl font-bold text-blue-600">{stats.inProgress}</p>
                         <p className="text-xs text-muted-foreground">进行中</p>
                       </div>
-                      <div className="text-center">
-                        <p className="text-2xl font-bold text-emerald-600">{stats.completed}</p>
+                      <div className="text-center p-2 rounded-lg bg-emerald-500/10">
+                        <p className="text-xl font-bold text-emerald-600">{stats.completed}</p>
                         <p className="text-xs text-muted-foreground">已完成</p>
                       </div>
-                      <div className="text-center">
-                        <p className="text-2xl font-bold text-destructive">{stats.delayed}</p>
+                      <div className="text-center p-2 rounded-lg bg-red-500/10">
+                        <p className="text-xl font-bold text-red-600">{stats.delayed}</p>
                         <p className="text-xs text-muted-foreground">已延期</p>
                       </div>
                     </div>
-                    <div className="mt-3 pt-3 border-t">
-                      <div className="flex items-center justify-between text-xs mb-1">
+                    <div className="mt-3 pt-3 border-t border-border/50">
+                      <div className="flex items-center justify-between text-xs mb-1.5">
                         <span className="text-muted-foreground">待开始</span>
                         <span className="font-medium">{stats.pending}</span>
                       </div>
-                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-primary rounded-full transition-all"
+                          className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all"
                           style={{ width: `${stats.total > 0 ? (stats.pending / stats.total) * 100 : 0}%` }}
                         />
                       </div>

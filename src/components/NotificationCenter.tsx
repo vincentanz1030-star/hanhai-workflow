@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
@@ -10,20 +10,16 @@ import {
   AlertCircle, 
   Calendar, 
   Clock,
-  TrendingUp,
   CheckCircle,
-  ChevronRight,
-  MessageSquare,
-  ClipboardCheck,
   Megaphone,
   Info,
   AlertTriangle,
   XCircle,
-  Eye,
-  X,
   Plus,
   Pencil,
-  Trash2
+  Trash2,
+  FileText,
+  ClipboardCheck
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -66,7 +62,6 @@ interface Notification {
   role?: string;
   deadline?: string;
   createdAt: string;
-  // 关联 ID 字段
   projectId?: string;
   taskId?: string;
   collaborationId?: string;
@@ -86,7 +81,15 @@ interface NotificationCenterProps {
   userBrand?: string;
 }
 
-export function NotificationCenter({
+// 公告类型配置
+const announcementTypeConfig = {
+  info: { icon: Info, bgColor: 'bg-gradient-to-br from-blue-500 to-blue-600', label: '通知' },
+  warning: { icon: AlertTriangle, bgColor: 'bg-gradient-to-br from-amber-500 to-orange-500', label: '警告' },
+  success: { icon: CheckCircle, bgColor: 'bg-gradient-to-br from-emerald-500 to-green-500', label: '成功' },
+  error: { icon: XCircle, bgColor: 'bg-gradient-to-br from-red-500 to-rose-500', label: '紧急' },
+};
+
+export default function NotificationCenter({
   collaborations = [],
   reminders = [],
   weeklyPlans = [],
@@ -96,389 +99,238 @@ export function NotificationCenter({
   userBrand = 'all',
 }: NotificationCenterProps) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   
   // 公告相关状态
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [unreadAnnouncements, setUnreadAnnouncements] = useState(0);
-  const [previewAnnouncement, setPreviewAnnouncement] = useState<Announcement | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(true);
   
-  // 公告编辑相关状态
+  // 对话框状态
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [deletingAnnouncement, setDeletingAnnouncement] = useState<Announcement | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
+  const [announcementForm, setAnnouncementForm] = useState({
     title: '',
     content: '',
-    type: 'info' as Announcement['type'],
-    priority: 0,
-    is_active: true,
-    start_time: '',
-    end_time: '',
-    brand: 'all',
+    type: 'info' as 'info' | 'warning' | 'success' | 'error',
+    priority: 1,
   });
   
-  // 客户端挂载
+  // 预览状态
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewAnnouncement, setPreviewAnnouncement] = useState<Announcement | null>(null);
+  
+  // 读取状态存储
+  const [readAnnouncementIds, setReadAnnouncementIds] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     setMounted(true);
+    // 从本地存储读取已读公告ID
+    const storedReadIds = localStorage.getItem('readAnnouncementIds');
+    if (storedReadIds) {
+      setReadAnnouncementIds(new Set(JSON.parse(storedReadIds)));
+    }
   }, []);
-  
-  // 获取公告
-  const fetchAnnouncements = useCallback(async () => {
+
+  // 加载公告
+  const loadAnnouncements = useCallback(async () => {
     try {
-      const response = await fetch('/api/announcements?activeOnly=true');
-      const result = await response.json();
-      if (result.success) {
-        setAnnouncements(result.announcements || []);
-        setUnreadAnnouncements(result.unreadCount || 0);
+      setIsLoadingAnnouncements(true);
+      const response = await fetch('/api/announcements');
+      const data = await response.json();
+      if (data.success && data.announcements) {
+        // 根据品牌过滤
+        const filtered = data.announcements.filter((a: Announcement) => 
+          a.brand === 'all' || a.brand === userBrand || userBrand === 'all'
+        );
+        setAnnouncements(filtered.map((a: Announcement) => ({
+          ...a,
+          isRead: readAnnouncementIds.has(a.id)
+        })));
       }
     } catch (error) {
-      console.error('获取公告失败:', error);
+      console.error('加载公告失败:', error);
+    } finally {
+      setIsLoadingAnnouncements(false);
     }
-  }, []);
-  
+  }, [userBrand, readAnnouncementIds]);
+
   useEffect(() => {
-    fetchAnnouncements();
-  }, [fetchAnnouncements]);
-  
-  // 标记公告已读
-  const markAnnouncementAsRead = async (announcementId: string) => {
-    try {
-      await fetch('/api/announcements/read', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ announcementId }),
-      });
-      setAnnouncements((prev) =>
-        prev.map((a) => (a.id === announcementId ? { ...a, isRead: true } : a))
-      );
-      setUnreadAnnouncements((prev) => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error('标记已读失败:', error);
+    loadAnnouncements();
+  }, [loadAnnouncements]);
+
+  // 标记公告为已读
+  const markAsRead = (announcementId: string) => {
+    const newReadIds = new Set(readAnnouncementIds);
+    newReadIds.add(announcementId);
+    setReadAnnouncementIds(newReadIds);
+    localStorage.setItem('readAnnouncementIds', JSON.stringify([...newReadIds]));
+    setAnnouncements(prev => prev.map(a => 
+      a.id === announcementId ? { ...a, isRead: true } : a
+    ));
+  };
+
+  // 未读公告数
+  const unreadAnnouncements = announcements.filter(a => !a.isRead).length;
+
+  // 通知统计
+  const totalNotifications = collaborations.length + reminders.length + weeklyPlans.length + projectNotifications.length + approvalNotifications.length;
+  const highPriorityCount = [...collaborations, ...reminders, ...weeklyPlans, ...projectNotifications, ...approvalNotifications]
+    .filter(n => n.priority === 'high').length;
+
+  // 获取通知图标
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'collaboration': return <Users className="h-4 w-4" />;
+      case 'reminder': return <Clock className="h-4 w-4" />;
+      case 'weekly': return <Calendar className="h-4 w-4" />;
+      case 'project': return <FileText className="h-4 w-4" />;
+      case 'approval': return <ClipboardCheck className="h-4 w-4" />;
+      case 'task': return <CheckCircle className="h-4 w-4" />;
+      case 'campaign': return <Megaphone className="h-4 w-4" />;
+      case 'campaign_task': return <CheckCircle className="h-4 w-4" />;
+      default: return <Bell className="h-4 w-4" />;
     }
   };
-  
-  // 公告类型配置
-  const announcementTypeConfig = {
-    info: { icon: Info, bgColor: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-950/30', borderColor: 'border-blue-200 dark:border-blue-800' },
-    warning: { icon: AlertTriangle, bgColor: 'bg-amber-500', lightBg: 'bg-amber-50 dark:bg-amber-950/30', borderColor: 'border-amber-200 dark:border-amber-800' },
-    success: { icon: CheckCircle, bgColor: 'bg-emerald-500', lightBg: 'bg-emerald-50 dark:bg-emerald-950/30', borderColor: 'border-emerald-200 dark:border-emerald-800' },
-    error: { icon: XCircle, bgColor: 'bg-red-500', lightBg: 'bg-red-50 dark:bg-red-950/30', borderColor: 'border-red-200 dark:border-red-800' },
+
+  // 格式化时间
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days === 0) return '今天';
+    if (days === 1) return '昨天';
+    if (days < 7) return `${days}天前`;
+    return date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
   };
-  
+
   // 打开公告预览
   const openAnnouncementPreview = (announcement: Announcement) => {
+    markAsRead(announcement.id);
     setPreviewAnnouncement(announcement);
     setIsPreviewOpen(true);
-    if (!announcement.isRead) {
-      markAnnouncementAsRead(announcement.id);
-    }
   };
-  
-  // 重置表单
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      content: '',
-      type: 'info',
-      priority: 0,
-      is_active: true,
-      start_time: '',
-      end_time: '',
-      brand: userBrand,
-    });
-    setEditingAnnouncement(null);
-  };
-  
-  // 打开新增对话框
+
+  // 添加公告
   const handleAddAnnouncement = () => {
-    resetForm();
-    setFormData(prev => ({ ...prev, brand: userBrand }));
+    setEditingAnnouncement(null);
+    setAnnouncementForm({ title: '', content: '', type: 'info', priority: 1 });
     setIsEditDialogOpen(true);
   };
-  
-  // 打开编辑对话框
+
+  // 编辑公告
   const handleEditAnnouncement = (announcement: Announcement, e?: React.MouseEvent) => {
-    e?.stopPropagation();
+    if (e) e.stopPropagation();
     setEditingAnnouncement(announcement);
-    setFormData({
+    setAnnouncementForm({
       title: announcement.title,
       content: announcement.content || '',
       type: announcement.type,
       priority: announcement.priority,
-      is_active: announcement.is_active,
-      start_time: announcement.start_time ? announcement.start_time.slice(0, 16) : '',
-      end_time: announcement.end_time ? announcement.end_time.slice(0, 16) : '',
-      brand: announcement.brand,
     });
     setIsEditDialogOpen(true);
   };
-  
-  // 提交表单
-  const handleSubmitAnnouncement = async () => {
-    if (!formData.title.trim()) {
-      alert('请输入公告标题');
-      return;
-    }
-    setIsSubmitting(true);
+
+  // 保存公告
+  const handleSaveAnnouncement = async () => {
     try {
-      const url = editingAnnouncement
+      const url = editingAnnouncement 
         ? `/api/announcements/${editingAnnouncement.id}`
         : '/api/announcements';
       const method = editingAnnouncement ? 'PUT' : 'POST';
-
-      const body: Record<string, unknown> = {
-        title: formData.title,
-        content: formData.content || null,
-        type: formData.type,
-        priority: formData.priority,
-        is_active: formData.is_active,
-        brand: formData.brand,
-      };
-      if (formData.start_time) body.start_time = new Date(formData.start_time).toISOString();
-      if (formData.end_time) body.end_time = new Date(formData.end_time).toISOString();
-
+      
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          ...announcementForm,
+          brand: userBrand === 'all' ? 'all' : userBrand,
+          is_active: true,
+        }),
       });
-      const result = await response.json();
-      if (result.success) {
+
+      if (response.ok) {
         setIsEditDialogOpen(false);
-        resetForm();
-        fetchAnnouncements();
-      } else {
-        alert(result.error || '操作失败');
+        loadAnnouncements();
       }
     } catch (error) {
-      console.error('提交失败:', error);
-      alert('提交失败');
-    } finally {
-      setIsSubmitting(false);
+      console.error('保存公告失败:', error);
     }
   };
-  
+
   // 删除公告
   const handleDeleteAnnouncement = async () => {
     if (!deletingAnnouncement) return;
-    setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/announcements/${deletingAnnouncement.id}`, { method: 'DELETE' });
-      const result = await response.json();
-      if (result.success) {
+      const response = await fetch(`/api/announcements/${deletingAnnouncement.id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
         setIsDeleteDialogOpen(false);
         setDeletingAnnouncement(null);
-        fetchAnnouncements();
-      } else {
-        alert(result.error || '删除失败');
+        loadAnnouncements();
       }
     } catch (error) {
-      console.error('删除失败:', error);
-      alert('删除失败');
-    } finally {
-      setIsSubmitting(false);
+      console.error('删除公告失败:', error);
     }
   };
 
+  // 点击通知
   const handleNotificationClick = (notification: Notification) => {
-    // 构建基础 URL 参数
-    const params = new URLSearchParams();
-
-    // 根据通知类型跳转到对应板块，并添加关联 ID
-    switch (notification.type) {
-      case 'collaboration':
-        params.set('tab', 'collaboration');
-        params.set('subtab', 'projects');
-        if (notification.collaborationId) {
-          params.set('openCollaborationId', notification.collaborationId);
-        }
-        break;
-      case 'reminder':
-        params.set('tab', 'projects');
-        if (notification.projectId) {
-          params.set('openProjectId', notification.projectId);
-        }
-        break;
-      case 'weekly':
-        params.set('tab', 'timeline');
-        break;
-      case 'project':
-        params.set('tab', 'projects');
-        if (notification.projectId) {
-          params.set('openProjectId', notification.projectId);
-        }
-        break;
-      case 'approval':
-        params.set('tab', 'collaboration');
-        params.set('subtab', 'approval');
-        if (notification.approvalId) {
-          params.set('openApprovalId', notification.approvalId);
-        }
-        break;
-      case 'task':
-        params.set('tab', 'projects');
-        if (notification.projectId) {
-          params.set('openProjectId', notification.projectId);
-        }
-        if (notification.taskId) {
-          params.set('openTaskId', notification.taskId);
-        }
-        break;
-      case 'campaign':
-        params.set('tab', 'marketing');
-        if (notification.campaignId) {
-          params.set('openCampaignId', notification.campaignId);
-        }
-        break;
-      case 'campaign_task':
-        params.set('tab', 'marketing');
-        if (notification.campaignTaskId) {
-          params.set('openCampaignTaskId', notification.campaignTaskId);
-        }
-        break;
-      default:
-        break;
-    }
-
-    // 跳转到对应的 URL
-    const url = params.toString() ? `/?${params.toString()}` : '/';
-    router.push(url);
-  };
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'bg-red-500 text-white';
-      case 'medium':
-        return 'bg-orange-500 text-white';
-      case 'low':
-        return 'bg-blue-500 text-white';
-      default:
-        return 'bg-gray-500 text-white';
+    if (notification.projectId) {
+      router.push(`/?tab=projects&project=${notification.projectId}`);
+    } else if (notification.taskId) {
+      router.push(`/?tab=tasks&task=${notification.taskId}`);
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'collaboration':
-        return <Users className="h-4 w-4" />;
-      case 'reminder':
-        return <AlertCircle className="h-4 w-4" />;
-      case 'weekly':
-        return <Calendar className="h-4 w-4" />;
-      case 'project':
-        return <TrendingUp className="h-4 w-4" />;
-      case 'approval':
-        return <ClipboardCheck className="h-4 w-4" />;
-      default:
-        return <Bell className="h-4 w-4" />;
-    }
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return '刚刚';
-    if (diffMins < 60) return `${diffMins}分钟前`;
-    if (diffHours < 24) return `${diffHours}小时前`;
-    if (diffDays < 7) return `${diffDays}天前`;
-    return date.toLocaleDateString('zh-CN');
-  };
-
-  const totalNotifications = collaborations.length + reminders.length + weeklyPlans.length + projectNotifications.length + approvalNotifications.length;
-  const highPriorityCount = [...collaborations, ...reminders, ...weeklyPlans, ...projectNotifications, ...approvalNotifications].filter(n => n.priority === 'high').length;
-  const totalAnnouncements = announcements.length;
-  const grandTotal = totalNotifications + totalAnnouncements;
-
-  const renderNotificationItem = (notification: Notification) => {
-    const { type, priority } = notification;
-    const icon = getTypeIcon(type);
-    const priorityColor = getPriorityColor(priority);
-    const isOverdue = notification.deadline && new Date(notification.deadline) < new Date();
-
+  if (!mounted) {
     return (
-      <div 
-        key={notification.id} 
-        className={`p-3 rounded-lg border-2 hover:shadow-md transition-all cursor-pointer ${
-          priority === 'high' ? 'border-red-300 bg-red-50 dark:bg-red-900/10' :
-          isOverdue ? 'border-orange-300 bg-orange-50 dark:bg-orange-900/10' :
-          'border-transparent bg-muted/30'
-        }`}
-        onClick={() => handleNotificationClick(notification)}
-      >
-        <div className="flex items-start gap-3">
-          <div className={`mt-0.5 ${priority === 'high' ? 'text-red-600' : isOverdue ? 'text-orange-600' : 'text-muted-foreground'}`}>
-            {icon}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="font-medium text-sm truncate">{notification.title}</span>
-              {notification.role && (
-                <Badge variant="outline" className="text-xs">
-                  {notification.role}
-                </Badge>
-              )}
-              <Badge className={`${priorityColor} text-xs`}>
-                {priority === 'high' ? '紧急' : priority === 'medium' ? '重要' : '普通'}
-              </Badge>
-              {isOverdue && (
-                <Badge variant="destructive" className="text-xs">
-                  已逾期
-                </Badge>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground line-clamp-2">{notification.content}</p>
-            {notification.deadline && (
-              <div className="flex items-center gap-1 text-xs mt-1">
-                <Clock className="h-3 w-3" />
-                <span className={isOverdue ? 'text-red-600 font-medium' : 'text-muted-foreground'}>
-                  {formatTime(notification.deadline)}截止
-                </span>
-              </div>
-            )}
-          </div>
-          <div className="text-xs text-muted-foreground whitespace-nowrap">
-            {formatTime(notification.createdAt)}
-          </div>
-        </div>
-      </div>
+      <Card className="border-0 shadow-sm bg-gradient-to-br from-card to-muted/20">
+        <div className="h-[280px]" />
+      </Card>
     );
-  };
+  }
 
   return (
-    <Card className="shadow-sm">
-      {/* 两段式内容区：公告 + 通知 */}
-      <div className="grid grid-cols-2 divide-x divide-border">
+    <Card className="border-0 shadow-sm bg-gradient-to-br from-card to-muted/20">
+      <div className="grid grid-cols-2 divide-x divide-border/50">
         {/* 左侧：公告区 */}
         <div className="flex flex-col">
-          <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
-            <div className="flex items-center gap-2">
-              <Megaphone className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium text-sm">公告</span>
-              {unreadAnnouncements > 0 && (
-                <Badge variant="destructive" className="text-[10px] h-4 px-1.5">
-                  {unreadAnnouncements}
-                </Badge>
-              )}
+          {/* 标题栏 */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <Megaphone className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <span className="font-semibold text-sm">公告</span>
+                {unreadAnnouncements > 0 && (
+                  <Badge variant="destructive" className="ml-2 text-[10px] h-4 px-1.5">
+                    {unreadAnnouncements}
+                  </Badge>
+                )}
+              </div>
             </div>
             {isAdmin && (
-              <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={handleAddAnnouncement}>
-                <Plus className="h-3 w-3 mr-1" />发布
+              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={handleAddAnnouncement}>
+                <Plus className="h-3.5 w-3.5" />发布
               </Button>
             )}
           </div>
+          
+          {/* 内容区 */}
           <ScrollArea className="h-[200px]">
-            {announcements.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Megaphone className="h-8 w-8 mx-auto mb-2 opacity-40" />
+            {isLoadingAnnouncements ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : announcements.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-8">
+                <Megaphone className="h-8 w-8 mb-2 opacity-40" />
                 <p className="text-sm">暂无公告</p>
               </div>
             ) : (
@@ -490,18 +342,15 @@ export function NotificationCenter({
                     <div 
                       key={announcement.id} 
                       className={cn(
-                        'p-2 rounded-md cursor-pointer hover:bg-muted transition-colors group',
+                        'p-2 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors group',
                         !announcement.isRead && 'bg-primary/5'
                       )}
                       onClick={() => openAnnouncementPreview(announcement)}
                     >
                       <div className="flex items-start gap-2">
-                        <IconComponent className={cn('h-4 w-4 mt-0.5 shrink-0', 
-                          announcement.type === 'info' && 'text-blue-500',
-                          announcement.type === 'warning' && 'text-amber-500',
-                          announcement.type === 'success' && 'text-emerald-500',
-                          announcement.type === 'error' && 'text-red-500'
-                        )} />
+                        <div className={cn('shrink-0 h-6 w-6 rounded-md flex items-center justify-center', config.bgColor)}>
+                          <IconComponent className="h-3 w-3 text-white" />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
                             <span className={cn('text-sm truncate', !announcement.isRead && 'font-medium')}>
@@ -536,26 +385,33 @@ export function NotificationCenter({
 
         {/* 右侧：通知区 */}
         <div className="flex flex-col">
-          <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
-            <div className="flex items-center gap-2">
-              <Bell className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium text-sm">通知</span>
-              {totalNotifications > 0 && (
-                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
-                  {totalNotifications}
-                </Badge>
-              )}
+          {/* 标题栏 */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <Bell className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <span className="font-semibold text-sm">通知</span>
+                {totalNotifications > 0 && (
+                  <Badge variant="secondary" className="ml-2 text-[10px] h-4 px-1.5">
+                    {totalNotifications}
+                  </Badge>
+                )}
+              </div>
             </div>
             {highPriorityCount > 0 && (
-              <Badge variant="destructive" className="text-[10px] h-4 px-1.5">
+              <Badge variant="destructive" className="text-[10px] h-5 px-2">
                 {highPriorityCount} 紧急
               </Badge>
             )}
           </div>
+          
+          {/* 内容区 */}
           <ScrollArea className="h-[200px]">
             {totalNotifications === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-40" />
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-8">
+                <CheckCircle className="h-8 w-8 mb-2 opacity-40" />
                 <p className="text-sm">暂无通知</p>
               </div>
             ) : (
@@ -567,28 +423,35 @@ export function NotificationCenter({
                     return 0;
                   })
                   .map((notification) => {
-                    const { type, priority } = notification;
-                    const icon = getTypeIcon(type);
                     const isOverdue = notification.deadline && new Date(notification.deadline) < new Date();
 
                     return (
                       <div 
                         key={notification.id} 
                         className={cn(
-                          'p-2 rounded-md cursor-pointer hover:bg-muted transition-colors',
-                          priority === 'high' && 'bg-destructive/5',
-                          isOverdue && priority !== 'high' && 'bg-amber-500/5'
+                          'p-2 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors',
+                          notification.priority === 'high' && 'bg-destructive/5',
+                          isOverdue && notification.priority !== 'high' && 'bg-amber-500/5'
                         )}
                         onClick={() => handleNotificationClick(notification)}
                       >
                         <div className="flex items-start gap-2">
-                          <div className={cn('mt-0.5 shrink-0', priority === 'high' ? 'text-destructive' : isOverdue ? 'text-amber-600' : 'text-muted-foreground')}>
-                            {icon}
+                          <div className={cn(
+                            'shrink-0 h-6 w-6 rounded-md flex items-center justify-center',
+                            notification.priority === 'high' 
+                              ? 'bg-gradient-to-br from-red-500 to-rose-500' 
+                              : isOverdue 
+                                ? 'bg-gradient-to-br from-amber-500 to-orange-500'
+                                : 'bg-gradient-to-br from-slate-400 to-slate-500'
+                          )}>
+                            <div className="text-white">
+                              {getTypeIcon(notification.type)}
+                            </div>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="text-sm font-medium truncate">{notification.title}</span>
-                              {priority === 'high' && (
+                              {notification.priority === 'high' && (
                                 <Badge variant="destructive" className="text-[9px] h-3.5 px-1">紧急</Badge>
                               )}
                               {isOverdue && (
@@ -614,13 +477,13 @@ export function NotificationCenter({
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {previewAnnouncement && (() => {
                 const config = announcementTypeConfig[previewAnnouncement.type];
                 const IconComponent = config.icon;
                 return (
-                  <div className={cn('p-2 rounded-lg text-white', config.bgColor)}>
-                    <IconComponent className="h-5 w-5" />
+                  <div className={cn('h-10 w-10 rounded-xl flex items-center justify-center', config.bgColor)}>
+                    <IconComponent className="h-5 w-5 text-white" />
                   </div>
                 );
               })()}
@@ -654,64 +517,61 @@ export function NotificationCenter({
           </div>
         </DialogContent>
       </Dialog>
-      
-      {/* 编辑/新增公告对话框 */}
+
+      {/* 编辑公告对话框 */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{editingAnnouncement ? '编辑公告' : '发布公告'}</DialogTitle>
             <DialogDescription>
-              {editingAnnouncement ? '修改公告内容' : '发布新公告'}
+              {editingAnnouncement ? '修改公告内容' : '发布新公告通知团队成员'}
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh]">
-            <div className="grid gap-4 py-4 pr-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">标题 *</Label>
-                <Input id="title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="公告标题" />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="content">内容</Label>
-                <Textarea id="content" value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} placeholder="公告内容" rows={4} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="type">类型</Label>
-                  <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v as Announcement['type'] })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="info">通知</SelectItem>
-                      <SelectItem value="warning">警告</SelectItem>
-                      <SelectItem value="success">成功</SelectItem>
-                      <SelectItem value="error">错误</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="brand">品牌</Label>
-                  <Select value={formData.brand} onValueChange={(v) => setFormData({ ...formData, brand: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">全部品牌</SelectItem>
-                      <SelectItem value="he_zhe">禾哲</SelectItem>
-                      <SelectItem value="baobao">BAOBAO</SelectItem>
-                      <SelectItem value="ai_he">爱禾</SelectItem>
-                      <SelectItem value="bao_deng_yuan">宝登源</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>标题</Label>
+              <Input
+                value={announcementForm.title}
+                onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
+                placeholder="请输入公告标题"
+              />
             </div>
-          </ScrollArea>
+            <div className="space-y-2">
+              <Label>类型</Label>
+              <Select
+                value={announcementForm.type}
+                onValueChange={(value) => setAnnouncementForm({ ...announcementForm, type: value as any })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="info">通知</SelectItem>
+                  <SelectItem value="warning">警告</SelectItem>
+                  <SelectItem value="success">成功</SelectItem>
+                  <SelectItem value="error">紧急</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>内容</Label>
+              <Textarea
+                value={announcementForm.content}
+                onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
+                placeholder="请输入公告内容"
+                rows={4}
+              />
+            </div>
+          </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>取消</Button>
-            <Button onClick={handleSubmitAnnouncement} disabled={isSubmitting}>
-              {isSubmitting ? '提交中...' : (editingAnnouncement ? '保存' : '发布')}
+            <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(false)}>取消</Button>
+            <Button size="sm" onClick={handleSaveAnnouncement} disabled={!announcementForm.title}>
+              {editingAnnouncement ? '保存' : '发布'}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-      
+
       {/* 删除确认对话框 */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-sm">
@@ -721,11 +581,9 @@ export function NotificationCenter({
               确定要删除公告「{deletingAnnouncement?.title}」吗？此操作无法撤销。
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>取消</Button>
-            <Button variant="destructive" onClick={handleDeleteAnnouncement} disabled={isSubmitting}>
-              {isSubmitting ? '删除中...' : '删除'}
-            </Button>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" size="sm" onClick={() => setIsDeleteDialogOpen(false)}>取消</Button>
+            <Button variant="destructive" size="sm" onClick={handleDeleteAnnouncement}>删除</Button>
           </div>
         </DialogContent>
       </Dialog>

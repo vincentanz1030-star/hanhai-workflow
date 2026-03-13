@@ -2750,65 +2750,71 @@ function HomePageContent() {
             </Card>
           )}
 
-          {/* 数据看板 */}
-          <TabsContent value="dashboard" className="space-y-4">
-            {/* 消息中心 - 公告+通知并排 */}
-            <NotificationCenter
-              collaborations={notifications.collaborations}
-              reminders={notifications.reminders}
-              weeklyPlans={notifications.weeklyPlans}
-              projectNotifications={notifications.projectNotifications}
-              isAdmin={user?.roles?.some((r) => r.role === 'admin' || r.role === 'super_admin') || false}
-              userBrand={user?.brand || 'all'}
-            />
-
-            {/* 统计概览 + 新品排期 并排 */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-              {/* 统计概览 - 紧凑型 */}
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-card to-muted/20 lg:col-span-1">
-                <CardHeader className="pb-2 pt-3 px-4">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-primary" />
-                    项目概览
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 px-4 pb-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-0.5">
-                      <p className="text-2xl font-bold">{stats.total}</p>
-                      <p className="text-xs text-muted-foreground">总项目</p>
-                    </div>
-                    <div className="space-y-0.5">
-                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.inProgress}</p>
-                      <p className="text-xs text-muted-foreground">进行中</p>
-                    </div>
-                    <div className="space-y-0.5">
-                      <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.completed}</p>
-                      <p className="text-xs text-muted-foreground">已完成</p>
-                    </div>
-                    <div className="space-y-0.5">
-                      <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">{stats.delayed}</p>
-                      <p className="text-xs text-muted-foreground">已延期</p>
+          {/* 数据看板 - 三段式布局 */}
+          <TabsContent value="dashboard" className="space-y-0">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+              {/* 左侧：项目概览 */}
+              <div className="lg:col-span-2 space-y-4">
+                <Card className="border-0 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/?tab=projects')}>
+                  <div className="bg-gradient-to-br from-violet-500 to-purple-600 px-4 py-3">
+                    <div className="flex items-center gap-2 text-white">
+                      <Activity className="h-4 w-4" />
+                      <span className="font-medium text-sm">项目概览</span>
                     </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-border/50">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">待开始</span>
-                      <span className="font-medium">{stats.pending}</span>
+                  <CardContent className="p-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold">{stats.total}</p>
+                        <p className="text-[10px] text-muted-foreground">总项目</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.inProgress}</p>
+                        <p className="text-[10px] text-muted-foreground">进行中</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.completed}</p>
+                        <p className="text-[10px] text-muted-foreground">已完成</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">{stats.delayed}</p>
+                        <p className="text-[10px] text-muted-foreground">已延期</p>
+                      </div>
                     </div>
-                    <div className="mt-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-slate-400 to-slate-500 rounded-full transition-all"
-                        style={{ width: `${stats.total > 0 ? (stats.pending / stats.total) * 100 : 0}%` }}
-                      />
+                    <div className="mt-3 pt-3 border-t border-border/50">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">待开始</span>
+                        <span className="font-medium">{stats.pending}</span>
+                      </div>
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-violet-400 to-purple-500 rounded-full transition-all"
+                          style={{ width: `${stats.total > 0 ? (stats.pending / stats.total) * 100 : 0}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    <div className="mt-3 text-center">
+                      <span className="text-xs text-primary hover:underline">点击查看项目 →</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
 
-              {/* 新品排期日历 - 占3/4 */}
-              <div className="lg:col-span-3">
+              {/* 中间：新品排期日历 */}
+              <div className="lg:col-span-7">
                 <ProductScheduleCalendar />
+              </div>
+
+              {/* 右侧：消息中心 */}
+              <div className="lg:col-span-3">
+                <NotificationCenter
+                  collaborations={notifications.collaborations}
+                  reminders={notifications.reminders}
+                  weeklyPlans={notifications.weeklyPlans}
+                  projectNotifications={notifications.projectNotifications}
+                  isAdmin={user?.roles?.some((r) => r.role === 'admin' || r.role === 'super_admin') || false}
+                  userBrand={user?.brand || 'all'}
+                />
               </div>
             </div>
 

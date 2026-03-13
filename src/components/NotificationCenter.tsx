@@ -21,7 +21,10 @@ import {
   AlertTriangle,
   XCircle,
   Eye,
-  X
+  X,
+  Plus,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -32,6 +35,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // 公告接口
 interface Announcement {
@@ -75,6 +82,8 @@ interface NotificationCenterProps {
   weeklyPlans?: Notification[];
   projectNotifications?: Notification[];
   approvalNotifications?: Notification[];
+  isAdmin?: boolean;
+  userBrand?: string;
 }
 
 export function NotificationCenter({
@@ -83,6 +92,8 @@ export function NotificationCenter({
   weeklyPlans = [],
   projectNotifications = [],
   approvalNotifications = [],
+  isAdmin = false,
+  userBrand = 'all',
 }: NotificationCenterProps) {
   const router = useRouter();
   
@@ -92,6 +103,23 @@ export function NotificationCenter({
   const [previewAnnouncement, setPreviewAnnouncement] = useState<Announcement | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  
+  // 公告编辑相关状态
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
+  const [deletingAnnouncement, setDeletingAnnouncement] = useState<Announcement | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    type: 'info' as Announcement['type'],
+    priority: 0,
+    is_active: true,
+    start_time: '',
+    end_time: '',
+    brand: 'all',
+  });
   
   // 客户端挂载
   useEffect(() => {
@@ -147,6 +175,112 @@ export function NotificationCenter({
     setIsPreviewOpen(true);
     if (!announcement.isRead) {
       markAnnouncementAsRead(announcement.id);
+    }
+  };
+  
+  // 重置表单
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      content: '',
+      type: 'info',
+      priority: 0,
+      is_active: true,
+      start_time: '',
+      end_time: '',
+      brand: userBrand,
+    });
+    setEditingAnnouncement(null);
+  };
+  
+  // 打开新增对话框
+  const handleAddAnnouncement = () => {
+    resetForm();
+    setFormData(prev => ({ ...prev, brand: userBrand }));
+    setIsEditDialogOpen(true);
+  };
+  
+  // 打开编辑对话框
+  const handleEditAnnouncement = (announcement: Announcement, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditingAnnouncement(announcement);
+    setFormData({
+      title: announcement.title,
+      content: announcement.content || '',
+      type: announcement.type,
+      priority: announcement.priority,
+      is_active: announcement.is_active,
+      start_time: announcement.start_time ? announcement.start_time.slice(0, 16) : '',
+      end_time: announcement.end_time ? announcement.end_time.slice(0, 16) : '',
+      brand: announcement.brand,
+    });
+    setIsEditDialogOpen(true);
+  };
+  
+  // 提交表单
+  const handleSubmitAnnouncement = async () => {
+    if (!formData.title.trim()) {
+      alert('请输入公告标题');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const url = editingAnnouncement
+        ? `/api/announcements/${editingAnnouncement.id}`
+        : '/api/announcements';
+      const method = editingAnnouncement ? 'PUT' : 'POST';
+
+      const body: Record<string, unknown> = {
+        title: formData.title,
+        content: formData.content || null,
+        type: formData.type,
+        priority: formData.priority,
+        is_active: formData.is_active,
+        brand: formData.brand,
+      };
+      if (formData.start_time) body.start_time = new Date(formData.start_time).toISOString();
+      if (formData.end_time) body.end_time = new Date(formData.end_time).toISOString();
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setIsEditDialogOpen(false);
+        resetForm();
+        fetchAnnouncements();
+      } else {
+        alert(result.error || '操作失败');
+      }
+    } catch (error) {
+      console.error('提交失败:', error);
+      alert('提交失败');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  // 删除公告
+  const handleDeleteAnnouncement = async () => {
+    if (!deletingAnnouncement) return;
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/announcements/${deletingAnnouncement.id}`, { method: 'DELETE' });
+      const result = await response.json();
+      if (result.success) {
+        setIsDeleteDialogOpen(false);
+        setDeletingAnnouncement(null);
+        fetchAnnouncements();
+      } else {
+        alert(result.error || '删除失败');
+      }
+    } catch (error) {
+      console.error('删除失败:', error);
+      alert('删除失败');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -394,9 +528,16 @@ export function NotificationCenter({
               {/* 公告优先显示 */}
               {announcements.length > 0 && (
                 <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
-                    <Megaphone className="h-3 w-3" />
-                    系统公告 ({announcements.length})
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <Megaphone className="h-3 w-3" />
+                      系统公告 ({announcements.length})
+                    </span>
+                    {isAdmin && (
+                      <Button size="sm" variant="ghost" className="h-5 px-1.5 text-[10px]" onClick={handleAddAnnouncement}>
+                        <Plus className="h-3 w-3 mr-0.5" />发布
+                      </Button>
+                    )}
                   </h4>
                   <div className="space-y-2">
                     {announcements.slice(0, 3).map((announcement) => {
@@ -406,7 +547,7 @@ export function NotificationCenter({
                         <div 
                           key={announcement.id} 
                           className={cn(
-                            'p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all',
+                            'p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all group',
                             announcement.isRead ? 'bg-muted/30 border-transparent' : `${config.lightBg} ${config.borderColor} border`
                           )}
                           onClick={() => openAnnouncementPreview(announcement)}
@@ -431,6 +572,16 @@ export function NotificationCenter({
                                 {mounted ? new Date(announcement.created_at).toLocaleString('zh-CN') : ''}
                               </p>
                             </div>
+                            {isAdmin && (
+                              <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => handleEditAnnouncement(announcement, e)}>
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingAnnouncement(announcement); setIsDeleteDialogOpen(true); }}>
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -502,6 +653,14 @@ export function NotificationCenter({
 
             {/* 公告标签页 */}
             <TabsContent value="announcement" className="flex-1 overflow-y-auto mt-0">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-muted-foreground">共 {announcements.length} 条公告</span>
+                {isAdmin && (
+                  <Button size="sm" variant="outline" className="h-6 text-xs" onClick={handleAddAnnouncement}>
+                    <Plus className="h-3 w-3 mr-1" />发布公告
+                  </Button>
+                )}
+              </div>
               {announcements.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Megaphone className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -516,7 +675,7 @@ export function NotificationCenter({
                       <div 
                         key={announcement.id} 
                         className={cn(
-                          'p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all',
+                          'p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all group',
                           announcement.isRead ? 'bg-muted/30 border-transparent' : `${config.lightBg} ${config.borderColor} border`
                         )}
                         onClick={() => openAnnouncementPreview(announcement)}
@@ -541,6 +700,16 @@ export function NotificationCenter({
                               {mounted ? new Date(announcement.created_at).toLocaleString('zh-CN') : ''}
                             </p>
                           </div>
+                          {isAdmin && (
+                            <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => handleEditAnnouncement(announcement, e)}>
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingAnnouncement(announcement); setIsDeleteDialogOpen(true); }}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -620,8 +789,91 @@ export function NotificationCenter({
           <div className="py-4">
             <p className="text-sm whitespace-pre-wrap">{previewAnnouncement?.content}</p>
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            {isAdmin && previewAnnouncement && (
+              <>
+                <Button size="sm" variant="outline" onClick={() => { setIsPreviewOpen(false); handleEditAnnouncement(previewAnnouncement); }}>
+                  <Pencil className="h-3.5 w-3.5 mr-1" />编辑
+                </Button>
+                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => { setIsPreviewOpen(false); setDeletingAnnouncement(previewAnnouncement); setIsDeleteDialogOpen(true); }}>
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />删除
+                </Button>
+              </>
+            )}
             <Button size="sm" onClick={() => setIsPreviewOpen(false)}>关闭</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* 编辑/新增公告对话框 */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingAnnouncement ? '编辑公告' : '发布公告'}</DialogTitle>
+            <DialogDescription>
+              {editingAnnouncement ? '修改公告内容' : '发布新公告'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">标题 *</Label>
+              <Input id="title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="公告标题" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="content">内容</Label>
+              <Textarea id="content" value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} placeholder="公告内容" rows={4} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="type">类型</Label>
+                <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v as Announcement['type'] })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="info">通知</SelectItem>
+                    <SelectItem value="warning">警告</SelectItem>
+                    <SelectItem value="success">成功</SelectItem>
+                    <SelectItem value="error">错误</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="brand">品牌</Label>
+                <Select value={formData.brand} onValueChange={(v) => setFormData({ ...formData, brand: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部品牌</SelectItem>
+                    <SelectItem value="he_zhe">禾哲</SelectItem>
+                    <SelectItem value="baobao">BAOBAO</SelectItem>
+                    <SelectItem value="ai_he">爱禾</SelectItem>
+                    <SelectItem value="bao_deng_yuan">宝登源</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>取消</Button>
+            <Button onClick={handleSubmitAnnouncement} disabled={isSubmitting}>
+              {isSubmitting ? '提交中...' : (editingAnnouncement ? '保存' : '发布')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* 删除确认对话框 */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+            <DialogDescription>
+              确定要删除公告「{deletingAnnouncement?.title}」吗？此操作无法撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>取消</Button>
+            <Button variant="destructive" onClick={handleDeleteAnnouncement} disabled={isSubmitting}>
+              {isSubmitting ? '删除中...' : '删除'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

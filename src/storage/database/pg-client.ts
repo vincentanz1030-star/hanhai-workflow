@@ -227,6 +227,14 @@ class QueryBuilder<T = any> implements PromiseLike<QueryResult<T>> {
     return this;
   }
 
+  // 范围（分页）- Supabase 风格的 range(from, to)
+  range(from: number, to: number) {
+    // range 是包含两端点的，所以 limit = to - from + 1
+    this.offsetClause = `OFFSET ${from}`;
+    this.limitClause = `LIMIT ${to - from + 1}`;
+    return this;
+  }
+
   // 构建 SELECT 查询
   private buildSelectQuery(): { text: string; values: any[] } {
     let sql = `SELECT ${this.selectFields} FROM ${this.tableName}`;

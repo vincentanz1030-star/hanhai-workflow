@@ -286,6 +286,7 @@ export async function PUT(request: NextRequest) {
             .update({
               target_amount: mt.targetAmount,
               actual_amount: mt.actualAmount,
+              updated_at: new Date().toISOString(),
             })
             .eq('id', mt.id);
         } else {
@@ -298,11 +299,35 @@ export async function PUT(request: NextRequest) {
               brand,
               year,
               target_amount: mt.targetAmount,
-              actual_amount: mt.actualAmount,
+              actual_amount: mt.actualAmount || 0,
             });
         }
       }
     }
+
+    // 重新计算年度实际金额
+    const { data: allMonthly } = await client
+      .from('monthly_sales_targets')
+      .select('actual_amount')
+      .eq('annual_target_id', id);
+
+    const totalActualAmount = allMonthly?.reduce((sum: number, m: { actual_amount?: number }) => sum + (m.actual_amount || 0), 0) || 0;
+
+    // 更新年度目标的实际金额
+    await client
+      .from('annual_sales_targets')
+      .update({
+        actual_amount: totalActualAmount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    // 获取更新后的年度目标
+    const { data: updatedTarget } = await client
+      .from('annual_sales_targets')
+      .select('*')
+      .eq('id', id)
+      .single();
 
     // 获取更新后的所有月度目标
     const { data: updatedMonthly } = await client
@@ -311,7 +336,7 @@ export async function PUT(request: NextRequest) {
       .eq('annual_target_id', id)
       .order('month', { ascending: true });
 
-    return NextResponse.json({ target: toCamelCase(target), monthlyTargets: toCamelCase(updatedMonthly) || [] });
+    return NextResponse.json({ target: toCamelCase(updatedTarget), monthlyTargets: toCamelCase(updatedMonthly) || [] });
   } catch (error) {
     console.error('服务器错误:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });

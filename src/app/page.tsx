@@ -1951,21 +1951,23 @@ function HomePageContent() {
   // 创建销售目标
   const handleCreateSalesTarget = async () => {
     try {
-      const url = editingSalesTarget
-        ? '/api/sales-targets/annual'
-        : '/api/sales-targets/annual';
+      const url = '/api/sales-targets/annual';
       const method = editingSalesTarget ? 'PUT' : 'POST';
 
+      // 编辑时需要包含月度目标的 id
       const body = editingSalesTarget
         ? {
             id: editingSalesTarget.id,
             ...newSalesTarget,
+            monthlyTargets: newSalesTarget.monthlyTargets.map((mt, index) => ({
+              ...mt,
+              id: editingSalesTarget.monthlyTargets?.find(m => m.month === mt.month)?.id,
+            })),
           }
         : newSalesTarget;
 
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
 

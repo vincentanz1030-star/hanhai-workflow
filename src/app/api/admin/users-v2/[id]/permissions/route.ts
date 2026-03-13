@@ -205,7 +205,7 @@ export async function GET(
   }
 }
 
-// PUT - 设置用户角色
+// PUT - 设置用户角色/岗位/权限
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -220,7 +220,7 @@ export async function PUT(
     const supabase = getSupabaseClient();
     const { id } = await params;
     const body = await request.json();
-    const { type, role_ids, position_ids, permissions } = body;
+    const { type, role_ids, position_ids, permissions, grant, revoke, permission_ids } = body;
 
     // 设置角色
     if (type === 'roles' && Array.isArray(role_ids)) {
@@ -256,9 +256,12 @@ export async function PUT(
       return NextResponse.json({ success: true, message: '岗位设置成功' });
     }
 
-    // 设置个人权限
+    // 设置个人权限 - 支持多种格式
+    // 格式1: { type: 'permissions', permissions: [{ permission_id, is_granted }] }
+    // 格式2: { grant: [...], revoke: [...] }
+    // 格式3: { permission_ids: [...] } - 直接设置权限列表
     if (type === 'permissions' && Array.isArray(permissions)) {
-      // permissions: [{ permission_id, is_granted, expires_at, remark }]
+      // 格式1
       for (const perm of permissions) {
         await supabase
           .from('user_permissions_v2')
@@ -275,8 +278,66 @@ export async function PUT(
       return NextResponse.json({ success: true, message: '权限设置成功' });
     }
 
+    // 格式2: grant/revoke 模式
+    if (grant !== undefined || revoke !== undefined) {
+      // 先删除所有现有权限
+      await supabase.from('user_permissions_v2').delete().eq('user_id', id);
+      
+      // 添加授权的权限
+      if (Array.isArray(grant) && grant.length > 0) {
+        const inserts = grant.map((permId: string) => ({
+          user_id: id,
+          permission_id: permId,
+          is_granted: true,
+          granted_at: new Date().toISOString(),
+        }));
+        const { error: grantError } = await supabase.from('user_permissions_v2').insert(inserts);
+        if (grantError) {
+          console.error('授权权限失败:', grantError);
+          return NextResponse.json({ success: false, error: grantError.message }, { status: 500 });
+        }
+      }
+      
+      // 添加拒绝的权限（is_granted = false）
+      if (Array.isArray(revoke) && revoke.length > 0) {
+        const inserts = revoke.map((permId: string) => ({
+          user_id: id,
+          permission_id: permId,
+          is_granted: false,
+          granted_at: new Date().toISOString(),
+        }));
+        await supabase.from('user_permissions_v2').insert(inserts);
+      }
+      
+      return NextResponse.json({ success: true, message: '权限设置成功' });
+    }
+
+    // 格式3: permission_ids 模式 - 直接替换
+    if (permission_ids !== undefined && Array.isArray(permission_ids)) {
+      // 先删除所有现有权限
+      await supabase.from('user_permissions_v2').delete().eq('user_id', id);
+      
+      // 添加新的权限
+      if (permission_ids.length > 0) {
+        const inserts = permission_ids.map((permId: string) => ({
+          user_id: id,
+          permission_id: permId,
+          is_granted: true,
+          granted_at: new Date().toISOString(),
+        }));
+        const { error: insertError } = await supabase.from('user_permissions_v2').insert(inserts);
+        if (insertError) {
+          console.error('设置权限失败:', insertError);
+          return NextResponse.json({ success: false, error: insertError.message }, { status: 500 });
+        }
+      }
+      
+      return NextResponse.json({ success: true, message: '权限设置成功' });
+    }
+
     return NextResponse.json({ success: false, error: '无效的请求参数' }, { status: 400 });
   } catch (error) {
+    console.error('权限设置错误:', error);
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : '设置失败' },
       { status: 500 }

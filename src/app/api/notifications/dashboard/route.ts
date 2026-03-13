@@ -5,16 +5,18 @@ import { requireAuth } from '@/lib/api-auth';
 // 类型定义
 interface Notification {
   id: string;
-  type: 'collaboration' | 'reminder' | 'weekly' | 'project';
+  type: 'collaboration' | 'reminder' | 'weekly' | 'project' | 'approval';
   title: string;
   content: string;
   priority: 'high' | 'medium' | 'low';
   role: string;
   deadline?: string;
   createdAt: string;
+  projectId?: string;
+  taskId?: string;
+  approvalId?: string;
 }
 
-// 直接从环境变量获取 Supabase 配置
 // 获取综合通知数据
 export async function GET(request: NextRequest) {
   try {
@@ -89,6 +91,8 @@ export async function GET(request: NextRequest) {
         role: task.role,
         deadline,
         createdAt: task.created_at,
+        projectId: task.project_id,
+        taskId: task.id,
       };
     }).filter((n: Notification) => n.priority !== 'low');
 
@@ -116,7 +120,7 @@ export async function GET(request: NextRequest) {
       return {
         id: `weekly-${plan.id}`,
         type: 'weekly' as const,
-        title: `本周工作：${plan.content.substring(0, 30)}...`,
+        title: `本周工作：${plan.content?.substring(0, 30) || '工作安排'}...`,
         content: plan.content,
         priority: priorityMap[plan.priority] || 'low' as 'high' | 'medium' | 'low',
         role: plan.position,
@@ -153,8 +157,29 @@ export async function GET(request: NextRequest) {
         priority,
         deadline: salesDate,
         createdAt: project.created_at,
+        projectId: project.id,
       };
     }).filter((n: Notification) => n.priority !== 'low');
+
+    // 5. 获取审批通知（待审批的流程）
+    const { data: approvalInstances } = await client
+      .from('approval_instances')
+      .select('*')
+      .eq('status', 'pending')
+      .order('started_at', { ascending: false })
+      .limit(10);
+
+    const approvalNotifications = (approvalInstances || []).map((approval: any) => ({
+      id: `approval-${approval.id}`,
+      type: 'approval' as const,
+      title: `审批待办：${approval.title || '审批流程'}`,
+      content: approval.content || '请及时处理审批流程',
+      priority: 'high' as const,
+      role: approval.current_approver_role || '',
+      deadline: approval.deadline,
+      createdAt: approval.started_at,
+      approvalId: approval.id,
+    }));
 
     // 合并所有通知并按优先级排序
     const allNotifications = [
@@ -162,6 +187,7 @@ export async function GET(request: NextRequest) {
       ...reminderNotifications,
       ...weeklyPlanNotifications,
       ...projectNotifications,
+      ...approvalNotifications,
     ].sort((a, b) => {
       const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
       return priorityOrder[a.priority] - priorityOrder[b.priority] || 
@@ -173,6 +199,7 @@ export async function GET(request: NextRequest) {
       reminders: reminderNotifications,
       weeklyPlans: weeklyPlanNotifications,
       projectNotifications: projectNotifications,
+      approvalNotifications: approvalNotifications,
       all: allNotifications,
     });
 
@@ -184,6 +211,7 @@ export async function GET(request: NextRequest) {
       reminders: [],
       weeklyPlans: [],
       projectNotifications: [],
+      approvalNotifications: [],
       all: [],
     }, { status: 500 });
   }

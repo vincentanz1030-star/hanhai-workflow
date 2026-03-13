@@ -71,14 +71,26 @@ export async function GET(request: NextRequest) {
     const { data: backups, error } = await client
       .from('data_backups')
       .select('*')
-      .order('created_at', { ascending: false })
+      .eq('is_deleted', false)
+      .order('backup_date', { ascending: false })
       .limit(50);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, backups: backups || [] });
+    // 转换字段名以匹配前端期望
+    const formattedBackups = (backups || []).map((b: { id: string; name: string; type: string; size: number; file_path: string | null; backup_date: string; created_by: string | null }) => ({
+      id: b.id,
+      name: b.name,
+      type: b.type,
+      file_size: b.size,
+      file_path: b.file_path,
+      created_at: b.backup_date,
+      created_by: b.created_by,
+    }));
+
+    return NextResponse.json({ success: true, backups: formattedBackups });
   } catch (error) {
     console.error('获取备份列表失败:', error);
     return NextResponse.json({ error: '获取备份列表失败' }, { status: 500 });
@@ -132,17 +144,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 创建备份记录（不存储backup_data，因为表结构可能不支持）
-    // 备份数据会以JSON文件形式存储或导出
+    // 创建备份记录（使用实际表结构）
     const { data: backupRecord, error } = await client
       .from('data_backups')
       .insert({
         name,
-        description: description || null,
-        file_size: JSON.stringify(backupData).length,
-        record_count: totalRecords,
-        tables,
+        type: 'full',
+        size: JSON.stringify(backupData).length,
+        file_path: null,
+        backup_date: new Date().toISOString(),
         created_by: authResult.userId,
+        is_deleted: false,
       })
       .select()
       .single();

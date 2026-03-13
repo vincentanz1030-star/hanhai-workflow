@@ -1196,35 +1196,19 @@ function HomePageContent() {
     });
   };
 
-  // 包装 setBrandFilter 以追踪所有调用
-  const setBrandFilterWithLog = (newBrand: 'all' | 'he_zhe' | 'baobao' | 'ai_he' | 'bao_deng_yuan') => {
-    const timestamp = new Date().toISOString();
-    console.log(`\n[${timestamp}] === setBrandFilter 被调用 ===`);
-    console.log(`从: ${brandFilter} -> 到: ${newBrand}`);
-    setBrandFilter(newBrand);
-  };
-
-  // 包装 setProjectsWithLog 以追踪所有调用
-  const setProjectsWithLog = (newProjects: Project[] | ((prev: Project[]) => Project[])) => {
-    const timestamp = new Date().toISOString();
-    console.log(`\n[${timestamp}] === setProjects 被调用 ===`);
-    console.log(`调用类型: ${typeof newProjects === 'function' ? '函数式更新' : '直接赋值'}`);
-    console.log(`调用前长度: ${projects.length}`);
-    setProjects(newProjects);
-    console.log(`调用后长度: ${typeof newProjects === 'function' ? 'N/A' : newProjects.length}`);
-  };
-
   // 通知中心状态
   const [notifications, setNotifications] = useState<{
     collaborations: any[];
     reminders: any[];
     weeklyPlans: any[];
     projectNotifications: any[];
+    approvalNotifications: any[];
   }>({
     collaborations: [],
     reminders: [],
     weeklyPlans: [],
     projectNotifications: [],
+    approvalNotifications: [],
   });
   
   // 销售目标相关状态
@@ -1379,15 +1363,11 @@ function HomePageContent() {
     }
   }, [searchParams]);
 
-  // 加载项目列表 - 最简单的实现
+  // 加载项目列表
   const loadProjects = async () => {
-    const timestamp = new Date().toISOString();
-    console.log(`\n[${timestamp}] === loadProjects 被调用 ===`);
-
     try {
       const response = await fetchWithAuth('/api/projects?brand=all&category=all');
       const data = await response.json();
-      console.log(`加载项目数量: ${data.projects?.length || 0}`);
       setProjects(data.projects || []);
     } catch (error) {
       console.error('加载项目失败:', error);
@@ -1476,10 +1456,6 @@ function HomePageContent() {
 
   // 创建或更新产品品类
   const handleCreateOrUpdateProductCategory = async () => {
-    console.log('=== 提交品类数据 ===');
-    console.log('editingProductCategory:', editingProductCategory);
-    console.log('newProductCategory:', newProductCategory);
-    
     try {
       // 验证必填字段
       if (!newProductCategory.brand || !newProductCategory.level || !newProductCategory.name) {
@@ -1497,9 +1473,7 @@ function HomePageContent() {
         body: JSON.stringify(newProductCategory),
       });
       
-      console.log('Response status:', response.status);
       const responseData = await response.json();
-      console.log('Response data:', responseData);
 
       if (response.ok) {
         setIsProductCategoryDialogOpen(false);
@@ -1739,26 +1713,17 @@ function HomePageContent() {
       setIsCreatingProject(true);
       setCreateProjectError('');
 
-      console.log('创建项目数据:', newProject);
-      console.log('当前品牌过滤器:', brandFilter);
-
       const response = await fetchWithAuth('/api/projects', {
         method: 'POST',
         body: JSON.stringify(newProject),
       });
 
       const data = await response.json();
-      console.log('创建项目响应状态:', response.status);
-      console.log('创建项目响应数据:', data);
 
       if (response.ok) {
-        console.log('创建成功，项目ID:', data.project?.id);
-        console.log('返回项目品牌:', data.project?.brand);
-        console.log('当前品牌过滤器:', brandFilter);
-
         const projectId = data.project?.id;
         if (!projectId) {
-          console.error('❌ 项目ID为空');
+          console.error('项目ID为空');
           setCreateProjectError('创建项目失败：未返回项目ID');
           return;
         }
@@ -1768,25 +1733,15 @@ function HomePageContent() {
           ...data.project,
           tasks: data.tasks || []
         };
-        console.log('立即添加项目:', newProjectData);
-        console.log('当前projects状态长度:', projects.length);
 
         // 重要：先验证数据库是否真的保存了项目，再关闭对话框
         const checkResponse = await fetch(`/api/check-project/${projectId}`, {
           credentials: 'include'
         });
         const checkData = await checkResponse.json();
-        console.log('检查结果:', checkData);
 
-        if (checkData.success && checkData.exists) {
-          console.log('✅ 项目在数据库中存在');
-          console.log(`项目名称: ${checkData.project.name}`);
-          console.log(`项目品牌: ${checkData.project.brand}`);
-          console.log(`任务数量: ${checkData.taskCount}`);
-          console.log(`创建时间: ${checkData.project.createdAt}`);
-        } else {
-          console.error('❌ 项目在数据库中不存在');
-          console.error('原因:', checkData.message || checkData.error);
+        if (!checkData.success || !checkData.exists) {
+          console.error('项目在数据库中不存在:', checkData.message || checkData.error);
           setCreateProjectError('项目创建后验证失败，项目未保存到数据库');
           setIsCreatingProject(false);
           return;
@@ -1796,12 +1751,7 @@ function HomePageContent() {
         setIsCreateDialogOpen(false);
 
         // 关键：使用函数式更新，确保基于最新的状态
-        setProjectsWithLog(prev => {
-          console.log('更新projects状态，当前长度:', prev.length);
-          const newList = [newProjectData, ...prev];
-          console.log('更新后长度:', newList.length);
-          return newList;
-        });
+        setProjects(prev => [newProjectData, ...prev]);
 
         // 重置表单
         setNewProject({
@@ -1815,32 +1765,6 @@ function HomePageContent() {
 
         // 不再自动修改品牌过滤器，让用户自行选择
         // 页面加载时会自动重置为 'all'，确保用户能看到所有项目
-
-        // 方法3：立即进行完整诊断
-        console.log('\n=== 开始完整诊断 ===');
-        const diagResponse = await fetch(`/api/full-diagnostic?id=${projectId}`, {
-          credentials: 'include'
-        });
-        const diagData = await diagResponse.json();
-        console.log('完整诊断结果:', diagData);
-
-        if (diagData.success) {
-          console.log(`✅ 诊断成功`);
-          console.log(`总项目数: ${diagData.allProjectsCount}`);
-          console.log(`任务数: ${diagData.tasksCount}`);
-
-          // 关键修复：不使用 loadProjects() 替换整个列表
-          // 而是检查项目是否真的在数据库中，如果数据库查询不到，才重新加载
-          if (diagData.allProjectsCount > 0) {
-            console.log(`数据库中存在项目，不重新加载列表，保持当前状态`);
-            console.log(`各品牌项目数量已统计`);
-          } else {
-            console.warn(`⚠️ 数据库中无项目，可能有问题，重新加载...`);
-            loadProjects();
-          }
-        } else {
-          console.error(`❌ 诊断失败: ${diagData.error}`);
-        }
       } else {
         setCreateProjectError(data.error || '创建项目失败，请重试');
       }
@@ -1909,7 +1833,7 @@ function HomePageContent() {
       if (response.ok) {
         const data = await response.json();
         // 更新本地项目列表
-        setProjectsWithLog(projects.map(p => 
+        setProjects(projects.map(p => 
           p.id === projectId ? { ...p, ...data.project } : p
         ));
         setEditingProjectId(null);
@@ -1941,6 +1865,7 @@ function HomePageContent() {
         reminders: data.reminders || [],
         weeklyPlans: data.weeklyPlans || [],
         projectNotifications: data.projectNotifications || [],
+        approvalNotifications: data.approvalNotifications || [],
       });
     } catch (error) {
       console.error('加载通知数据失败:', error);
@@ -2170,20 +2095,14 @@ function HomePageContent() {
     const isAdmin = user?.roles.some(r => r.role === 'admin');
 
     if (isAdmin) {
-      console.log('✅ 用户是管理员，可以查看所有品牌的项目');
       return projects;
     } else {
       // 品牌用户，只能查看对应品牌的项目
       const userBrand = user?.brand;
       if (!userBrand || userBrand === 'all') {
-        console.log('⚠️ 用户未设置品牌，返回空列表');
         return [];
       }
-
-      console.log(`🔒 品牌隔离：只显示 ${userBrand} 品牌的项目`);
-      const filtered = projects.filter(p => p.brand === userBrand);
-      console.log(`过滤后项目数: ${filtered.length}`);
-      return filtered;
+      return projects.filter(p => p.brand === userBrand);
     }
   };
 
@@ -2197,18 +2116,6 @@ function HomePageContent() {
     completed: filteredProjects.filter(p => p.status === 'completed').length,
     delayed: filteredProjects.filter(p => p.status === 'delayed').length,
   };
-
-  // 添加调试信息
-  if (process.env.NODE_ENV === 'development' || user?.email === 'admin@hanhai.com') {
-    console.log('=== 项目列表状态 ===');
-    console.log('总项目数:', projects.length);
-    console.log('过滤后项目数:', filteredProjects.length);
-    console.log('当前用户:', user?.email);
-    console.log('当前品牌过滤器:', brandFilter);
-    if (projects.length > 0) {
-      console.log('最新项目:', projects[0].name, '- 创建时间:', projects[0].createdAt);
-    }
-  }
 
   // 按岗位计算平均进度
   const getRoleProgress = (tasks: Task[] = []) => {
@@ -2233,18 +2140,13 @@ function HomePageContent() {
 
   // 最简单的初始化逻辑
   useEffect(() => {
-    console.log('=== useEffect 执行 ===');
-    console.log('用户:', user?.email);
-
     // 如果没有用户，什么都不做
     if (!user) {
-      console.log('用户未登录，跳过加载');
-      setLoading(false); // 确保未登录时关闭loading
+      setLoading(false);
       return;
     }
 
     // 用户已登录，加载数据
-    console.log('用户已登录，开始加载数据');
     loadProjects();
     loadFeedback();
     loadSalesTargets();
@@ -2254,15 +2156,14 @@ function HomePageContent() {
 
     // 添加超时处理，防止页面一直卡住
     const timeoutId = setTimeout(() => {
-      console.warn('⚠️ 数据加载超时，强制关闭loading状态');
       setLoading(false);
       setInitTimeout(true);
-    }, 15000); // 15秒超时
+    }, 15000);
 
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [user?.id]); // 只监听用户ID变化
+  }, [user?.id]);
 
   useEffect(() => {
     loadProductCategories(brandFilter);
@@ -2283,20 +2184,8 @@ function HomePageContent() {
     );
   }
 
-  // 如果超时，显示警告但继续渲染内容
-  if (initTimeout) {
-    console.warn('⚠️ 加载超时，但仍尝试显示内容');
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      {/* 调试信息 - 仅在开发环境或管理员账号显示 */}
-      {(process.env.NODE_ENV === 'development' || user?.email === 'admin@hanhai.com') && (
-        <div className="fixed top-0 left-0 right-0 bg-yellow-100 dark:bg-yellow-900 text-xs p-2 z-50">
-          <strong>调试信息:</strong> 页面加载时间: {new Date().toLocaleString()} | 项目数: {projects.length} | 用户: {user?.email || '未登录'} | 品牌过滤器: {brandFilter}
-        </div>
-      )}
-
       {/* 登录检查 */}
       {authLoading ? (
         <div className="flex h-screen items-center justify-center">
@@ -2818,6 +2707,7 @@ function HomePageContent() {
               reminders={notifications.reminders}
               weeklyPlans={notifications.weeklyPlans}
               projectNotifications={notifications.projectNotifications}
+              approvalNotifications={notifications.approvalNotifications}
               isAdmin={user?.roles?.some((r) => r.role === 'admin' || r.role === 'super_admin') || false}
               userBrand={user?.brand || 'all'}
             />

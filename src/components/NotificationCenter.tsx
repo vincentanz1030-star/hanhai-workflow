@@ -303,11 +303,11 @@ export default function NotificationCenter({
           {/* 标题栏 */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
-                <Megaphone className="h-4 w-4 text-white" />
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <Megaphone className="h-5 w-5 text-white" />
               </div>
               <div>
-                <span className="font-semibold text-sm">公告</span>
+                <span className="font-semibold text-base">公告</span>
                 {unreadAnnouncements > 0 && (
                   <Badge variant="destructive" className="ml-2 text-[10px] h-4 px-1.5">
                     {unreadAnnouncements}
@@ -322,8 +322,8 @@ export default function NotificationCenter({
             )}
           </div>
           
-          {/* 内容区 */}
-          <ScrollArea className="h-[200px]">
+          {/* 内容区 - 固定高度 */}
+          <ScrollArea className="h-[220px]">
             {isLoadingAnnouncements ? (
               <div className="flex items-center justify-center h-full">
                 <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -334,7 +334,7 @@ export default function NotificationCenter({
                 <p className="text-sm">暂无公告</p>
               </div>
             ) : (
-              <div className="p-2 space-y-1">
+              <div className="p-2 space-y-1.5">
                 {announcements.map((announcement) => {
                   const config = announcementTypeConfig[announcement.type];
                   const IconComponent = config.icon;
@@ -342,18 +342,18 @@ export default function NotificationCenter({
                     <div 
                       key={announcement.id} 
                       className={cn(
-                        'p-2 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors group',
+                        'p-2.5 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors group',
                         !announcement.isRead && 'bg-primary/5'
                       )}
                       onClick={() => openAnnouncementPreview(announcement)}
                     >
-                      <div className="flex items-start gap-2">
-                        <div className={cn('shrink-0 h-6 w-6 rounded-md flex items-center justify-center', config.bgColor)}>
-                          <IconComponent className="h-3 w-3 text-white" />
+                      <div className="flex items-start gap-2.5">
+                        <div className={cn('shrink-0 h-7 w-7 rounded-lg flex items-center justify-center', config.bgColor)}>
+                          <IconComponent className="h-3.5 w-3.5 text-white" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className={cn('text-sm truncate', !announcement.isRead && 'font-medium')}>
+                        <div className="flex-1 min-w-0 overflow-hidden">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className={cn('text-sm font-medium truncate', !announcement.isRead && 'font-semibold')}>
                               {announcement.title}
                             </span>
                             {!announcement.isRead && (
@@ -361,15 +361,15 @@ export default function NotificationCenter({
                             )}
                           </div>
                           {announcement.content && (
-                            <p className="text-xs text-muted-foreground truncate mt-0.5">{announcement.content}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-4 leading-relaxed">{announcement.content}</p>
                           )}
                         </div>
                         {isAdmin && (
                           <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                            <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={(e) => handleEditAnnouncement(announcement, e)}>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => handleEditAnnouncement(announcement, e)}>
                               <Pencil className="h-3 w-3" />
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingAnnouncement(announcement); setIsDeleteDialogOpen(true); }}>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingAnnouncement(announcement); setIsDeleteDialogOpen(true); }}>
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
@@ -388,11 +388,11 @@ export default function NotificationCenter({
           {/* 标题栏 */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <Bell className="h-4 w-4 text-white" />
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <Bell className="h-5 w-5 text-white" />
               </div>
               <div>
-                <span className="font-semibold text-sm">通知</span>
+                <span className="font-semibold text-base">通知</span>
                 {totalNotifications > 0 && (
                   <Badge variant="secondary" className="ml-2 text-[10px] h-4 px-1.5">
                     {totalNotifications}
@@ -407,15 +407,15 @@ export default function NotificationCenter({
             )}
           </div>
           
-          {/* 内容区 */}
-          <ScrollArea className="h-[200px]">
+          {/* 内容区 - 固定高度 */}
+          <ScrollArea className="h-[220px]">
             {totalNotifications === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-8">
                 <CheckCircle className="h-8 w-8 mb-2 opacity-40" />
                 <p className="text-sm">暂无通知</p>
               </div>
             ) : (
-              <div className="p-2 space-y-1">
+              <div className="p-2 space-y-1.5">
                 {[...collaborations, ...reminders, ...weeklyPlans, ...projectNotifications, ...approvalNotifications]
                   .sort((a, b) => {
                     if (a.priority === 'high' && b.priority !== 'high') return -1;
@@ -429,15 +429,15 @@ export default function NotificationCenter({
                       <div 
                         key={notification.id} 
                         className={cn(
-                          'p-2 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors',
+                          'p-2.5 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors',
                           notification.priority === 'high' && 'bg-destructive/5',
                           isOverdue && notification.priority !== 'high' && 'bg-amber-500/5'
                         )}
                         onClick={() => handleNotificationClick(notification)}
                       >
-                        <div className="flex items-start gap-2">
+                        <div className="flex items-start gap-2.5">
                           <div className={cn(
-                            'shrink-0 h-6 w-6 rounded-md flex items-center justify-center',
+                            'shrink-0 h-7 w-7 rounded-lg flex items-center justify-center',
                             notification.priority === 'high' 
                               ? 'bg-gradient-to-br from-red-500 to-rose-500' 
                               : isOverdue 
@@ -449,7 +449,7 @@ export default function NotificationCenter({
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
+                            <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                               <span className="text-sm font-medium truncate">{notification.title}</span>
                               {notification.priority === 'high' && (
                                 <Badge variant="destructive" className="text-[9px] h-3.5 px-1">紧急</Badge>
@@ -458,7 +458,7 @@ export default function NotificationCenter({
                                 <Badge variant="outline" className="text-[9px] h-3.5 px-1 text-amber-600 border-amber-300">逾期</Badge>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground truncate mt-0.5">{notification.content}</p>
+                            <p className="text-xs text-muted-foreground truncate">{notification.content}</p>
                           </div>
                           <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
                             {formatTime(notification.createdAt)}

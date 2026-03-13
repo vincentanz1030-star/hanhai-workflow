@@ -2766,13 +2766,13 @@ function HomePageContent() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               {/* 左侧：项目概览 */}
               <div className="lg:col-span-2">
-                <Card className="border-0 shadow-sm bg-gradient-to-br from-card to-muted/20 cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/?tab=projects')}>
+                <Card className="border-0 shadow-sm bg-gradient-to-br from-card to-muted/20 cursor-pointer hover:shadow-md transition-shadow h-full" onClick={() => router.push('/?tab=projects')}>
                   <div className="px-4 py-3 border-b border-border/50">
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                        <Activity className="h-4 w-4 text-white" />
+                      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                        <Activity className="h-5 w-5 text-white" />
                       </div>
-                      <span className="font-semibold text-sm">项目概览</span>
+                      <span className="font-semibold text-base">项目概览</span>
                     </div>
                   </div>
                   <CardContent className="p-4">
@@ -2813,14 +2813,9 @@ function HomePageContent() {
                 </Card>
               </div>
 
-              {/* 中间：新品排期日历 */}
-              <div className="lg:col-span-7">
+              {/* 中间：新品排期日历 - 占满剩余宽度 */}
+              <div className="lg:col-span-10">
                 <ProductScheduleCalendar />
-              </div>
-
-              {/* 右侧：预留位置 */}
-              <div className="lg:col-span-3">
-                {/* 可放置其他内容 */}
               </div>
             </div>
 

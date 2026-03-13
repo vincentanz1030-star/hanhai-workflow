@@ -2750,11 +2750,22 @@ function HomePageContent() {
             </Card>
           )}
 
-          {/* 数据看板 - 三段式布局 */}
-          <TabsContent value="dashboard" className="space-y-0">
+          {/* 数据看板 */}
+          <TabsContent value="dashboard" className="space-y-4">
+            {/* 消息中心 - 单独一排 */}
+            <NotificationCenter
+              collaborations={notifications.collaborations}
+              reminders={notifications.reminders}
+              weeklyPlans={notifications.weeklyPlans}
+              projectNotifications={notifications.projectNotifications}
+              isAdmin={user?.roles?.some((r) => r.role === 'admin' || r.role === 'super_admin') || false}
+              userBrand={user?.brand || 'all'}
+            />
+
+            {/* 左中右三段式布局 */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               {/* 左侧：项目概览 */}
-              <div className="lg:col-span-2 space-y-4">
+              <div className="lg:col-span-2">
                 <Card className="border-0 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={() => router.push('/?tab=projects')}>
                   <div className="bg-gradient-to-br from-violet-500 to-purple-600 px-4 py-3">
                     <div className="flex items-center gap-2 text-white">
@@ -2805,16 +2816,9 @@ function HomePageContent() {
                 <ProductScheduleCalendar />
               </div>
 
-              {/* 右侧：消息中心 */}
+              {/* 右侧：预留位置 */}
               <div className="lg:col-span-3">
-                <NotificationCenter
-                  collaborations={notifications.collaborations}
-                  reminders={notifications.reminders}
-                  weeklyPlans={notifications.weeklyPlans}
-                  projectNotifications={notifications.projectNotifications}
-                  isAdmin={user?.roles?.some((r) => r.role === 'admin' || r.role === 'super_admin') || false}
-                  userBrand={user?.brand || 'all'}
-                />
+                {/* 可放置其他内容 */}
               </div>
             </div>
 

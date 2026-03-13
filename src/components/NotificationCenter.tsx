@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Bell, 
   Users, 
@@ -39,6 +38,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // 公告接口
 interface Announcement {
@@ -454,8 +454,8 @@ export function NotificationCenter({
   };
 
   return (
-    <Card className="border-0 shadow-sm bg-gradient-to-br from-card to-muted/20 h-full flex flex-col">
-      <CardHeader className="pb-3">
+    <Card className="border-0 shadow-sm bg-gradient-to-br from-card to-muted/20">
+      <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
@@ -482,7 +482,7 @@ export function NotificationCenter({
           )}
         </div>
       </CardHeader>
-      <CardContent className="flex-1 overflow-hidden">
+      <CardContent className="pt-0">
         {grandTotal === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -490,95 +490,67 @@ export function NotificationCenter({
             <p className="text-xs mt-2">所有工作进展顺利</p>
           </div>
         ) : (
-          <Tabs defaultValue="all" className="w-full h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-5 mb-3 shrink-0">
-              <TabsTrigger value="all" className="text-xs px-1">
-                全部
-                <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">
-                  {grandTotal}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="announcement" className="text-xs px-1">
-                公告
-                <Badge variant={unreadAnnouncements > 0 ? "destructive" : "secondary"} className="ml-1 text-xs h-4 px-1">
-                  {totalAnnouncements}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="collaboration" className="text-xs px-1">
-                协同
-                <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">
-                  {collaborations.length}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="reminder" className="text-xs px-1">
-                提醒
-                <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">
-                  {reminders.length + weeklyPlans.length}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="project" className="text-xs px-1">
-                项目
-                <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">
-                  {projectNotifications.length + approvalNotifications.length}
-                </Badge>
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="all" className="space-y-3 flex-1 overflow-y-auto mt-0">
-              {/* 公告优先显示 */}
-              {announcements.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center justify-between">
-                    <span className="flex items-center gap-1">
-                      <Megaphone className="h-3 w-3" />
-                      系统公告 ({announcements.length})
-                    </span>
-                    {isAdmin && (
-                      <Button size="sm" variant="ghost" className="h-5 px-1.5 text-[10px]" onClick={handleAddAnnouncement}>
-                        <Plus className="h-3 w-3 mr-0.5" />发布
-                      </Button>
-                    )}
-                  </h4>
-                  <div className="space-y-2">
-                    {announcements.slice(0, 3).map((announcement) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 左侧：公告区 */}
+            <div className="border rounded-lg overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
+                <div className="flex items-center gap-2">
+                  <Megaphone className="h-4 w-4 text-amber-600" />
+                  <span className="font-medium text-sm">公告</span>
+                  <Badge variant={unreadAnnouncements > 0 ? "destructive" : "secondary"} className="text-xs h-4 px-1.5">
+                    {totalAnnouncements}
+                  </Badge>
+                </div>
+                {isAdmin && (
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={handleAddAnnouncement}>
+                    <Plus className="h-3 w-3 mr-0.5" />发布
+                  </Button>
+                )}
+              </div>
+              <ScrollArea className="flex-1" style={{ maxHeight: '280px' }}>
+                {announcements.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Megaphone className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">暂无公告</p>
+                  </div>
+                ) : (
+                  <div className="p-2 space-y-1.5">
+                    {announcements.map((announcement) => {
                       const config = announcementTypeConfig[announcement.type];
                       const IconComponent = config.icon;
                       return (
                         <div 
                           key={announcement.id} 
                           className={cn(
-                            'p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all group',
-                            announcement.isRead ? 'bg-muted/30 border-transparent' : `${config.lightBg} ${config.borderColor} border`
+                            'p-2.5 rounded-lg border cursor-pointer hover:shadow-sm transition-all group',
+                            announcement.isRead ? 'bg-muted/20 border-transparent' : `${config.lightBg} ${config.borderColor} border`
                           )}
                           onClick={() => openAnnouncementPreview(announcement)}
                         >
-                          <div className="flex items-start gap-2.5">
-                            <div className={cn('p-1.5 rounded-md text-white shrink-0', config.bgColor)}>
-                              <IconComponent className="h-3.5 w-3.5" />
+                          <div className="flex items-start gap-2">
+                            <div className={cn('p-1 rounded text-white shrink-0', config.bgColor)}>
+                              <IconComponent className="h-3 w-3" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className={cn('font-medium text-sm truncate', !announcement.isRead && 'font-semibold')}>
+                              <div className="flex items-center gap-1.5">
+                                <span className={cn('text-sm truncate', !announcement.isRead && 'font-semibold')}>
                                   {announcement.title}
                                 </span>
                                 {!announcement.isRead && (
-                                  <Badge variant="secondary" className="text-[10px] h-4">新</Badge>
+                                  <Badge variant="secondary" className="text-[10px] h-3.5 px-1">新</Badge>
                                 )}
                               </div>
                               {announcement.content && (
                                 <p className="text-xs text-muted-foreground truncate mt-0.5">{announcement.content}</p>
                               )}
-                              <p className="text-[10px] text-muted-foreground mt-1">
-                                {mounted ? new Date(announcement.created_at).toLocaleString('zh-CN') : ''}
-                              </p>
                             </div>
                             {isAdmin && (
-                              <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => handleEditAnnouncement(announcement, e)}>
-                                  <Pencil className="h-3 w-3" />
+                              <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                                <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={(e) => handleEditAnnouncement(announcement, e)}>
+                                  <Pencil className="h-2.5 w-2.5" />
                                 </Button>
-                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingAnnouncement(announcement); setIsDeleteDialogOpen(true); }}>
-                                  <Trash2 className="h-3 w-3" />
+                                <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingAnnouncement(announcement); setIsDeleteDialogOpen(true); }}>
+                                  <Trash2 className="h-2.5 w-2.5" />
                                 </Button>
                               </div>
                             )}
@@ -587,178 +559,87 @@ export function NotificationCenter({
                       );
                     })}
                   </div>
-                </div>
-              )}
-              
-              {reminders.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    催促提醒 ({reminders.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {reminders.map(renderNotificationItem)}
-                  </div>
-                </div>
-              )}
-              
-              {collaborations.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
-                    <Users className="h-3 w-3" />
-                    项目协同 ({collaborations.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {collaborations.map(renderNotificationItem)}
-                  </div>
-                </div>
-              )}
-
-              {weeklyPlans.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    本周工作安排 ({weeklyPlans.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {weeklyPlans.map(renderNotificationItem)}
-                  </div>
-                </div>
-              )}
-
-              {projectNotifications.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    项目通知 ({projectNotifications.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {projectNotifications.map(renderNotificationItem)}
-                  </div>
-                </div>
-              )}
-
-              {approvalNotifications.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
-                    <ClipboardCheck className="h-3 w-3" />
-                    审批通知 ({approvalNotifications.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {approvalNotifications.map(renderNotificationItem)}
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-
-            {/* 公告标签页 */}
-            <TabsContent value="announcement" className="flex-1 overflow-y-auto mt-0">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground">共 {announcements.length} 条公告</span>
-                {isAdmin && (
-                  <Button size="sm" variant="outline" className="h-6 text-xs" onClick={handleAddAnnouncement}>
-                    <Plus className="h-3 w-3 mr-1" />发布公告
-                  </Button>
                 )}
+              </ScrollArea>
+            </div>
+
+            {/* 右侧：通知区 */}
+            <div className="border rounded-lg overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-blue-600" />
+                  <span className="font-medium text-sm">通知</span>
+                  <Badge variant="secondary" className="text-xs h-4 px-1.5">
+                    {totalNotifications}
+                  </Badge>
+                </div>
               </div>
-              {announcements.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Megaphone className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">暂无公告</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {announcements.map((announcement) => {
-                    const config = announcementTypeConfig[announcement.type];
-                    const IconComponent = config.icon;
-                    return (
-                      <div 
-                        key={announcement.id} 
-                        className={cn(
-                          'p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all group',
-                          announcement.isRead ? 'bg-muted/30 border-transparent' : `${config.lightBg} ${config.borderColor} border`
-                        )}
-                        onClick={() => openAnnouncementPreview(announcement)}
-                      >
-                        <div className="flex items-start gap-2.5">
-                          <div className={cn('p-1.5 rounded-md text-white shrink-0', config.bgColor)}>
-                            <IconComponent className="h-3.5 w-3.5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className={cn('font-medium text-sm', !announcement.isRead && 'font-semibold')}>
-                                {announcement.title}
-                              </span>
-                              {!announcement.isRead && (
-                                <Badge variant="secondary" className="text-[10px] h-4">新</Badge>
-                              )}
-                            </div>
-                            {announcement.content && (
-                              <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{announcement.content}</p>
+              <ScrollArea className="flex-1" style={{ maxHeight: '280px' }}>
+                {totalNotifications === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">暂无通知</p>
+                  </div>
+                ) : (
+                  <div className="p-2 space-y-1.5">
+                    {/* 高优先级通知优先显示 */}
+                    {[...collaborations, ...reminders, ...weeklyPlans, ...projectNotifications, ...approvalNotifications]
+                      .sort((a, b) => {
+                        if (a.priority === 'high' && b.priority !== 'high') return -1;
+                        if (a.priority !== 'high' && b.priority === 'high') return 1;
+                        return 0;
+                      })
+                      .slice(0, 6)
+                      .map((notification) => {
+                        const { type, priority } = notification;
+                        const icon = getTypeIcon(type);
+                        const priorityColor = getPriorityColor(priority);
+                        const isOverdue = notification.deadline && new Date(notification.deadline) < new Date();
+
+                        return (
+                          <div 
+                            key={notification.id} 
+                            className={cn(
+                              'p-2.5 rounded-lg border cursor-pointer hover:shadow-sm transition-all',
+                              priority === 'high' ? 'border-red-200 bg-red-50/50 dark:bg-red-900/10' :
+                              isOverdue ? 'border-orange-200 bg-orange-50/50 dark:bg-orange-900/10' :
+                              'border-transparent bg-muted/20'
                             )}
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                              {mounted ? new Date(announcement.created_at).toLocaleString('zh-CN') : ''}
-                            </p>
-                          </div>
-                          {isAdmin && (
-                            <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => handleEditAnnouncement(announcement, e)}>
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeletingAnnouncement(announcement); setIsDeleteDialogOpen(true); }}>
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
+                            onClick={() => handleNotificationClick(notification)}
+                          >
+                            <div className="flex items-start gap-2">
+                              <div className={cn('mt-0.5 shrink-0', priority === 'high' ? 'text-red-600' : isOverdue ? 'text-orange-600' : 'text-muted-foreground')}>
+                                {icon}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-medium text-sm truncate">{notification.title}</span>
+                                  <Badge className={`${priorityColor} text-[10px] h-3.5 px-1`}>
+                                    {priority === 'high' ? '紧急' : priority === 'medium' ? '重要' : '普通'}
+                                  </Badge>
+                                  {isOverdue && (
+                                    <Badge variant="destructive" className="text-[10px] h-3.5 px-1">逾期</Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground truncate mt-0.5">{notification.content}</p>
+                              </div>
+                              <div className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
+                                {formatTime(notification.createdAt)}
+                              </div>
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        );
+                      })}
+                    {totalNotifications > 6 && (
+                      <div className="text-center py-1.5">
+                        <span className="text-xs text-muted-foreground">还有 {totalNotifications - 6} 条通知...</span>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="collaboration" className="flex-1 overflow-y-auto mt-0">
-              {collaborations.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">暂无协同请求</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {collaborations.map(renderNotificationItem)}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="reminder" className="flex-1 overflow-y-auto mt-0">
-              {reminders.length === 0 && weeklyPlans.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">暂无提醒</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {reminders.map(renderNotificationItem)}
-                  {weeklyPlans.map(renderNotificationItem)}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="project" className="flex-1 overflow-y-auto mt-0">
-              {projectNotifications.length === 0 && approvalNotifications.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">暂无项目通知</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {projectNotifications.map(renderNotificationItem)}
-                  {approvalNotifications.map(renderNotificationItem)}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+                    )}
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
+          </div>
         )}
       </CardContent>
       

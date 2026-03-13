@@ -114,6 +114,18 @@ export async function GET(request: NextRequest) {
           });
           return { ...asset, preview_url: previewUrl };
         } catch {
+          // 忽略错误，继续尝试其他方式
+        }
+      }
+      // 如果是图片类型且有 file_key，用 file_key 生成预览URL
+      if (asset.asset_type === 'image' && asset.file_key) {
+        try {
+          const previewUrl = await getStorage().generatePresignedUrl({
+            key: asset.file_key,
+            expireTime: 24 * 60 * 60, // 24小时
+          });
+          return { ...asset, preview_url: previewUrl };
+        } catch {
           return asset;
         }
       }

@@ -2909,7 +2909,7 @@ function HomePageContent() {
                         <div key={target.id} className="group relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-r from-muted/30 to-transparent p-4 hover:border-border transition-all hover:shadow-sm">
                           {/* 进度条背景 */}
                           <div 
-                            className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent transition-opacity"
+                            className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent transition-opacity pointer-events-none"
                             style={{ opacity: Math.min(parseFloat(completionRate) / 100, 1) * 0.5 }}
                           ></div>
                           

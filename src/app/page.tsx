@@ -2080,13 +2080,14 @@ function HomePageContent() {
     });
 
     try {
-      const response = await fetch('/api/sales-targets/monthly', {
+      const response = await fetchWithAuth('/api/sales-targets/monthly', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: monthlyId, actualAmount: newValue }),
       });
 
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: '未知错误' }));
+        console.error('更新失败:', errorData);
         loadSalesTargets();
       }
     } catch (error) {

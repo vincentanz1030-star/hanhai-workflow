@@ -27,6 +27,7 @@ import { getPositionName } from '@/lib/config';
 import ProductScheduleCalendar from '@/components/calendar/ProductScheduleCalendar';
 import { ProductList } from '@/components/ProductList';
 import { SalesStats } from '@/components/SalesStats';
+import { SalesCenter } from '@/components/SalesCenter';
 import { ProductFeedback } from '@/components/ProductFeedback';
 import { SupplierList } from '@/components/SupplierList';
 import { PurchaseOrderList } from '@/components/PurchaseOrderList';
@@ -2703,6 +2704,14 @@ function HomePageContent() {
                   <span>商品中心</span>
                 </span>
               </TabsTrigger>
+              <TabsTrigger value="sales-center" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-2">
+                  <span className="h-5 w-5 rounded-md bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                    <TrendingUp className="h-3 w-3 text-white" />
+                  </span>
+                  <span>销售中心</span>
+                </span>
+              </TabsTrigger>
               <TabsTrigger value="marketing" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
                 <span className="flex items-center gap-2">
                   <span className="h-5 w-5 rounded-md bg-gradient-to-br from-fuchsia-500 to-pink-500 flex items-center justify-center">
@@ -4682,6 +4691,11 @@ function HomePageContent() {
                 <ProductFeedback />
               </TabsContent>
             </Tabs>
+          </TabsContent>
+
+          {/* 销售中心 */}
+          <TabsContent value="sales-center" className="space-y-6">
+            <SalesCenter />
           </TabsContent>
 
           {/* 营销中台 */}

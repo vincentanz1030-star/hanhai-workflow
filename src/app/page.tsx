@@ -2336,39 +2336,39 @@ function HomePageContent() {
       ) : (
         <>
         {/* 头部 */}
-        <header className="border-b bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 sticky top-0 z-50">
+        <header className="border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
           {/* 移动端布局 */}
           <div className="sm:hidden">
             {/* 第一行：Logo + 用户操作 */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  <FolderOpen className="h-4 w-4 text-white" />
+                <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center shadow-sm">
+                  <FolderOpen className="h-4 w-4 text-primary-foreground" />
                 </div>
                 <div>
-                  <h1 className="text-base font-bold text-slate-900 dark:text-white">Ai数据助手</h1>
+                  <h1 className="text-base font-bold text-foreground">Ai数据助手</h1>
                 </div>
               </div>
               <div className="flex items-center gap-1">
                 <NotificationBell />
                 <Link href="/change-password">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" title="修改密码">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title="修改密码">
                     <KeyRound className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Button variant="ghost" size="icon" onClick={logout} className="h-8 w-8" title="登出">
+                <Button variant="ghost" size="icon" onClick={logout} className="h-8 w-8 rounded-lg" title="登出">
                   <LogOut className="h-4 w-4" />
                 </Button>
                 {user.roles.some((r: any) => r.role === 'admin') && (
                   <>
                     <Link href="/admin">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" title="系统管理">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title="系统管理">
                         <Settings className="h-4 w-4" />
                       </Button>
                     </Link>
                     <Link href="/admin/users">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" title="用户管理">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title="用户管理">
                         <Shield className="h-4 w-4" />
                       </Button>
                     </Link>
@@ -2383,13 +2383,13 @@ function HomePageContent() {
                 <Input
                   type="text"
                   placeholder="搜索项目、任务... (Ctrl+K)"
-                  className="pl-9 h-9 w-full text-sm"
+                  className="pl-9 h-9 w-full text-sm rounded-lg bg-muted/50 border-transparent focus:bg-background focus:border-primary/30"
                   onClick={() => setIsGlobalSearchOpen(true)}
                   readOnly
                 />
               </div>
               <Button
-                className="gap-1.5 h-9 px-3 text-xs shrink-0"
+                className="gap-1.5 h-9 px-3 text-xs shrink-0 rounded-lg shadow-sm"
                 onClick={() => setIsCreateDialogOpen(true)}
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -2401,12 +2401,12 @@ function HomePageContent() {
           {/* 桌面端布局 */}
           <div className="hidden sm:flex flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
-                <FolderOpen className="h-6 w-6 text-white" />
+              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-sm">
+                <FolderOpen className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Ai数据助手</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">以销售为驱动的项目进度管理</p>
+                <h1 className="text-xl font-bold text-foreground">Ai数据助手</h1>
+                <p className="text-sm text-muted-foreground">以销售为驱动的项目进度管理</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -2416,15 +2416,15 @@ function HomePageContent() {
                 <Input
                   type="text"
                   placeholder="搜索项目、任务、用户... (Ctrl+K)"
-                  className="pl-9 h-10 w-full"
+                  className="pl-9 h-10 w-full rounded-lg bg-muted/50 border-transparent focus:bg-background focus:border-primary/30"
                   onClick={() => setIsGlobalSearchOpen(true)}
                   readOnly
                 />
               </div>
               <NotificationBell />
-              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800">
-                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                  <User className="h-5 w-5 text-primary-foreground" />
+              <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-muted/50">
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{user.name}</p>
@@ -2434,30 +2434,30 @@ function HomePageContent() {
                 </div>
               </div>
               <Link href="/change-password">
-                <Button variant="ghost" size="icon" className="h-10 w-10 flex-shrink-0" title="修改密码">
+                <Button variant="ghost" size="icon" className="h-10 w-10 flex-shrink-0 rounded-lg" title="修改密码">
                   <KeyRound className="h-5 w-5" />
                 </Button>
               </Link>
-              <Button variant="ghost" size="icon" onClick={logout} className="h-10 w-10 flex-shrink-0" title="登出">
+              <Button variant="ghost" size="icon" onClick={logout} className="h-10 w-10 flex-shrink-0 rounded-lg" title="登出">
                 <LogOut className="h-5 w-5" />
               </Button>
               {/* 管理员功能入口 */}
               {user.roles.some((r: any) => r.role === 'admin') && (
                 <div className="flex gap-1">
                   <Link href="/admin">
-                    <Button variant="ghost" size="icon" className="h-10 w-10 flex-shrink-0" title="系统管理">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 flex-shrink-0 rounded-lg" title="系统管理">
                       <Settings className="h-5 w-5" />
                     </Button>
                   </Link>
                   <Link href="/admin/users">
-                    <Button variant="ghost" size="icon" className="h-10 w-10 flex-shrink-0" title="用户管理">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 flex-shrink-0 rounded-lg" title="用户管理">
                       <Shield className="h-5 w-5" />
                     </Button>
                   </Link>
                 </div>
               )}
               <Button
-                className="gap-2 h-10 px-4 text-sm"
+                className="gap-2 h-10 px-4 text-sm rounded-lg shadow-sm"
                 onClick={() => setIsCreateDialogOpen(true)}
               >
                 <Plus className="h-4 w-4" />

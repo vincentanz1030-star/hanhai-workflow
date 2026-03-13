@@ -231,6 +231,53 @@ body {
   }
 }
 
+/* 隐藏滚动条但保持滚动功能 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* 自定义滚动条样式 - 现代化 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.7 0.01 280 / 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.6 0.01 280 / 0.5);
+}
+
+/* 页面背景优化 */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 优化文字渲染 */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* 现代化过渡效果 */
+.transition-modern {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+}
+
 /* 移动端响应式优化 */
 @layer utilities {
   /* 移动端隐藏滚动条但保持滚动 */

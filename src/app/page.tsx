@@ -2335,40 +2335,43 @@ function HomePageContent() {
         </div>
       ) : (
         <>
-        {/* 头部 */}
-        <header className="border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+        {/* 头部 - 现代化设计 */}
+        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-xl border-b border-border/30">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           {/* 移动端布局 */}
-          <div className="sm:hidden">
+          <div className="sm:hidden py-3">
             {/* 第一行：Logo + 用户操作 */}
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center shadow-sm">
-                  <FolderOpen className="h-4 w-4 text-primary-foreground" />
+              <div className="flex items-center gap-2.5">
+                <div className="relative">
+                  <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/25">
+                    <FolderOpen className="h-4.5 w-4.5 text-primary-foreground" />
+                  </div>
+                  <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-background"></div>
                 </div>
                 <div>
-                  <h1 className="text-base font-bold text-foreground">Ai数据助手</h1>
+                  <h1 className="text-base font-semibold tracking-tight">Ai数据助手</h1>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <NotificationBell />
                 <Link href="/change-password">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title="修改密码">
+                  <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-lg" title="修改密码">
                     <KeyRound className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Button variant="ghost" size="icon" onClick={logout} className="h-8 w-8 rounded-lg" title="登出">
+                <Button variant="ghost" size="icon-sm" onClick={logout} className="h-8 w-8 rounded-lg" title="登出">
                   <LogOut className="h-4 w-4" />
                 </Button>
                 {user.roles.some((r: any) => r.role === 'admin') && (
                   <>
                     <Link href="/admin">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title="系统管理">
+                      <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-lg" title="系统管理">
                         <Settings className="h-4 w-4" />
                       </Button>
                     </Link>
                     <Link href="/admin/users">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" title="用户管理">
+                      <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-lg" title="用户管理">
                         <Shield className="h-4 w-4" />
                       </Button>
                     </Link>
@@ -2378,86 +2381,103 @@ function HomePageContent() {
             </div>
             {/* 第二行：搜索框 + 创建项目按钮 */}
             <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <div className="relative flex-1 group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 group-focus-within:text-primary transition-colors" />
                 <Input
                   type="text"
-                  placeholder="搜索项目、任务... (Ctrl+K)"
-                  className="pl-9 h-9 w-full text-sm rounded-lg bg-muted/50 border-transparent focus:bg-background focus:border-primary/30"
+                  placeholder="搜索项目、任务... (⌘K)"
+                  className="pl-9 h-10 w-full text-sm rounded-xl bg-muted/40 border-transparent hover:bg-muted/60 focus:bg-background focus:border-primary/40 focus:ring-2 focus:ring-primary/10 transition-all"
                   onClick={() => setIsGlobalSearchOpen(true)}
                   readOnly
                 />
               </div>
               <Button
-                className="gap-1.5 h-9 px-3 text-xs shrink-0 rounded-lg shadow-sm"
+                className="gap-1.5 h-10 px-4 text-sm shrink-0 rounded-xl shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/25 transition-shadow"
                 onClick={() => setIsCreateDialogOpen(true)}
               >
-                <Plus className="h-3.5 w-3.5" />
-                创建项目
+                <Plus className="h-4 w-4" />
+                <span className="hidden xs:inline">创建</span>
               </Button>
             </div>
           </div>
 
           {/* 桌面端布局 */}
-          <div className="hidden sm:flex flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-sm">
-                <FolderOpen className="h-5 w-5 text-primary-foreground" />
+          <div className="hidden sm:flex items-center justify-between py-3 lg:py-4">
+            <div className="flex items-center gap-4">
+              <div className="relative group">
+                <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/25 group-hover:shadow-xl group-hover:shadow-primary/30 transition-shadow">
+                  <FolderOpen className="h-5.5 w-5.5 text-primary-foreground" />
+                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-500 border-2 border-background animate-pulse"></div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">Ai数据助手</h1>
-                <p className="text-sm text-muted-foreground">以销售为驱动的项目进度管理</p>
+              <div className="min-w-0">
+                <h1 className="text-xl font-semibold tracking-tight">Ai数据助手</h1>
+                <p className="text-sm text-muted-foreground truncate">以销售为驱动的项目进度管理</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            
+            <div className="flex items-center gap-2 lg:gap-3">
               {/* 全局搜索框 */}
-              <div className="relative w-64 lg:w-80">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <div className="relative group">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 group-focus-within:text-primary transition-colors" />
                 <Input
                   type="text"
-                  placeholder="搜索项目、任务、用户... (Ctrl+K)"
-                  className="pl-9 h-10 w-full rounded-lg bg-muted/50 border-transparent focus:bg-background focus:border-primary/30"
+                  placeholder="搜索项目、任务、用户... (⌘K)"
+                  className="pl-10 h-10 w-56 lg:w-72 rounded-xl bg-muted/40 border-transparent hover:bg-muted/60 focus:bg-background focus:border-primary/40 focus:ring-2 focus:ring-primary/10 transition-all"
                   onClick={() => setIsGlobalSearchOpen(true)}
                   readOnly
                 />
               </div>
+              
               <NotificationBell />
-              <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-muted/50">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="h-4 w-4 text-primary" />
+              
+              {/* 用户信息卡片 */}
+              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors cursor-pointer group">
+                <div className="relative">
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center ring-2 ring-background">
+                    <User className="h-4 w-4 text-primary" />
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{user.name}</p>
+                <div className="min-w-0 max-w-[120px]">
+                  <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{user.name}</p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {user.primaryRole ? user.roles.find(r => r.role === user.primaryRole)?.role : user.roles[0]?.role}
+                    {user.primaryRole ? getPositionName(user.primaryRole) : user.roles[0]?.role ? getPositionName(user.roles[0].role) : '用户'}
                   </p>
                 </div>
               </div>
-              <Link href="/change-password">
-                <Button variant="ghost" size="icon" className="h-10 w-10 flex-shrink-0 rounded-lg" title="修改密码">
-                  <KeyRound className="h-5 w-5" />
+              
+              {/* 分隔线 */}
+              <div className="w-px h-8 bg-border/50 hidden lg:block"></div>
+              
+              {/* 操作按钮组 */}
+              <div className="flex items-center gap-0.5">
+                <Link href="/change-password">
+                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-muted/60" title="修改密码">
+                    <KeyRound className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="icon" onClick={logout} className="h-9 w-9 rounded-lg hover:bg-muted/60" title="登出">
+                  <LogOut className="h-4 w-4" />
                 </Button>
-              </Link>
-              <Button variant="ghost" size="icon" onClick={logout} className="h-10 w-10 flex-shrink-0 rounded-lg" title="登出">
-                <LogOut className="h-5 w-5" />
-              </Button>
-              {/* 管理员功能入口 */}
-              {user.roles.some((r: any) => r.role === 'admin') && (
-                <div className="flex gap-1">
-                  <Link href="/admin">
-                    <Button variant="ghost" size="icon" className="h-10 w-10 flex-shrink-0 rounded-lg" title="系统管理">
-                      <Settings className="h-5 w-5" />
-                    </Button>
-                  </Link>
-                  <Link href="/admin/users">
-                    <Button variant="ghost" size="icon" className="h-10 w-10 flex-shrink-0 rounded-lg" title="用户管理">
-                      <Shield className="h-5 w-5" />
-                    </Button>
-                  </Link>
-                </div>
-              )}
+                {/* 管理员功能入口 */}
+                {user.roles.some((r: any) => r.role === 'admin') && (
+                  <>
+                    <Link href="/admin">
+                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-muted/60" title="系统管理">
+                        <Settings className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Link href="/admin/users">
+                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-muted/60" title="用户管理">
+                        <Shield className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </>
+                )}
+              </div>
+              
               <Button
-                className="gap-2 h-10 px-4 text-sm rounded-lg shadow-sm"
+                className="gap-2 h-10 px-5 text-sm rounded-xl shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/25 transition-all"
                 onClick={() => setIsCreateDialogOpen(true)}
               >
                 <Plus className="h-4 w-4" />
@@ -2612,52 +2632,105 @@ function HomePageContent() {
       </Dialog>
 
       {/* 主内容 */}
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 lg:py-8">
         <Tabs defaultValue="dashboard" value={activeTab} onValueChange={(value) => {
           setActiveTab(value);
           if (value === 'timeline' && !criticalPathData) {
             loadCriticalPath();
           }
-        }} className="space-y-4 sm:space-y-6">
-          {/* 移动端：横向滚动 Tab 栏 */}
-          <div className="sm:hidden overflow-x-auto -mx-2 px-2 pb-2 hide-scrollbar">
-            <TabsList className="flex flex-nowrap gap-1 h-auto w-max bg-muted/50 p-1 rounded-lg">
-              <TabsTrigger value="dashboard" className="text-sm py-2 px-3 whitespace-nowrap rounded-md">📊 看板</TabsTrigger>
-              <TabsTrigger value="projects" className="text-sm py-2 px-3 whitespace-nowrap rounded-md">📁 项目</TabsTrigger>
-              <TabsTrigger value="timeline" className="text-sm py-2 px-3 whitespace-nowrap rounded-md">📅 时间线</TabsTrigger>
-              <TabsTrigger value="roles" className="text-sm py-2 px-3 whitespace-nowrap rounded-md">👥 岗位</TabsTrigger>
-              <TabsTrigger value="product-center" className="text-sm py-2 px-3 whitespace-nowrap rounded-md text-blue-600 dark:text-blue-400">📦 商品</TabsTrigger>
-              <TabsTrigger value="marketing" className="text-sm py-2 px-3 whitespace-nowrap rounded-md text-purple-600 dark:text-purple-400">📢 营销</TabsTrigger>
-              <TabsTrigger value="collaboration" className="text-sm py-2 px-3 whitespace-nowrap rounded-md text-green-600 dark:text-green-400">🤝 协同</TabsTrigger>
-              <TabsTrigger value="shared-resource" className="text-sm py-2 px-3 whitespace-nowrap rounded-md text-orange-600 dark:text-orange-400">🔗 资源</TabsTrigger>
-              <TabsTrigger value="weekly-feedbacks" className="text-sm py-2 px-3 whitespace-nowrap rounded-md text-cyan-600 dark:text-cyan-400" asChild>
+        }} className="space-y-5 sm:space-y-6">
+          {/* 移动端：横向滚动 Tab 栏 - 现代化设计 */}
+          <div className="sm:hidden overflow-x-auto -mx-4 px-4 pb-1 scrollbar-hide">
+            <TabsList className="flex flex-nowrap gap-1.5 h-auto w-max bg-muted/30 p-1.5 rounded-2xl border border-border/30">
+              <TabsTrigger value="dashboard" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium transition-all">📊 看板</TabsTrigger>
+              <TabsTrigger value="projects" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium transition-all">📁 项目</TabsTrigger>
+              <TabsTrigger value="timeline" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium transition-all">📅 时间线</TabsTrigger>
+              <TabsTrigger value="roles" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium transition-all">👥 岗位</TabsTrigger>
+              <TabsTrigger value="product-center" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-blue-600 dark:text-blue-400 transition-all">📦 商品</TabsTrigger>
+              <TabsTrigger value="marketing" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-purple-600 dark:text-purple-400 transition-all">📢 营销</TabsTrigger>
+              <TabsTrigger value="collaboration" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-green-600 dark:text-green-400 transition-all">🤝 协同</TabsTrigger>
+              <TabsTrigger value="shared-resource" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-orange-600 dark:text-orange-400 transition-all">🔗 资源</TabsTrigger>
+              <TabsTrigger value="weekly-feedbacks" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-cyan-600 dark:text-cyan-400 transition-all" asChild>
                 <a href="/weekly-feedbacks">💬 反馈</a>
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="text-sm py-2 px-3 whitespace-nowrap rounded-md" asChild>
+              <TabsTrigger value="analytics" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium transition-all" asChild>
                 <a href="/analytics">📈 分析</a>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="text-sm py-2 px-3 whitespace-nowrap rounded-md">⚙️ 设置</TabsTrigger>
+              <TabsTrigger value="settings" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium transition-all">⚙️ 设置</TabsTrigger>
             </TabsList>
           </div>
           
-          {/* 桌面端：网格布局 Tab 栏 */}
-          <TabsList className="hidden sm:grid w-full grid-cols-12 gap-1 h-auto justify-items-center">
-            <TabsTrigger value="dashboard" className="text-base py-2 px-2">数据看板</TabsTrigger>
-            <TabsTrigger value="projects" className="text-base py-2 px-2">项目列表</TabsTrigger>
-            <TabsTrigger value="timeline" className="text-base py-2 px-2">时间线</TabsTrigger>
-            <TabsTrigger value="roles" className="text-base py-2 px-2">岗位进度</TabsTrigger>
-            <TabsTrigger value="product-center" className="text-base py-2 px-2 text-blue-600 dark:text-blue-400">商品中心</TabsTrigger>
-            <TabsTrigger value="marketing" className="text-base py-2 px-2 text-purple-600 dark:text-purple-400">营销中台</TabsTrigger>
-            <TabsTrigger value="collaboration" className="text-base py-2 px-2 text-green-600 dark:text-green-400">协同平台</TabsTrigger>
-            <TabsTrigger value="shared-resource" className="text-base py-2 px-2 text-orange-600 dark:text-orange-400">资源共享</TabsTrigger>
-            <TabsTrigger value="weekly-feedbacks" className="text-base py-2 px-2 text-cyan-600 dark:text-cyan-400" asChild>
-              <a href="/weekly-feedbacks">客户反馈</a>
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="text-base py-2 px-2" asChild>
-              <a href="/analytics">数据分析</a>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="text-base py-2 px-2">系统设置</TabsTrigger>
-          </TabsList>
+          {/* 桌面端：现代化 Tab 栏 */}
+          <div className="hidden sm:block">
+            <TabsList className="inline-flex w-auto gap-1 h-auto bg-muted/30 p-1.5 rounded-2xl border border-border/30">
+              <TabsTrigger value="dashboard" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-2">
+                  <span className="text-base">📊</span>
+                  <span>数据看板</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="projects" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-2">
+                  <span className="text-base">📁</span>
+                  <span>项目列表</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="timeline" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-2">
+                  <span className="text-base">📅</span>
+                  <span>时间线</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="roles" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-2">
+                  <span className="text-base">👥</span>
+                  <span>岗位进度</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="product-center" className="text-sm py-2.5 px-4 rounded-xl font-medium text-blue-600 dark:text-blue-400 transition-all">
+                <span className="flex items-center gap-2">
+                  <span className="text-base">📦</span>
+                  <span>商品中心</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="marketing" className="text-sm py-2.5 px-4 rounded-xl font-medium text-purple-600 dark:text-purple-400 transition-all">
+                <span className="flex items-center gap-2">
+                  <span className="text-base">📢</span>
+                  <span>营销中台</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="collaboration" className="text-sm py-2.5 px-4 rounded-xl font-medium text-green-600 dark:text-green-400 transition-all">
+                <span className="flex items-center gap-2">
+                  <span className="text-base">🤝</span>
+                  <span>协同平台</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="shared-resource" className="text-sm py-2.5 px-4 rounded-xl font-medium text-orange-600 dark:text-orange-400 transition-all">
+                <span className="flex items-center gap-2">
+                  <span className="text-base">🔗</span>
+                  <span>资源共享</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="weekly-feedbacks" className="text-sm py-2.5 px-4 rounded-xl font-medium text-cyan-600 dark:text-cyan-400 transition-all" asChild>
+                <a href="/weekly-feedbacks" className="flex items-center gap-2">
+                  <span className="text-base">💬</span>
+                  <span>客户反馈</span>
+                </a>
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all" asChild>
+                <a href="/analytics" className="flex items-center gap-2">
+                  <span className="text-base">📈</span>
+                  <span>数据分析</span>
+                </a>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-2">
+                  <span className="text-base">⚙️</span>
+                  <span>系统设置</span>
+                </span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* 品牌过滤器已禁用 - 总是显示所有品牌的项目 */}
           {/* 如需重新启用，请修改 getFilteredProjects 函数 */}
@@ -2685,60 +2758,75 @@ function HomePageContent() {
               userBrand={user?.brand || 'all'} 
             />
 
-            {/* 统计卡片 */}
-            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-5">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs sm:text-sm font-medium">总项目数</CardTitle>
-                  <FolderOpen className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+            {/* 统计卡片 - 现代化设计 */}
+            <div className="grid gap-4 sm:gap-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+              <Card className="group relative overflow-hidden border-border/30 bg-gradient-to-br from-background to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">总项目数</CardTitle>
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <FolderOpen className="h-4 w-4 text-primary" />
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
-                  <p className="text-xs text-muted-foreground">当前在管项目</p>
+                <CardContent className="relative">
+                  <div className="text-2xl sm:text-3xl font-bold tracking-tight">{stats.total}</div>
+                  <p className="text-xs text-muted-foreground mt-1">当前在管项目</p>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs sm:text-sm font-medium">待开始</CardTitle>
-                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500" />
+              <Card className="group relative overflow-hidden border-border/30 bg-gradient-to-br from-background to-muted/20 hover:shadow-lg hover:shadow-gray-500/5 transition-all duration-300">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gray-500/5 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">待开始</CardTitle>
+                  <div className="h-9 w-9 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
+                    <Clock className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-xl sm:text-2xl font-bold">{stats.pending}</div>
-                  <p className="text-xs text-muted-foreground">等待启动</p>
+                <CardContent className="relative">
+                  <div className="text-2xl sm:text-3xl font-bold tracking-tight">{stats.pending}</div>
+                  <p className="text-xs text-muted-foreground mt-1">等待启动</p>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs sm:text-sm font-medium">进行中</CardTitle>
-                  <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+              <Card className="group relative overflow-hidden border-border/30 bg-gradient-to-br from-background to-blue-50/30 dark:to-blue-950/20 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">进行中</CardTitle>
+                  <div className="h-9 w-9 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-800/50 transition-colors">
+                    <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-xl sm:text-2xl font-bold">{stats.inProgress}</div>
-                  <p className="text-xs text-muted-foreground">正在推进</p>
+                <CardContent className="relative">
+                  <div className="text-2xl sm:text-3xl font-bold tracking-tight text-blue-600 dark:text-blue-400">{stats.inProgress}</div>
+                  <p className="text-xs text-muted-foreground mt-1">正在推进</p>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs sm:text-sm font-medium">已完成</CardTitle>
-                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+              <Card className="group relative overflow-hidden border-border/30 bg-gradient-to-br from-background to-green-50/30 dark:to-green-950/20 hover:shadow-lg hover:shadow-green-500/5 transition-all duration-300">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">已完成</CardTitle>
+                  <div className="h-9 w-9 rounded-xl bg-green-100 dark:bg-green-900/50 flex items-center justify-center group-hover:bg-green-200 dark:group-hover:bg-green-800/50 transition-colors">
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-xl sm:text-2xl font-bold">{stats.completed}</div>
-                  <p className="text-xs text-muted-foreground">成功交付</p>
+                <CardContent className="relative">
+                  <div className="text-2xl sm:text-3xl font-bold tracking-tight text-green-600 dark:text-green-400">{stats.completed}</div>
+                  <p className="text-xs text-muted-foreground mt-1">成功交付</p>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs sm:text-sm font-medium">已延期</CardTitle>
-                  <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-red-500" />
+              <Card className="group relative overflow-hidden border-border/30 bg-gradient-to-br from-background to-red-50/30 dark:to-red-950/20 hover:shadow-lg hover:shadow-red-500/5 transition-all duration-300">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">已延期</CardTitle>
+                  <div className="h-9 w-9 rounded-xl bg-red-100 dark:bg-red-900/50 flex items-center justify-center group-hover:bg-red-200 dark:group-hover:bg-red-800/50 transition-colors">
+                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-xl sm:text-2xl font-bold">{stats.delayed}</div>
-                  <p className="text-xs text-muted-foreground">需要关注</p>
+                <CardContent className="relative">
+                  <div className="text-2xl sm:text-3xl font-bold tracking-tight text-red-600 dark:text-red-400">{stats.delayed}</div>
+                  <p className="text-xs text-muted-foreground mt-1">需要关注</p>
                 </CardContent>
               </Card>
             </div>

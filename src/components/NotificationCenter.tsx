@@ -36,6 +36,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+// 品牌配置
+const BRAND_OPTIONS = {
+  all: '全品牌',
+  he_zhe: '禾哲',
+  ai_he: '爱禾',
+  bao_deng_yuan: '宝登源',
+  baobao: 'BAOBAO',
+};
+
 // 公告接口
 interface Announcement {
   id: string;
@@ -115,6 +124,7 @@ export default function NotificationCenter({
     content: '',
     type: 'info' as 'info' | 'warning' | 'success' | 'error',
     priority: 1,
+    brand: 'all' as string,
   });
   
   // 预览状态
@@ -217,7 +227,13 @@ export default function NotificationCenter({
   // 添加公告
   const handleAddAnnouncement = () => {
     setEditingAnnouncement(null);
-    setAnnouncementForm({ title: '', content: '', type: 'info', priority: 1 });
+    setAnnouncementForm({ 
+      title: '', 
+      content: '', 
+      type: 'info', 
+      priority: 1, 
+      brand: userBrand === 'all' ? 'all' : userBrand 
+    });
     setIsEditDialogOpen(true);
   };
 
@@ -230,6 +246,7 @@ export default function NotificationCenter({
       content: announcement.content || '',
       type: announcement.type,
       priority: announcement.priority,
+      brand: announcement.brand || 'all',
     });
     setIsEditDialogOpen(true);
   };
@@ -247,7 +264,6 @@ export default function NotificationCenter({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...announcementForm,
-          brand: userBrand === 'all' ? 'all' : userBrand,
           is_active: true,
         }),
       });
@@ -527,42 +543,61 @@ export default function NotificationCenter({
               {editingAnnouncement ? '修改公告内容' : '发布新公告通知团队成员'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>标题</Label>
-              <Input
-                value={announcementForm.title}
-                onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
-                placeholder="请输入公告标题"
-              />
+          <ScrollArea className="max-h-[60vh]">
+            <div className="space-y-4 py-4 pr-4">
+              <div className="space-y-2">
+                <Label>标题</Label>
+                <Input
+                  value={announcementForm.title}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
+                  placeholder="请输入公告标题"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>品牌</Label>
+                <Select
+                  value={announcementForm.brand}
+                  onValueChange={(value) => setAnnouncementForm({ ...announcementForm, brand: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择目标品牌" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(BRAND_OPTIONS).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>类型</Label>
+                <Select
+                  value={announcementForm.type}
+                  onValueChange={(value) => setAnnouncementForm({ ...announcementForm, type: value as any })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="info">通知</SelectItem>
+                    <SelectItem value="warning">警告</SelectItem>
+                    <SelectItem value="success">成功</SelectItem>
+                    <SelectItem value="error">紧急</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>内容</Label>
+                <Textarea
+                  value={announcementForm.content}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
+                  placeholder="请输入公告内容"
+                  rows={6}
+                  className="resize-none"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>类型</Label>
-              <Select
-                value={announcementForm.type}
-                onValueChange={(value) => setAnnouncementForm({ ...announcementForm, type: value as any })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="info">通知</SelectItem>
-                  <SelectItem value="warning">警告</SelectItem>
-                  <SelectItem value="success">成功</SelectItem>
-                  <SelectItem value="error">紧急</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>内容</Label>
-              <Textarea
-                value={announcementForm.content}
-                onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
-                placeholder="请输入公告内容"
-                rows={4}
-              />
-            </div>
-          </div>
+          </ScrollArea>
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(false)}>取消</Button>
             <Button size="sm" onClick={handleSaveAnnouncement} disabled={!announcementForm.title}>

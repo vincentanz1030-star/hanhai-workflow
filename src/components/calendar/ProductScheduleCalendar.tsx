@@ -208,14 +208,14 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
   return (
     <>
       <Card className={`border-0 shadow-sm bg-gradient-to-br from-card to-muted/20 h-full flex flex-col ${compact ? '' : ''}`}>
-        <CardHeader className="pb-3">
+        <div className="px-4 py-3 border-b border-border/50">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
                 <CalendarIcon className="h-5 w-5 text-white" />
               </div>
               <div>
-                <CardTitle className="text-base">新品排期</CardTitle>
+                <span className="font-semibold text-base">新品排期</span>
                 <p className="text-xs text-muted-foreground">{year}年{month}月</p>
               </div>
             </div>
@@ -240,8 +240,8 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
               </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="pt-0">
+        </div>
+        <CardContent className="pt-0 flex-1">
           {/* 图例 - 移动端简化 */}
           <div className="flex items-center justify-between mb-3 text-xs">
             <div className="flex items-center gap-1">

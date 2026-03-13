@@ -2607,18 +2607,94 @@ function HomePageContent() {
           {/* 移动端：横向滚动 Tab 栏 - 现代化设计 */}
           <div className="sm:hidden overflow-x-auto -mx-4 px-4 pb-1 scrollbar-hide">
             <TabsList className="flex flex-nowrap gap-1.5 h-auto w-max bg-muted/30 p-1.5 rounded-2xl border border-border/30">
-              <TabsTrigger value="dashboard" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium transition-all">📊 看板</TabsTrigger>
-              <TabsTrigger value="projects" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium transition-all">📁 项目</TabsTrigger>
-              <TabsTrigger value="timeline" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium transition-all">📅 时间线</TabsTrigger>
-              <TabsTrigger value="roles" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium transition-all">👥 岗位</TabsTrigger>
-              <TabsTrigger value="product-center" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-blue-600 dark:text-blue-400 transition-all">📦 商品</TabsTrigger>
-              <TabsTrigger value="marketing" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-purple-600 dark:text-purple-400 transition-all">📢 营销</TabsTrigger>
-              <TabsTrigger value="collaboration" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-green-600 dark:text-green-400 transition-all">🤝 协同</TabsTrigger>
-              <TabsTrigger value="shared-resource" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-orange-600 dark:text-orange-400 transition-all">🔗 资源</TabsTrigger>
-              <TabsTrigger value="weekly-feedbacks" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-cyan-600 dark:text-cyan-400 transition-all">
-                💬 反馈
+              <TabsTrigger value="dashboard" className="text-sm py-2 px-3 whitespace-nowrap rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-4 w-4 rounded-md bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                    <Activity className="h-2.5 w-2.5 text-white" />
+                  </span>
+                  <span>看板</span>
+                </span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium transition-all">⚙️ 设置</TabsTrigger>
+              <TabsTrigger value="projects" className="text-sm py-2 px-3 whitespace-nowrap rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-4 w-4 rounded-md bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                    <FolderOpen className="h-2.5 w-2.5 text-white" />
+                  </span>
+                  <span>项目</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="timeline" className="text-sm py-2 px-3 whitespace-nowrap rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-4 w-4 rounded-md bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
+                    <Calendar className="h-2.5 w-2.5 text-white" />
+                  </span>
+                  <span>时间线</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="roles" className="text-sm py-2 px-3 whitespace-nowrap rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-4 w-4 rounded-md bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center">
+                    <Users className="h-2.5 w-2.5 text-white" />
+                  </span>
+                  <span>岗位</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="product-center" className="text-sm py-2 px-3 whitespace-nowrap rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-4 w-4 rounded-md bg-gradient-to-br from-sky-500 to-blue-500 flex items-center justify-center">
+                    <Package className="h-2.5 w-2.5 text-white" />
+                  </span>
+                  <span>商品</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="sales-center" className="text-sm py-2 px-3 whitespace-nowrap rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-4 w-4 rounded-md bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                    <TrendingUp className="h-2.5 w-2.5 text-white" />
+                  </span>
+                  <span>销售</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="marketing" className="text-sm py-2 px-3 whitespace-nowrap rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-4 w-4 rounded-md bg-gradient-to-br from-fuchsia-500 to-pink-500 flex items-center justify-center">
+                    <Megaphone className="h-2.5 w-2.5 text-white" />
+                  </span>
+                  <span>营销</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="collaboration" className="text-sm py-2 px-3 whitespace-nowrap rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-4 w-4 rounded-md bg-gradient-to-br from-lime-500 to-emerald-500 flex items-center justify-center">
+                    <MessageSquare className="h-2.5 w-2.5 text-white" />
+                  </span>
+                  <span>协同</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="shared-resource" className="text-sm py-2 px-3 whitespace-nowrap rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-4 w-4 rounded-md bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                    <BookOpen className="h-2.5 w-2.5 text-white" />
+                  </span>
+                  <span>资源</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="weekly-feedbacks" className="text-sm py-2 px-3 whitespace-nowrap rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-4 w-4 rounded-md bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center">
+                    <MessageCircle className="h-2.5 w-2.5 text-white" />
+                  </span>
+                  <span>反馈</span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="text-sm py-2 px-3 whitespace-nowrap rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-4 w-4 rounded-md bg-gradient-to-br from-slate-500 to-gray-600 flex items-center justify-center">
+                    <Settings className="h-2.5 w-2.5 text-white" />
+                  </span>
+                  <span>设置</span>
+                </span>
+              </TabsTrigger>
             </TabsList>
           </div>
           

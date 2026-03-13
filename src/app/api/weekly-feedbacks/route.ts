@@ -1,140 +1,141 @@
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+/**
+ * 客户反馈 API
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
+import { canViewAllBrands } from '@/lib/permissions';
 
-// GET - 获取反馈列表
-export async function GET(request: NextRequest) {
-  try {
-    // 验证用户身份
-    const authResult = await requireAuth(request);
-    if (authResult instanceof NextResponse) {
-      return authResult;
+// 转换函数
+function toCamelCase(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(toCamelCase);
+  if (typeof obj !== 'object') return obj;
+
+  const newObj: any = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const newKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      newObj[newKey] = toCamelCase(obj[key]);
     }
+  }
+  return newObj;
+}
 
-    const { searchParams } = new URL(request.url);
+function toSnakeCase(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(toSnakeCase);
+  if (typeof obj !== 'object') return obj;
+
+  const newObj: any = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const newKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+      newObj[newKey] = toSnakeCase(obj[key]);
+    }
+  }
+  return newObj;
+}
+
+// GET - 获取客户反馈列表
+export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
+
+  const user = authResult;
+
+  try {
+    const supabase = getSupabaseClient();
+    const searchParams = request.nextUrl.searchParams;
+
     const brand = searchParams.get('brand');
     const status = searchParams.get('status');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
 
-    const client = getSupabaseClient();
-    
-    let query = client
+    // 品牌隔离检查
+    const canViewAll = await canViewAllBrands(user.userId, user.brand);
+
+    let query = supabase
       .from('weekly_feedbacks')
-      .select(`
-        *,
-        created_by_user:users!weekly_feedbacks_created_by_fkey(name)
-      `, { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .select('*')
+      .order('created_at', { ascending: false });
 
-    if (brand && brand !== 'all') {
+    // 品牌过滤
+    if (!canViewAll) {
+      query = query.eq('brand', user.brand);
+    } else if (brand && brand !== 'all') {
       query = query.eq('brand', brand);
     }
 
+    // 状态过滤
     if (status && status !== 'all') {
       query = query.eq('status', status);
     }
 
-    const { data: feedbacks, error, count } = await query;
+    const { data, error } = await query;
 
     if (error) {
-      console.error('获取反馈列表失败:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('获取客户反馈失败:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    // 转换数据格式
-    const formattedFeedbacks = (feedbacks || []).map((f: {
-      [key: string]: any;
-      created_by_user?: { name: string };
-    }) => ({
-      ...f,
-      created_by_name: f.created_by_user?.name || null,
-      created_by_user: undefined,
-    }));
-
-    return NextResponse.json({
-      feedbacks: formattedFeedbacks,
-      total: count || 0,
-      limit,
-      offset,
-    });
+    return NextResponse.json({ success: true, data: toCamelCase(data || []) });
   } catch (error) {
-    console.error('获取反馈列表失败:', error);
-    return NextResponse.json(
-      { error: '获取反馈列表失败' },
-      { status: 500 }
-    );
+    console.error('服务器错误:', error);
+    return NextResponse.json({ success: false, error: '服务器错误' }, { status: 500 });
   }
 }
 
-// POST - 创建新反馈
+// POST - 创建客户反馈
 export async function POST(request: NextRequest) {
-  try {
-    // 验证用户身份
-    const authResult = await requireAuth(request);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
 
+  const user = authResult;
+
+  try {
+    const supabase = getSupabaseClient();
     const body = await request.json();
-    const {
-      brand,
-      weekStart,
-      weekEnd,
-      customerName,
-      contactInfo,
-      feedbackType,
-      feedbackContent,
-      rating,
-      images,
-      priority,
-      createdBy,
-    } = body;
 
     // 验证必填字段
-    if (!brand || !weekStart || !weekEnd || !feedbackContent) {
+    if (!body.feedbackContent) {
       return NextResponse.json(
-        { error: '品牌、周开始日期、周结束日期和反馈内容为必填项' },
+        { success: false, error: '请填写反馈内容' },
         { status: 400 }
       );
     }
 
-    const client = getSupabaseClient();
+    const insertData = {
+      brand: body.brand || user.brand || 'he_zhe',
+      week_start: body.weekStart || null,
+      week_end: body.weekEnd || null,
+      customer_name: body.customerName || null,
+      contact_info: body.contactInfo || null,
+      feedback_type: body.feedbackType || 'general',
+      feedback_content: body.feedbackContent,
+      rating: body.rating || 5,
+      images: body.images || [],
+      status: 'pending',
+      priority: body.priority || 'normal',
+      created_by: user.userId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
 
-    const { data: feedback, error } = await client
+    const { data, error } = await supabase
       .from('weekly_feedbacks')
-      .insert({
-        brand,
-        week_start: weekStart,
-        week_end: weekEnd,
-        customer_name: customerName || null,
-        contact_info: contactInfo || null,
-        feedback_type: feedbackType || 'general',
-        feedback_content: feedbackContent,
-        rating: rating || 5,
-        images: images || [],
-        status: 'pending',
-        priority: priority || 'normal',
-        created_by: createdBy || null,
-      })
+      .insert(insertData)
       .select()
       .single();
 
     if (error) {
-      console.error('创建反馈失败:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('创建客户反馈失败:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({
-      success: true,
-      feedback,
-    });
+    return NextResponse.json({ success: true, data: toCamelCase(data) });
   } catch (error) {
-    console.error('创建反馈失败:', error);
-    return NextResponse.json(
-      { error: '创建反馈失败' },
-      { status: 500 }
-    );
+    console.error('服务器错误:', error);
+    return NextResponse.json({ success: false, error: '服务器错误' }, { status: 500 });
   }
 }

@@ -1,169 +1,168 @@
-import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/api-auth';
+/**
+ * 客户反馈详情 API - 单条记录操作
+ */
 
-// GET - 获取单个反馈详情
+import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { requireAuth } from '@/lib/api-auth';
+import { canManageAllBrands } from '@/lib/permissions';
+
+// 转换函数
+function toCamelCase(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(toCamelCase);
+  if (typeof obj !== 'object') return obj;
+
+  const newObj: any = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const newKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      newObj[newKey] = toCamelCase(obj[key]);
+    }
+  }
+  return newObj;
+}
+
+function toSnakeCase(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(toSnakeCase);
+  if (typeof obj !== 'object') return obj;
+
+  const newObj: any = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const newKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+      newObj[newKey] = toSnakeCase(obj[key]);
+    }
+  }
+  return newObj;
+}
+
+// GET - 获取单条客户反馈
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    // 验证用户身份
-    const authResult = await requireAuth(request);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
 
-    const { id } = await params;
-    const client = getSupabaseClient();
+  const supabase = getSupabaseClient();
+  const { id } = await params;
 
-    const { data: feedback, error } = await client
-      .from('weekly_feedbacks')
-      .select(`
-        *,
-        created_by_user:users!weekly_feedbacks_created_by_fkey(name)
-      `)
-      .eq('id', id)
-      .single();
+  const { data, error } = await supabase
+    .from('weekly_feedbacks')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-    if (error || !feedback) {
-      return NextResponse.json(
-        { error: '反馈不存在' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
-      feedback: {
-        ...feedback,
-        created_by_name: feedback.created_by_user?.name || null,
-        created_by_user: undefined,
-      },
-    });
-  } catch (error) {
-    console.error('获取反馈详情失败:', error);
-    return NextResponse.json(
-      { error: '获取反馈详情失败' },
-      { status: 500 }
-    );
+  if (error) {
+    return NextResponse.json({ success: false, error: '反馈不存在' }, { status: 404 });
   }
+
+  return NextResponse.json({ success: true, data: toCamelCase(data) });
 }
 
-// PUT - 更新反馈
-export async function PUT(
+// PATCH - 更新客户反馈
+export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    // 验证用户身份
-    const authResult = await requireAuth(request);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
 
-    const { id } = await params;
-    const body = await request.json();
-    const {
-      brand,
-      weekStart,
-      weekEnd,
-      customerName,
-      contactInfo,
-      feedbackType,
-      feedbackContent,
-      rating,
-      images,
-      status,
-      priority,
-      responseContent,
-    } = body;
+  const user = authResult;
+  const supabase = getSupabaseClient();
+  const { id } = await params;
+  const body = await request.json();
 
-    const client = getSupabaseClient();
+  // 检查反馈是否存在
+  const { data: existing, error: fetchError } = await supabase
+    .from('weekly_feedbacks')
+    .select('brand')
+    .eq('id', id)
+    .single();
 
-    // 构建更新对象
-    const updateData: Record<string, any> = {};
-    
-    if (brand !== undefined) updateData.brand = brand;
-    if (weekStart !== undefined) updateData.week_start = weekStart;
-    if (weekEnd !== undefined) updateData.week_end = weekEnd;
-    if (customerName !== undefined) updateData.customer_name = customerName;
-    if (contactInfo !== undefined) updateData.contact_info = contactInfo;
-    if (feedbackType !== undefined) updateData.feedback_type = feedbackType;
-    if (feedbackContent !== undefined) updateData.feedback_content = feedbackContent;
-    if (rating !== undefined) updateData.rating = rating;
-    if (images !== undefined) updateData.images = images;
-    if (status !== undefined) updateData.status = status;
-    if (priority !== undefined) updateData.priority = priority;
-    if (responseContent !== undefined) updateData.response_content = responseContent;
-
-    updateData.updated_at = new Date().toISOString();
-
-    const { data: feedback, error } = await client
-      .from('weekly_feedbacks')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('更新反馈失败:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    if (!feedback) {
-      return NextResponse.json(
-        { error: '反馈不存在' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      feedback,
-    });
-  } catch (error) {
-    console.error('更新反馈失败:', error);
-    return NextResponse.json(
-      { error: '更新反馈失败' },
-      { status: 500 }
-    );
+  if (fetchError || !existing) {
+    return NextResponse.json({ success: false, error: '反馈不存在' }, { status: 404 });
   }
+
+  // 品牌权限检查
+  const canManageAll = await canManageAllBrands(user.brand);
+  if (!canManageAll && existing.brand !== user.brand) {
+    return NextResponse.json({ success: false, error: '无权限修改此反馈' }, { status: 403 });
+  }
+
+  // 构建更新数据
+  const updateData: any = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (body.brand !== undefined) updateData.brand = body.brand;
+  if (body.weekStart !== undefined) updateData.week_start = body.weekStart;
+  if (body.weekEnd !== undefined) updateData.week_end = body.weekEnd;
+  if (body.customerName !== undefined) updateData.customer_name = body.customerName;
+  if (body.contactInfo !== undefined) updateData.contact_info = body.contactInfo;
+  if (body.feedbackType !== undefined) updateData.feedback_type = body.feedbackType;
+  if (body.feedbackContent !== undefined) updateData.feedback_content = body.feedbackContent;
+  if (body.rating !== undefined) updateData.rating = body.rating;
+  if (body.images !== undefined) updateData.images = body.images;
+  if (body.status !== undefined) updateData.status = body.status;
+  if (body.priority !== undefined) updateData.priority = body.priority;
+  if (body.responseContent !== undefined) updateData.response_content = body.responseContent;
+
+  const { data, error } = await supabase
+    .from('weekly_feedbacks')
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('更新客户反馈失败:', error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true, data: toCamelCase(data) });
 }
 
-// DELETE - 删除反馈
+// DELETE - 删除客户反馈
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    // 验证用户身份
-    const authResult = await requireAuth(request);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) return authResult;
 
-    const { id } = await params;
-    const client = getSupabaseClient();
+  const user = authResult;
+  const supabase = getSupabaseClient();
+  const { id } = await params;
 
-    const { error } = await client
-      .from('weekly_feedbacks')
-      .delete()
-      .eq('id', id);
+  // 检查反馈是否存在
+  const { data: existing, error: fetchError } = await supabase
+    .from('weekly_feedbacks')
+    .select('brand')
+    .eq('id', id)
+    .single();
 
-    if (error) {
-      console.error('删除反馈失败:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: '反馈已删除',
-    });
-  } catch (error) {
-    console.error('删除反馈失败:', error);
-    return NextResponse.json(
-      { error: '删除反馈失败' },
-      { status: 500 }
-    );
+  if (fetchError || !existing) {
+    return NextResponse.json({ success: false, error: '反馈不存在' }, { status: 404 });
   }
+
+  // 品牌权限检查
+  const canManageAll = await canManageAllBrands(user.brand);
+  if (!canManageAll && existing.brand !== user.brand) {
+    return NextResponse.json({ success: false, error: '无权限删除此反馈' }, { status: 403 });
+  }
+
+  const { error } = await supabase
+    .from('weekly_feedbacks')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('删除客户反馈失败:', error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true, message: '删除成功' });
 }

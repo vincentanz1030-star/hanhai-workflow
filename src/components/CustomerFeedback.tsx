@@ -52,20 +52,20 @@ const PRIORITY_OPTIONS: Record<string, string> = {
 interface WeeklyFeedback {
   id: string;
   brand: string;
-  week_start: string;
-  week_end: string;
-  customer_name: string | null;
-  contact_info: string | null;
-  feedback_type: string;
-  feedback_content: string;
+  weekStart: string | null;
+  weekEnd: string | null;
+  customerName: string | null;
+  contactInfo: string | null;
+  feedbackType: string;
+  feedbackContent: string;
   rating: number;
   images: string[];
   status: string;
   priority: string;
-  response_content: string | null;
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
+  responseContent: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export function CustomerFeedback() {
@@ -79,7 +79,15 @@ export function CustomerFeedback() {
   // 弹窗状态
   const [showFormDialog, setShowFormDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [previewFeedback, setPreviewFeedback] = useState<WeeklyFeedback | null>(null);
   const [currentFeedback, setCurrentFeedback] = useState<WeeklyFeedback | null>(null);
+  
+  // 打开预览
+  const openPreview = (feedback: WeeklyFeedback) => {
+    setPreviewFeedback(feedback);
+    setShowPreviewDialog(true);
+  };
   
   // 表单数据
   const [formData, setFormData] = useState({
@@ -106,7 +114,7 @@ export function CustomerFeedback() {
       if (selectedBrand !== 'all') params.append('brand', selectedBrand);
       if (selectedStatus !== 'all') params.append('status', selectedStatus);
       
-      const response = await fetch(`/api/new-product-launches?${params.toString()}`);
+      const response = await fetch(`/api/weekly-feedbacks?${params.toString()}`);
       const data = await response.json();
       
       if (data.success) {
@@ -129,8 +137,8 @@ export function CustomerFeedback() {
     try {
       const method = currentFeedback ? 'PATCH' : 'POST';
       const url = currentFeedback 
-        ? `/api/new-product-launches/${currentFeedback.id}` 
-        : '/api/new-product-launches';
+        ? `/api/weekly-feedbacks/${currentFeedback.id}` 
+        : '/api/weekly-feedbacks';
 
       const response = await fetch(url, {
         method,
@@ -158,7 +166,7 @@ export function CustomerFeedback() {
     if (!currentFeedback) return;
 
     try {
-      const response = await fetch(`/api/new-product-launches/${currentFeedback.id}`, {
+      const response = await fetch(`/api/weekly-feedbacks/${currentFeedback.id}`, {
         method: 'DELETE',
       });
 
@@ -180,12 +188,12 @@ export function CustomerFeedback() {
     setCurrentFeedback(feedback);
     setFormData({
       brand: feedback.brand,
-      weekStart: feedback.week_start,
-      weekEnd: feedback.week_end,
-      customerName: feedback.customer_name || '',
-      contactInfo: feedback.contact_info || '',
-      feedbackType: feedback.feedback_type,
-      feedbackContent: feedback.feedback_content,
+      weekStart: feedback.weekStart || '',
+      weekEnd: feedback.weekEnd || '',
+      customerName: feedback.customerName || '',
+      contactInfo: feedback.contactInfo || '',
+      feedbackType: feedback.feedbackType,
+      feedbackContent: feedback.feedbackContent,
       rating: feedback.rating,
       priority: feedback.priority,
     });
@@ -209,8 +217,8 @@ export function CustomerFeedback() {
 
   const filteredFeedbacks = feedbacks.filter(f => 
     !searchKeyword || 
-    f.feedback_content.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-    (f.customer_name && f.customer_name.toLowerCase().includes(searchKeyword.toLowerCase()))
+    f.feedbackContent.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+    (f.customerName && f.customerName.toLowerCase().includes(searchKeyword.toLowerCase()))
   );
 
   // 统计数据
@@ -332,7 +340,11 @@ export function CustomerFeedback() {
           ) : (
             <div className="space-y-3">
               {filteredFeedbacks.map((feedback) => (
-                <div key={feedback.id} className="p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors">
+                <div 
+                  key={feedback.id} 
+                  className="p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors cursor-pointer"
+                  onClick={() => openPreview(feedback)}
+                >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
@@ -340,24 +352,24 @@ export function CustomerFeedback() {
                         <Badge className={STATUS_OPTIONS[feedback.status]?.color}>
                           {STATUS_OPTIONS[feedback.status]?.label || feedback.status}
                         </Badge>
-                        <Badge variant="secondary">{FEEDBACK_TYPES[feedback.feedback_type] || feedback.feedback_type}</Badge>
+                        <Badge variant="secondary">{FEEDBACK_TYPES[feedback.feedbackType] || feedback.feedbackType}</Badge>
                         <div className="flex items-center gap-0.5">
                           <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                           <span className="text-xs">{feedback.rating}</span>
                         </div>
                       </div>
-                      <p className="text-sm line-clamp-2">{feedback.feedback_content}</p>
-                      {feedback.customer_name && (
+                      <p className="text-sm line-clamp-2">{feedback.feedbackContent}</p>
+                      {feedback.customerName && (
                         <p className="text-xs text-muted-foreground mt-2">
-                          客户: {feedback.customer_name}
-                          {feedback.contact_info && ` (${feedback.contact_info})`}
+                          客户: {feedback.customerName}
+                          {feedback.contactInfo && ` (${feedback.contactInfo})`}
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(feedback.created_at).toLocaleString('zh-CN')}
+                        {new Date(feedback.createdAt).toLocaleString('zh-CN')}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditDialog(feedback)}>
                         <Edit className="h-3.5 w-3.5" />
                       </Button>
@@ -494,6 +506,114 @@ export function CustomerFeedback() {
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(false)}>取消</Button>
             <Button variant="destructive" size="sm" onClick={handleDelete}>删除</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 预览对话框 */}
+      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center">
+                <MessageSquare className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-base">反馈详情</DialogTitle>
+                <DialogDescription>
+                  {previewFeedback && new Date(previewFeedback.createdAt).toLocaleString('zh-CN')}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          {previewFeedback && (
+            <div className="space-y-4">
+              {/* 基本信息 */}
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">{BRANDS.find(b => b.value === previewFeedback.brand)?.label || previewFeedback.brand}</Badge>
+                <Badge className={STATUS_OPTIONS[previewFeedback.status]?.color}>
+                  {STATUS_OPTIONS[previewFeedback.status]?.label || previewFeedback.status}
+                </Badge>
+                <Badge variant="secondary">{FEEDBACK_TYPES[previewFeedback.feedbackType] || previewFeedback.feedbackType}</Badge>
+                <Badge variant="outline" className="text-amber-600">
+                  <Star className="h-3 w-3 mr-1 fill-amber-400 text-amber-400" />
+                  {previewFeedback.rating}分
+                </Badge>
+                <Badge variant="outline" className={previewFeedback.priority === 'urgent' ? 'text-red-600' : previewFeedback.priority === 'high' ? 'text-orange-600' : ''}>
+                  {PRIORITY_OPTIONS[previewFeedback.priority] || previewFeedback.priority}
+                </Badge>
+              </div>
+
+              {/* 客户信息 */}
+              {(previewFeedback.customerName || previewFeedback.contactInfo) && (
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <p className="text-sm font-medium mb-1">客户信息</p>
+                  {previewFeedback.customerName && (
+                    <p className="text-sm">姓名: {previewFeedback.customerName}</p>
+                  )}
+                  {previewFeedback.contactInfo && (
+                    <p className="text-sm text-muted-foreground">联系方式: {previewFeedback.contactInfo}</p>
+                  )}
+                </div>
+              )}
+
+              {/* 反馈内容 */}
+              <div>
+                <p className="text-sm font-medium mb-2">反馈内容</p>
+                <div className="p-3 rounded-lg bg-muted/30">
+                  <p className="text-sm whitespace-pre-wrap">{previewFeedback.feedbackContent}</p>
+                </div>
+              </div>
+
+              {/* 回复内容 */}
+              {previewFeedback.responseContent && (
+                <div>
+                  <p className="text-sm font-medium mb-2">回复内容</p>
+                  <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                    <p className="text-sm whitespace-pre-wrap">{previewFeedback.responseContent}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* 时间范围 */}
+              {(previewFeedback.weekStart || previewFeedback.weekEnd) && (
+                <div className="text-xs text-muted-foreground">
+                  反馈周期: {previewFeedback.weekStart || ''} ~ {previewFeedback.weekEnd || ''}
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowPreviewDialog(false)}>关闭</Button>
+            {previewFeedback && (
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    setShowPreviewDialog(false);
+                    openEditDialog(previewFeedback);
+                  }}
+                >
+                  <Edit className="h-3.5 w-3.5 mr-1" />
+                  编辑
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={() => {
+                    setShowPreviewDialog(false);
+                    setCurrentFeedback(previewFeedback);
+                    setShowDeleteDialog(true);
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  删除
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, Users, CheckCircle, AlertCircle, AlertTriangle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil, LogOut, User, Shield, Loader2, Settings, Search, Package, Building, ShoppingCart, MessageSquare, CheckSquare, Activity, FileText, BookOpen, FolderKanban, CalendarDays, ClipboardCheck, MessageCircle, Image as ImageIcon, KeyRound } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, AlertCircle, AlertTriangle, Plus, TrendingUp, FolderOpen, ArrowRight, Trash2, Maximize2, Minimize2, ChevronDown, ChevronRight, Pencil, LogOut, User, Shield, Loader2, Settings, Search, Package, Building, ShoppingCart, MessageSquare, CheckSquare, Activity, FileText, BookOpen, FolderKanban, CalendarDays, ClipboardCheck, MessageCircle, Image as ImageIcon, KeyRound, Megaphone } from 'lucide-react';
 import { format, differenceInDays, isBefore, isAfter, isToday } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Slider } from '@/components/ui/slider';
@@ -2665,67 +2665,89 @@ function HomePageContent() {
             <TabsList className="inline-flex w-auto gap-1 h-auto bg-muted/30 p-1.5 rounded-2xl border border-border/30">
               <TabsTrigger value="dashboard" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
                 <span className="flex items-center gap-2">
-                  <span className="text-base">📊</span>
+                  <span className="h-5 w-5 rounded-md bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                    <Activity className="h-3 w-3 text-white" />
+                  </span>
                   <span>数据看板</span>
                 </span>
               </TabsTrigger>
               <TabsTrigger value="projects" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
                 <span className="flex items-center gap-2">
-                  <span className="text-base">📁</span>
+                  <span className="h-5 w-5 rounded-md bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                    <FolderOpen className="h-3 w-3 text-white" />
+                  </span>
                   <span>项目列表</span>
                 </span>
               </TabsTrigger>
               <TabsTrigger value="timeline" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
                 <span className="flex items-center gap-2">
-                  <span className="text-base">📅</span>
+                  <span className="h-5 w-5 rounded-md bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
+                    <Calendar className="h-3 w-3 text-white" />
+                  </span>
                   <span>时间线</span>
                 </span>
               </TabsTrigger>
               <TabsTrigger value="roles" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
                 <span className="flex items-center gap-2">
-                  <span className="text-base">👥</span>
+                  <span className="h-5 w-5 rounded-md bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center">
+                    <Users className="h-3 w-3 text-white" />
+                  </span>
                   <span>岗位进度</span>
                 </span>
               </TabsTrigger>
-              <TabsTrigger value="product-center" className="text-sm py-2.5 px-4 rounded-xl font-medium text-blue-600 dark:text-blue-400 transition-all">
+              <TabsTrigger value="product-center" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
                 <span className="flex items-center gap-2">
-                  <span className="text-base">📦</span>
+                  <span className="h-5 w-5 rounded-md bg-gradient-to-br from-sky-500 to-blue-500 flex items-center justify-center">
+                    <Package className="h-3 w-3 text-white" />
+                  </span>
                   <span>商品中心</span>
                 </span>
               </TabsTrigger>
-              <TabsTrigger value="marketing" className="text-sm py-2.5 px-4 rounded-xl font-medium text-purple-600 dark:text-purple-400 transition-all">
+              <TabsTrigger value="marketing" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
                 <span className="flex items-center gap-2">
-                  <span className="text-base">📢</span>
+                  <span className="h-5 w-5 rounded-md bg-gradient-to-br from-fuchsia-500 to-pink-500 flex items-center justify-center">
+                    <Megaphone className="h-3 w-3 text-white" />
+                  </span>
                   <span>营销中台</span>
                 </span>
               </TabsTrigger>
-              <TabsTrigger value="collaboration" className="text-sm py-2.5 px-4 rounded-xl font-medium text-green-600 dark:text-green-400 transition-all">
+              <TabsTrigger value="collaboration" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
                 <span className="flex items-center gap-2">
-                  <span className="text-base">🤝</span>
+                  <span className="h-5 w-5 rounded-md bg-gradient-to-br from-lime-500 to-emerald-500 flex items-center justify-center">
+                    <MessageSquare className="h-3 w-3 text-white" />
+                  </span>
                   <span>协同平台</span>
                 </span>
               </TabsTrigger>
-              <TabsTrigger value="shared-resource" className="text-sm py-2.5 px-4 rounded-xl font-medium text-orange-600 dark:text-orange-400 transition-all">
+              <TabsTrigger value="shared-resource" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
                 <span className="flex items-center gap-2">
-                  <span className="text-base">🔗</span>
+                  <span className="h-5 w-5 rounded-md bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                    <BookOpen className="h-3 w-3 text-white" />
+                  </span>
                   <span>资源共享</span>
                 </span>
               </TabsTrigger>
-              <TabsTrigger value="weekly-feedbacks" className="text-sm py-2.5 px-4 rounded-xl font-medium text-cyan-600 dark:text-cyan-400 transition-all" asChild>
+              <TabsTrigger value="weekly-feedbacks" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all" asChild>
                 <a href="/weekly-feedbacks" className="flex items-center gap-2">
-                  <span className="text-base">💬</span>
+                  <span className="h-5 w-5 rounded-md bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center">
+                    <MessageCircle className="h-3 w-3 text-white" />
+                  </span>
                   <span>客户反馈</span>
                 </a>
               </TabsTrigger>
               <TabsTrigger value="analytics" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all" asChild>
                 <a href="/analytics" className="flex items-center gap-2">
-                  <span className="text-base">📈</span>
+                  <span className="h-5 w-5 rounded-md bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
+                    <TrendingUp className="h-3 w-3 text-white" />
+                  </span>
                   <span>数据分析</span>
                 </a>
               </TabsTrigger>
               <TabsTrigger value="settings" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
                 <span className="flex items-center gap-2">
-                  <span className="text-base">⚙️</span>
+                  <span className="h-5 w-5 rounded-md bg-gradient-to-br from-slate-500 to-gray-600 flex items-center justify-center">
+                    <Settings className="h-3 w-3 text-white" />
+                  </span>
                   <span>系统设置</span>
                 </span>
               </TabsTrigger>

@@ -319,15 +319,20 @@ export default function NotificationCenter({
           {/* 标题栏 */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
-                <Megaphone className="h-5 w-5 text-white" />
+              <div className="relative">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                  <Megaphone className="h-5 w-5 text-white" />
+                </div>
+                {unreadAnnouncements > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold text-white bg-destructive rounded-full animate-pulse">
+                    {unreadAnnouncements}
+                  </span>
+                )}
               </div>
               <div>
                 <span className="font-semibold text-base">公告</span>
                 {unreadAnnouncements > 0 && (
-                  <Badge variant="destructive" className="ml-2 text-[10px] h-4 px-1.5">
-                    {unreadAnnouncements}
-                  </Badge>
+                  <span className="ml-2 text-xs text-destructive font-medium">{unreadAnnouncements} 条未读</span>
                 )}
               </div>
             </div>
@@ -404,23 +409,23 @@ export default function NotificationCenter({
           {/* 标题栏 */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <Bell className="h-5 w-5 text-white" />
+              <div className="relative">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                  <Bell className="h-5 w-5 text-white" />
+                </div>
+                {totalNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold text-white bg-blue-500 rounded-full">
+                    {totalNotifications}
+                  </span>
+                )}
               </div>
               <div>
                 <span className="font-semibold text-base">通知</span>
-                {totalNotifications > 0 && (
-                  <Badge variant="secondary" className="ml-2 text-[10px] h-4 px-1.5">
-                    {totalNotifications}
-                  </Badge>
+                {highPriorityCount > 0 && (
+                  <span className="ml-2 text-xs text-destructive font-medium">{highPriorityCount} 条紧急</span>
                 )}
               </div>
             </div>
-            {highPriorityCount > 0 && (
-              <Badge variant="destructive" className="text-[10px] h-5 px-2">
-                {highPriorityCount} 紧急
-              </Badge>
-            )}
           </div>
           
           {/* 内容区 - 固定高度 */}

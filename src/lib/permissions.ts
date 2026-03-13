@@ -37,13 +37,14 @@ const ADMIN_ROLES = ['super_admin', 'admin'];
 
 /**
  * 获取用户的角色列表（从 user_roles_v2 表）
+ * 注意：user_roles_v2.role 字段直接存储角色名称（如 'super_admin', 'admin'）
  */
 export async function getUserRoles(userId: string): Promise<UserRoleInfo[]> {
   const supabase = getSupabaseClient();
 
   const { data: userRoles, error } = await supabase
     .from('user_roles_v2')
-    .select('is_primary, roles_v2(code)')
+    .select('role, is_primary')
     .eq('user_id', userId);
 
   if (error) {
@@ -55,12 +56,10 @@ export async function getUserRoles(userId: string): Promise<UserRoleInfo[]> {
     return [];
   }
 
-  return userRoles
-    .filter((r: any) => r.roles_v2?.code)
-    .map((r: any) => ({
-      role: r.roles_v2.code,
-      is_primary: r.is_primary || false,
-    }));
+  return userRoles.map((r: any) => ({
+    role: r.role,
+    is_primary: r.is_primary || false,
+  }));
 }
 
 /**
@@ -128,46 +127,42 @@ export async function checkPermission(
   // 管理员拥有大部分权限
   const admin = await isAdmin(userId);
   if (admin) {
-    // 管理员权限检查可以在这里细化
+    // 管理员拥有所有权限
     return true;
   }
 
+  // 普通用户：检查角色权限表
   const roles = await getUserRoles(userId);
   
   if (roles.length === 0) {
     return false;
   }
 
-  const roleNames = roles.map(r => r.role);
   const supabase = getSupabaseClient();
+  const roleNames = roles.map(r => r.role);
 
-  // 检查这些角色是否有指定权限
-  const { data: permissions, error: permsError } = await supabase
-    .from('role_permissions_v2')
-    .select('permission_id')
-    .in('role_id', 
-      `(SELECT id FROM roles_v2 WHERE code IN (${roleNames.map(r => `'${r}'`).join(',')}))`
+  // 尝试查询 role_permissions 表（兼容旧表结构）
+  try {
+    const { data: permissions, error } = await supabase
+      .from('role_permissions')
+      .select(`
+        permission_id,
+        permissions (resource, action)
+      `)
+      .in('role', roleNames);
+
+    if (error || !permissions) {
+      // 如果查询失败，默认拒绝
+      return false;
+    }
+
+    return permissions.some((p: any) => 
+      p.permissions?.resource === resource && 
+      p.permissions?.action === action
     );
-
-  if (permsError || !permissions) {
+  } catch {
     return false;
   }
-
-  const permissionIds = permissions.map((p: { permission_id: string }) => p.permission_id);
-
-  // 查询权限详情
-  const { data: permDetails, error: detailsError } = await supabase
-    .from('permissions_v2')
-    .select('*')
-    .in('id', permissionIds)
-    .eq('resource', resource)
-    .eq('action', action);
-
-  if (detailsError) {
-    return false;
-  }
-
-  return permDetails && permDetails.length > 0;
 }
 
 /**

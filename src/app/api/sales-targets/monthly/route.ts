@@ -1,28 +1,7 @@
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api-auth';
-
-// 将蛇形命名转换为驼峰命名
-function toCamelCase(obj: any): any {
-  if (obj === null || obj === undefined) return obj;
-  if (Array.isArray(obj)) return obj.map(toCamelCase);
-  if (typeof obj !== 'object') return obj;
-
-  const newObj: any = {};
-  for (const key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      // 移除所有下划线，并将下划线后的字母大写
-      const camelKey = key.split('_').reduce((result, word, index) => {
-        if (index === 0) {
-          return word;
-        }
-        return result + word.charAt(0).toUpperCase() + word.slice(1);
-      }, '');
-      newObj[camelKey] = toCamelCase(obj[key]);
-    }
-  }
-  return newObj;
-}
+import { toCamelCase } from '@/lib/utils';
 
 // 更新月度销售目标的实际完成金额
 // 直接从环境变量获取 Supabase 配置

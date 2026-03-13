@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { verifyPassword } from '@/lib/auth';
 import { requireAuth } from '@/lib/api-auth';
+import { disableInProduction } from '@/lib/diagnostic-guard';
 
 // 安全警告：此接口需要管理员权限
 export async function POST(request: NextRequest) {
+  // 生产环境禁用
+  const disabledResponse = disableInProduction(request);
+  if (disabledResponse) return disabledResponse;
   // 认证检查
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) {

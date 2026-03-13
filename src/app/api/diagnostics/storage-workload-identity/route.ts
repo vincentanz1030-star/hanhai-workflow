@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Storage } from 'coze-coding-dev-sdk';
 import { requireAuth } from '@/lib/api-auth';
+import { disableInProduction } from '@/lib/diagnostic-guard';
 
 export async function POST(request: NextRequest) {
+  // 生产环境禁用
+  const disabledResponse = disableInProduction(request);
+  if (disabledResponse) return disabledResponse;
   // 认证检查
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) {

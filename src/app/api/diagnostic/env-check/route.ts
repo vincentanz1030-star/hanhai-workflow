@@ -1,6 +1,7 @@
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api-auth';
+import { disableInProduction } from '@/lib/diagnostic-guard';
 
 /**
  * 环境变量诊断 API
@@ -9,6 +10,9 @@ import { requireAuth } from '@/lib/api-auth';
  */
 
 export async function GET(request: NextRequest) {
+  // 生产环境禁用
+  const disabledResponse = disableInProduction(request);
+  if (disabledResponse) return disabledResponse;
   // 认证检查
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) {

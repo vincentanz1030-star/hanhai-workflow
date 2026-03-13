@@ -1,21 +1,6 @@
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
-
-// 辅助函数：将下划线命名转为驼峰命名
-const toCamelCase = (obj: any): any => {
-  if (obj === null || typeof obj !== 'object') return obj;
-  
-  if (Array.isArray(obj)) {
-    return obj.map(item => toCamelCase(item));
-  }
-  
-  const result: any = {};
-  for (const key in obj) {
-    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-    result[camelKey] = toCamelCase(obj[key]);
-  }
-  return result;
-};
+import { toCamelCase } from '@/lib/utils';
 
 // 获取本周工作安排列表
 // 直接从环境变量获取 Supabase 配置

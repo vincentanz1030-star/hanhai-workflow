@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyPassword, generateToken } from '@/lib/auth';
 import { getPrimaryRole } from '@/lib/permissions';
 import { getSupabaseClient, queryWithRetry } from '@/lib/db-pool';
+import { rateLimit, rateLimitPresets } from '@/lib/rate-limit';
 
 // 用户类型定义
 interface User {
@@ -20,6 +21,22 @@ export async function POST(request: NextRequest) {
   // 添加请求 ID 用于追踪
   const requestId = `login_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   console.log(`[${requestId}] [登录API] 收到登录请求`);
+
+  // 解析请求体以获取邮箱（用于更精确的速率限制）
+  let email = '';
+  try {
+    const body = await request.clone().json();
+    email = body.email || '';
+  } catch {
+    // 忽略解析错误
+  }
+
+  // 速率限制检查（基于 IP + 邮箱）
+  const rateLimitResponse = rateLimit(request, rateLimitPresets.login, email);
+  if (rateLimitResponse) {
+    console.log(`[${requestId}] [登录API] 速率限制触发: ${email}`);
+    return rateLimitResponse;
+  }
 
   try {
     const body = await request.json();

@@ -6,8 +6,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTokenFromRequest } from '@/lib/token-helper';
 import { verifyToken } from '@/lib/auth';
+import { disableInProduction } from '@/lib/diagnostic-guard';
 
 export async function GET(request: NextRequest) {
+  // 生产环境禁用
+  const disabledResponse = disableInProduction(request);
+  if (disabledResponse) return disabledResponse;
   // 获取请求信息
   const cookieHeader = request.headers.get('cookie');
   const authHeader = request.headers.get('authorization');

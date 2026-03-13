@@ -1,20 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
-function toCamelCase(obj: any): any {
-  if (obj === null || obj === undefined) return obj;
-  if (Array.isArray(obj)) return obj.map(toCamelCase);
-  if (typeof obj !== 'object') return obj;
-
-  const newObj: any = {};
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      const newKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-      newObj[newKey] = toCamelCase(obj[key]);
-    }
-  }
-  return newObj;
-}
+import { toCamelCase } from '@/lib/utils';
 
 function toSnakeCase(obj: any): any {
   if (obj === null || obj === undefined) return obj;

@@ -349,16 +349,23 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
                                   >
                                     <polyline points="20 6 9 17 4 12"></polyline>
                                   </svg>
-                                  {/* 编辑按钮 - 鼠标悬停时显示 */}
-                                  <button
-                                    className="h-5 w-5 p-0 absolute top-0 right-0 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 rounded-sm shadow-sm flex items-center justify-center"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleLaunchEdit(launch, e);
-                                    }}
-                                  >
-                                    <Edit2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                                  </button>
+                                  {/* 编辑和删除按钮 - 鼠标悬停时显示 */}
+                                  <div className="absolute top-0 right-0 flex opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      className="h-5 w-5 p-0 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-sm shadow-sm flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                                      onClick={(e) => handleLaunchEdit(launch, e)}
+                                      title="编辑"
+                                    >
+                                      <Edit2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                    </button>
+                                    <button
+                                      className="h-5 w-5 p-0 bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 rounded-sm shadow-sm flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/30"
+                                      onClick={(e) => handleLaunchDelete(launch, e)}
+                                      title="删除"
+                                    >
+                                      <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                    </button>
+                                  </div>
                                 </div>
                               ) : null}
                             </td>
@@ -432,13 +439,28 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={handleSaveLaunch}>
-              {editingLaunch ? '保存' : '创建'}
-            </Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {editingLaunch && (
+              <Button 
+                variant="destructive" 
+                onClick={() => {
+                  setIsEditDialogOpen(false);
+                  setIsDeleteDialogOpen(true);
+                }}
+                className="w-full sm:w-auto"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                删除
+              </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                取消
+              </Button>
+              <Button onClick={handleSaveLaunch}>
+                {editingLaunch ? '保存' : '创建'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -2,11 +2,10 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { createCollaborationNotification } from '@/lib/notifications';
 import { requireAuth } from '@/lib/api-auth';
+import { getUserRoles } from '@/lib/permissions';
 import { toCamelCase } from '@/lib/utils';
 
 // 获取协同合作任务列表
-// 直接从环境变量获取 Supabase 配置
-
 export async function GET(request: NextRequest) {
   try {
     // 验证用户身份
@@ -113,17 +112,11 @@ export async function POST(request: NextRequest) {
         .eq('status', 'active');
 
       if (targetUsers && targetUsers.length > 0) {
-        const userIds = targetUsers.map((u: { id: string }) => u.id);
-        const { data: userRoles } = await client
-          .from('user_roles')
-          .select('user_id')
-          .in('user_id', userIds)
-          .eq('role', targetRole);
-
-        if (userRoles) {
-          for (const userRole of userRoles) {
+        for (const targetUser of targetUsers) {
+          const userRoles = await getUserRoles(targetUser.id);
+          if (userRoles.some(r => r.role === targetRole)) {
             await createCollaborationNotification(
-              userRole.user_id,
+              targetUser.id,
               taskTitle,
               requestingRole,
               deadline || ''

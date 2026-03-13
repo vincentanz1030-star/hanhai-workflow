@@ -1,10 +1,9 @@
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { isAdmin } from '@/lib/permissions';
 
 // 分配角色给用户
-// 直接从环境变量获取 Supabase 配置
-
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -20,19 +19,13 @@ export async function PUT(
       return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
 
-    const supabase = getSupabaseClient();
-
-    // 检查用户角色
-    const { data: adminRole } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', currentUser.userId)
-      .eq('is_primary', true)
-      .single();
-
-    if (!adminRole || adminRole.role !== 'admin') {
+    // 使用统一的权限检查函数
+    const admin = await isAdmin(currentUser.userId);
+    if (!admin) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
+
+    const supabase = getSupabaseClient();
 
     // 删除用户现有角色
     await supabase.from('user_roles').delete().eq('user_id', id);

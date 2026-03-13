@@ -7,17 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDataPlatform } from '@/lib/data-platform/core';
 import { aggregators } from '@/lib/data-platform/aggregators';
 import { requireAuth } from '@/lib/api-auth';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
-
-// 检查是否是管理员
-async function isAdmin(userId: string): Promise<boolean> {
-  const client = getSupabaseClient();
-  const { data: userRoles } = await client
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', userId);
-  return userRoles?.some((r: { role: string }) => r.role === 'admin') || false;
-}
+import { isAdmin } from '@/lib/permissions';
 
 export async function GET(request: NextRequest) {
   // 验证用户身份
@@ -31,8 +21,8 @@ export async function GET(request: NextRequest) {
 
   // 敏感操作需要管理员权限
   if (action === 'clear-cache') {
-    const adminCheck = await isAdmin(authResult.userId);
-    if (!adminCheck) {
+    const admin = await isAdmin(authResult.userId);
+    if (!admin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
   }

@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { checkPermission } from '@/lib/permissions';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { checkPermission, getUserRoles, isAdmin } from '@/lib/permissions';
 
 /**
  * 用户角色类型
  */
 export interface UserRole {
-  id: string;
   user_id: string;
   role: string;
   created_at?: string;
@@ -52,18 +50,14 @@ export async function requireAuth(
     );
   }
 
-  // 从数据库查询用户的roles信息
+  // 使用统一的权限模块获取用户角色
   let roles: UserRole[] = [];
   try {
-    const client = getSupabaseClient();
-    const { data: userRoles, error } = await client
-      .from('user_roles')
-      .select('*')
-      .eq('user_id', currentUser.userId);
-
-    if (!error && userRoles) {
-      roles = userRoles;
-    }
+    const userRoles = await getUserRoles(currentUser.userId);
+    roles = userRoles.map(r => ({
+      user_id: currentUser.userId,
+      role: r.role,
+    }));
   } catch (error) {
     console.error('查询用户角色失败:', error);
     // 即使查询角色失败，也继续执行（向后兼容）
@@ -115,4 +109,42 @@ export function applyBrandFilter<T extends { eq: (column: string, value: any) =>
     return query.eq(brandColumn, currentUserBrand) as T;
   }
   return query;
+}
+
+/**
+ * 要求用户是管理员
+ * @param request NextRequest对象
+ * @returns 返回用户信息或错误响应
+ */
+export async function requireAdmin(
+  request: NextRequest
+): Promise<AuthUser | NextResponse> {
+  const currentUser = await getCurrentUser(request);
+
+  if (!currentUser) {
+    return NextResponse.json(
+      { error: '未登录，请先登录' },
+      { status: 401 }
+    );
+  }
+
+  const admin = await isAdmin(currentUser.userId);
+  if (!admin) {
+    return NextResponse.json(
+      { error: '无权限执行此操作，仅限管理员' },
+      { status: 403 }
+    );
+  }
+
+  // 使用统一的权限模块获取用户角色
+  const userRoles = await getUserRoles(currentUser.userId);
+  const roles: UserRole[] = userRoles.map(r => ({
+    user_id: currentUser.userId,
+    role: r.role,
+  }));
+
+  return {
+    ...currentUser,
+    roles,
+  };
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
-import { getSupabaseClient, getSupabaseCredentials } from '@/storage/database/supabase-client';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { isAdmin, getUserRoles } from '@/lib/permissions';
 
 // POST - 设置用户为管理员（仅限管理员操作）
 export async function POST(request: NextRequest) {
@@ -17,14 +18,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Token 无效' }, { status: 401 });
     }
 
-    // 检查当前用户是否是管理员
-    const client = getSupabaseClient();
-    const { data: currentUserRoles, error: roleError } = await client
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', decoded.userId);
-
-    if (roleError || !currentUserRoles?.some((r: { role: string }) => r.role === 'admin')) {
+    // 使用统一的权限检查函数
+    const admin = await isAdmin(decoded.userId);
+    if (!admin) {
       console.log(`[设置管理员] 非管理员用户 ${decoded.email} 尝试设置管理员`);
       return NextResponse.json({ error: '无权限执行此操作，仅限管理员' }, { status: 403 });
     }
@@ -36,6 +32,8 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[设置管理员] 用户 ${decoded.email} 请求设置 ${email} 为管理员`);
+
+    const client = getSupabaseClient();
 
     // 使用 Supabase 客户端查找用户
     const { data: users, error: userError } = await client
@@ -54,19 +52,9 @@ export async function POST(request: NextRequest) {
 
     const userId = users[0].id;
 
-    // 检查是否已经是管理员
-    const { data: existingRoles, error: checkError } = await client
-      .from('user_roles')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('role', 'admin');
-
-    if (checkError) {
-      console.error('[设置管理员] 检查角色失败:', checkError);
-      return NextResponse.json({ error: '检查角色失败' }, { status: 500 });
-    }
-
-    if (existingRoles && existingRoles.length > 0) {
+    // 使用统一的权限模块检查是否已经是管理员
+    const existingRoles = await getUserRoles(userId);
+    if (existingRoles.some(r => r.role === 'admin')) {
       return NextResponse.json({
         success: true,
         message: '用户已经是管理员',

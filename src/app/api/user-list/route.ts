@@ -1,6 +1,8 @@
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api-auth';
+import { isAdmin } from '@/lib/permissions';
+
 /**
  * 获取用户列表（用于任务分配）
  */
@@ -16,17 +18,10 @@ export async function GET(request: NextRequest) {
     
     const role = searchParams.get('role');
     const brand = searchParams.get('brand');
-    const isActive = searchParams.get('isActive');
 
-    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    // 使用统一的权限检查函数
+    const admin = await isAdmin(authResult.userId);
     const userBrand = authResult.brand;
-
-    // 品牌过滤：非管理员只能看到自己品牌的用户
-    if (!isAdmin && userBrand && userBrand !== 'all') {
-      // 非管理员用户只能查看自己品牌的用户
-      // 但可以查看所有品牌的管理员
-      // 这里简化处理：品牌用户只能看自己品牌的用户
-    }
 
     let query = client
       .from('users')
@@ -85,7 +80,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 非管理员用户：只能看到自己品牌的用户
-    if (!isAdmin && userBrand && userBrand !== 'all') {
+    if (!admin && userBrand && userBrand !== 'all') {
       filteredUsers = filteredUsers.filter((u: any) => u.brand === userBrand || u.brand === 'all');
     }
 

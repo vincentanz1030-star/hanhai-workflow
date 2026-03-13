@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
+import { isAdmin } from '@/lib/permissions';
 import * as XLSX from 'xlsx';
 
 // 直接从环境变量获取 Supabase 配置
@@ -19,14 +20,9 @@ export async function POST(request: NextRequest) {
       return authResult;
     }
 
-    // 检查是否有管理员权限
-    const { data: userRoles } = await getSupabaseClient()
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', authResult.userId);
-
-    const hasAdminRole = userRoles?.some((ur: { role: string }) => ur.role === 'admin');
-    if (!hasAdminRole) {
+    // 使用统一的权限检查函数
+    const admin = await isAdmin(authResult.userId);
+    if (!admin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
@@ -268,13 +264,9 @@ export async function GET(request: NextRequest) {
       return authResult;
     }
 
-    const { data: userRoles } = await getSupabaseClient()
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', authResult.userId);
-
-    const hasAdminRole = userRoles?.some((ur: { role: string }) => ur.role === 'admin');
-    if (!hasAdminRole) {
+    // 使用统一的权限检查函数
+    const admin = await isAdmin(authResult.userId);
+    if (!admin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 

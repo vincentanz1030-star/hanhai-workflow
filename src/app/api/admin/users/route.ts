@@ -1,11 +1,9 @@
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { checkPermission as hasPermission } from '@/lib/permissions';
+import { isAdmin } from '@/lib/permissions';
 
 // 获取用户列表（仅管理员）
-// 直接从环境变量获取 Supabase 配置
-
 export async function GET(request: NextRequest) {
   try {
     // 验证管理员权限
@@ -14,19 +12,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
 
-    const supabase = getSupabaseClient();
-
-    // 检查用户是否有 admin 角色
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', currentUser.userId)
-      .eq('is_primary', true)
-      .single();
-
-    if (!userRoles || userRoles.role !== 'admin') {
+    // 使用统一的权限检查函数
+    const admin = await isAdmin(currentUser.userId);
+    if (!admin) {
       return NextResponse.json({ error: '无权限' }, { status: 403 });
     }
+
+    const supabase = getSupabaseClient();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const brand = searchParams.get('brand');

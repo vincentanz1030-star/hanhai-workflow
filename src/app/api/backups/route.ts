@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
+import { isAdmin } from '@/lib/permissions';
 
 // 类型定义
-interface UserRole {
-  role: string;
-}
-
 interface BackupRecord {
   id: string;
   name: string;
@@ -18,40 +15,6 @@ interface BackupRecord {
   created_at: string;
 }
 
-// 检查管理员权限（支持多种方式）
-async function checkAdminPermission(userId: string): Promise<boolean> {
-  const client = getSupabaseClient();
-  
-  // 方式1: 检查 user_roles 表
-  const { data: userRoles } = await client
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', userId);
-  
-  const hasAdminRole = userRoles?.some((ur: UserRole) => ur.role === 'admin' || ur.role === 'super_admin');
-  if (hasAdminRole) return true;
-  
-  // 方式2: 检查 user_roles_v2 表
-  const { data: userRolesV2 } = await client
-    .from('user_roles_v2')
-    .select('role_id, roles_v2(code)')
-    .eq('user_id', userId);
-  
-  const hasAdminRoleV2 = userRolesV2?.some((ur: any) => 
-    ur.roles_v2?.code === 'admin' || ur.roles_v2?.code === 'super_admin'
-  );
-  if (hasAdminRoleV2) return true;
-  
-  // 方式3: 检查用户品牌（brand='all' 表示管理员）
-  const { data: user } = await client
-    .from('users')
-    .select('brand')
-    .eq('id', userId)
-    .single();
-  
-  return user?.brand === 'all';
-}
-
 // 获取备份列表
 export async function GET(request: NextRequest) {
   try {
@@ -60,9 +23,9 @@ export async function GET(request: NextRequest) {
       return authResult;
     }
 
-    // 检查是否有管理员权限
-    const isAdmin = await checkAdminPermission(authResult.userId);
-    if (!isAdmin) {
+    // 使用统一的权限检查函数
+    const admin = await isAdmin(authResult.userId);
+    if (!admin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
@@ -105,9 +68,9 @@ export async function POST(request: NextRequest) {
       return authResult;
     }
 
-    // 检查是否有管理员权限
-    const isAdmin = await checkAdminPermission(authResult.userId);
-    if (!isAdmin) {
+    // 使用统一的权限检查函数
+    const admin = await isAdmin(authResult.userId);
+    if (!admin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
@@ -196,9 +159,9 @@ export async function DELETE(request: NextRequest) {
       return authResult;
     }
 
-    // 检查是否有管理员权限
-    const isAdmin = await checkAdminPermission(authResult.userId);
-    if (!isAdmin) {
+    // 使用统一的权限检查函数
+    const admin = await isAdmin(authResult.userId);
+    if (!admin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
@@ -224,79 +187,5 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error('删除备份失败:', error);
     return NextResponse.json({ error: '删除备份失败' }, { status: 500 });
-  }
-}
-
-// 恢复备份（PUT）
-export async function PUT(request: NextRequest) {
-  try {
-    const authResult = await requireAuth(request);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
-
-    // 检查是否有管理员权限
-    const isAdmin = await checkAdminPermission(authResult.userId);
-    if (!isAdmin) {
-      return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
-    }
-
-    const body = await request.json();
-    const { backupId, tables } = body;
-
-    if (!backupId) {
-      return NextResponse.json({ error: '缺少备份ID' }, { status: 400 });
-    }
-
-    const client = getSupabaseClient();
-
-    // 获取备份数据
-    const { data: backup, error } = await client
-      .from('data_backups')
-      .select('backup_data, tables')
-      .eq('id', backupId)
-      .single();
-
-    if (error || !backup) {
-      return NextResponse.json({ error: '备份不存在' }, { status: 404 });
-    }
-
-    const backupData = backup.backup_data || {};
-    const backupTables = tables || backup.tables || [];
-
-    let restoredTables = 0;
-    let totalRecords = 0;
-
-    // 恢复每个表的数据
-    for (const table of backupTables) {
-      const tableData = backupData[table];
-      if (!tableData || !Array.isArray(tableData)) {
-        continue;
-      }
-
-      try {
-        // 删除现有数据
-        await client.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000');
-
-        // 插入备份数据
-        const { error: insertError } = await client.from(table).insert(tableData);
-        if (insertError) {
-          console.error(`恢复表 ${table} 失败:`, insertError);
-        } else {
-          restoredTables++;
-          totalRecords += tableData.length;
-        }
-      } catch (e) {
-        console.error(`恢复表 ${table} 失败:`, e);
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: `恢复完成，已恢复 ${restoredTables} 个表，共 ${totalRecords} 条记录`,
-    });
-  } catch (error) {
-    console.error('恢复备份失败:', error);
-    return NextResponse.json({ error: '恢复备份失败' }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
+import { isAdmin, getUserRoles } from '@/lib/permissions';
 import { disableInProduction } from '@/lib/diagnostic-guard';
 
 // 安全警告：此接口需要管理员权限
@@ -8,15 +9,16 @@ export async function GET(request: NextRequest) {
   // 生产环境禁用
   const disabledResponse = disableInProduction(request);
   if (disabledResponse) return disabledResponse;
+  
   // 认证检查
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  // 检查是否是管理员
-  const isAdmin = authResult.roles?.some((r: { role: string }) => r.role === 'admin');
-  if (!isAdmin) {
+  // 使用统一的权限检查函数
+  const admin = await isAdmin(authResult.userId);
+  if (!admin) {
     return NextResponse.json({ error: '无权限执行此操作，仅限管理员' }, { status: 403 });
   }
 
@@ -52,11 +54,8 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // 查询用户角色
-    const { data: roles, error: rolesError } = await supabase
-      .from('user_roles')
-      .select('*')
-      .eq('user_id', user.id);
+    // 使用统一的权限模块查询用户角色
+    const roles = await getUserRoles(user.id);
 
     return NextResponse.json({
       success: true,
@@ -69,8 +68,8 @@ export async function GET(request: NextRequest) {
         status: user.status,
         created_at: user.created_at,
       },
-      roles: roles || [],
-      rolesCount: roles?.length || 0,
+      roles: roles,
+      rolesCount: roles.length,
     });
 
   } catch (error: any) {

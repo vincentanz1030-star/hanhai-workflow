@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
+import { isAdmin, getUserRoles } from '@/lib/permissions';
 
-// 直接从环境变量获取 Supabase 配置
 export async function GET(request: NextRequest) {
   try {
     const authResult = await requireAuth(request);
@@ -27,13 +27,16 @@ export async function GET(request: NextRequest) {
       users: [],
     };
 
-    // 检查用户角色
-    const { data: userRoles } = await client
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', authResult.userId);
-
-    const isAdmin = userRoles?.some((r: any) => r.role === 'admin') || false;
+    // 使用统一的权限检查函数
+    const admin = await isAdmin(authResult.userId);
+    
+    // 获取用户品牌（用于非管理员过滤）
+    const { data: userData } = await client
+      .from('users')
+      .select('brand')
+      .eq('id', authResult.userId)
+      .single();
+    const userBrand = userData?.brand;
 
     // 搜索项目
     if (type === 'all' || type === 'projects') {
@@ -45,16 +48,8 @@ export async function GET(request: NextRequest) {
         .limit(limit);
 
       // 非管理员只能查看自己品牌的
-      if (!isAdmin) {
-        const { data: userBrands } = await client
-          .from('user_roles')
-          .select('brand')
-          .eq('user_id', authResult.userId);
-
-        if (userBrands && userBrands.length > 0) {
-          const brands = userBrands.map((b: any) => b.brand);
-          projectQuery = projectQuery.in('brand', brands);
-        }
+      if (!admin && userBrand && userBrand !== 'all') {
+        projectQuery = projectQuery.eq('brand', userBrand);
       }
 
       const { data: projects } = await projectQuery;
@@ -71,16 +66,8 @@ export async function GET(request: NextRequest) {
         .limit(limit);
 
       // 非管理员只能查看自己品牌的任务
-      if (!isAdmin) {
-        const { data: userBrands } = await client
-          .from('user_roles')
-          .select('brand')
-          .eq('user_id', authResult.userId);
-
-        if (userBrands && userBrands.length > 0) {
-          const brands = userBrands.map((b: any) => b.brand);
-          taskQuery = taskQuery.in('projects.brand', brands);
-        }
+      if (!admin && userBrand && userBrand !== 'all') {
+        taskQuery = taskQuery.eq('projects.brand', userBrand);
       }
 
       const { data: tasks } = await taskQuery;
@@ -89,7 +76,7 @@ export async function GET(request: NextRequest) {
 
     // 搜索用户
     if (type === 'all' || type === 'users') {
-      if (isAdmin) {
+      if (admin) {
         const { data: users } = await client
           .from('users')
           .select('id, name, email, created_at')

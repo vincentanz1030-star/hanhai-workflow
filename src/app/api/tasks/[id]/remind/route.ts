@@ -2,10 +2,9 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { createReminderNotification } from '@/lib/notifications';
+import { getUserRoles } from '@/lib/permissions';
 
 // 催促任务
-// 直接从环境变量获取 Supabase 配置
-
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -63,19 +62,12 @@ export async function POST(
       .eq('status', 'active');
 
     if (targetUsers && targetUsers.length > 0) {
-      // 获取这些用户的角色信息
-      const userIds = targetUsers.map((u: { id: string }) => u.id);
-      const { data: userRoles } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .in('user_id', userIds)
-        .eq('role', targetRole);
-
-      if (userRoles) {
-        // 为匹配的用户发送通知
-        for (const userRole of userRoles) {
+      // 使用统一的权限模块获取用户角色
+      for (const targetUser of targetUsers) {
+        const userRoles = await getUserRoles(targetUser.id);
+        if (userRoles.some(r => r.role === targetRole)) {
           await createReminderNotification(
-            userRole.user_id,
+            targetUser.id,
             task.task_name,
             task.projects?.name || '未知项目',
             newReminderCount

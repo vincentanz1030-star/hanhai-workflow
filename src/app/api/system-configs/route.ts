@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { requireAuth } from '@/lib/api-auth';
+import { isAdmin } from '@/lib/permissions';
 
 // 直接从环境变量获取 Supabase 配置
 interface SystemConfig {
@@ -21,14 +22,9 @@ export async function GET(request: NextRequest) {
       return authResult;
     }
 
-    // 检查是否有管理员权限
-    const { data: userRoles } = await getSupabaseClient()
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', authResult.userId);
-
-    const hasAdminRole = userRoles?.some((ur: { role: string }) => ur.role === 'admin');
-    if (!hasAdminRole) {
+    // 使用统一的权限检查函数
+    const admin = await isAdmin(authResult.userId);
+    if (!admin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
@@ -64,14 +60,9 @@ export async function PUT(request: NextRequest) {
       return authResult;
     }
 
-    // 检查是否有管理员权限
-    const { data: userRoles } = await getSupabaseClient()
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', authResult.userId);
-
-    const hasAdminRole = userRoles?.some((ur: { role: string }) => ur.role === 'admin');
-    if (!hasAdminRole) {
+    // 使用统一的权限检查函数
+    const admin = await isAdmin(authResult.userId);
+    if (!admin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
@@ -114,14 +105,9 @@ export async function POST(request: NextRequest) {
       return authResult;
     }
 
-    // 检查是否有管理员权限
-    const { data: userRoles } = await getSupabaseClient()
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', authResult.userId);
-
-    const hasAdminRole = userRoles?.some((ur: { role: string }) => ur.role === 'admin');
-    if (!hasAdminRole) {
+    // 使用统一的权限检查函数
+    const admin = await isAdmin(authResult.userId);
+    if (!admin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
@@ -163,14 +149,9 @@ export async function PATCH(request: NextRequest) {
       return authResult;
     }
 
-    // 检查是否有管理员权限
-    const { data: userRoles } = await getSupabaseClient()
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', authResult.userId);
-
-    const hasAdminRole = userRoles?.some((ur: { role: string }) => ur.role === 'admin');
-    if (!hasAdminRole) {
+    // 使用统一的权限检查函数
+    const admin = await isAdmin(authResult.userId);
+    if (!admin) {
       return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
@@ -199,11 +180,8 @@ export async function PATCH(request: NextRequest) {
       { key: 'max_reminder_count', value: '5', category: 'workflow', description: '最大提醒次数', type: 'number' },
     ];
 
-    let inserted = 0;
-    let skipped = 0;
-
+    // 检查并创建不存在的配置
     for (const config of defaultConfigs) {
-      // 检查配置是否已存在
       const { data: existing } = await client
         .from('system_configs')
         .select('key')
@@ -212,24 +190,14 @@ export async function PATCH(request: NextRequest) {
 
       if (!existing) {
         await client.from('system_configs').insert({
-          key: config.key,
-          value: config.value,
-          category: config.category,
-          description: config.description,
-          type: config.type,
+          ...config,
           updated_at: new Date().toISOString(),
           updated_by: authResult.userId,
         });
-        inserted++;
-      } else {
-        skipped++;
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      message: `初始化完成，新增 ${inserted} 条配置，跳过 ${skipped} 条已存在配置`,
-    });
+    return NextResponse.json({ success: true, message: '默认配置已初始化' });
   } catch (error) {
     console.error('初始化系统配置失败:', error);
     return NextResponse.json({ error: '初始化系统配置失败' }, { status: 500 });

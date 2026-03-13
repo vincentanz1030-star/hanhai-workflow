@@ -2269,11 +2269,14 @@ function HomePageContent() {
   }, [user?.id]);
 
   useEffect(() => {
+    // 只有在用户已登录时才加载数据
+    if (!user) return;
+    
     loadProductCategories(brandFilter);
     loadWeeklyWorkPlans();
     loadCollaborationTasks();
     loadNotifications();
-  }, [brandFilter]);
+  }, [brandFilter, user]);
 
   if (loading && !initTimeout) {
     return (

@@ -46,6 +46,7 @@ import { ImagePreview } from '@/components/ui/image-preview';
 import { SharedResourcePlatform } from '@/components/SharedResourcePlatform';
 import AnnouncementBar from '@/components/announcements/AnnouncementBar';
 import { SystemSettings } from '@/components/SystemSettings';
+import { CustomerFeedback } from '@/components/CustomerFeedback';
 
 // 类型定义
 interface Project {
@@ -2358,28 +2359,9 @@ function HomePageContent() {
               </div>
               <div className="flex items-center gap-0.5">
                 <NotificationBell />
-                <Link href="/change-password">
-                  <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-lg" title="修改密码">
-                    <KeyRound className="h-4 w-4" />
-                  </Button>
-                </Link>
                 <Button variant="ghost" size="icon-sm" onClick={logout} className="h-8 w-8 rounded-lg" title="登出">
                   <LogOut className="h-4 w-4" />
                 </Button>
-                {user.roles.some((r: any) => r.role === 'admin') && (
-                  <>
-                    <Link href="/admin">
-                      <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-lg" title="系统管理">
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                    <Link href="/admin/users">
-                      <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-lg" title="用户管理">
-                        <Shield className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </>
-                )}
               </div>
             </div>
             {/* 第二行：搜索框 + 创建项目按钮 */}
@@ -2454,29 +2436,9 @@ function HomePageContent() {
               
               {/* 操作按钮组 */}
               <div className="flex items-center gap-0.5">
-                <Link href="/change-password">
-                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-muted/60" title="修改密码">
-                    <KeyRound className="h-4 w-4" />
-                  </Button>
-                </Link>
                 <Button variant="ghost" size="icon" onClick={logout} className="h-9 w-9 rounded-lg hover:bg-muted/60" title="登出">
                   <LogOut className="h-4 w-4" />
                 </Button>
-                {/* 管理员功能入口 */}
-                {user.roles.some((r: any) => r.role === 'admin') && (
-                  <>
-                    <Link href="/admin">
-                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-muted/60" title="系统管理">
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                    <Link href="/admin/users">
-                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-muted/60" title="用户管理">
-                        <Shield className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </>
-                )}
               </div>
               
               <Button
@@ -2653,8 +2615,8 @@ function HomePageContent() {
               <TabsTrigger value="marketing" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-purple-600 dark:text-purple-400 transition-all">📢 营销</TabsTrigger>
               <TabsTrigger value="collaboration" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-green-600 dark:text-green-400 transition-all">🤝 协同</TabsTrigger>
               <TabsTrigger value="shared-resource" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-orange-600 dark:text-orange-400 transition-all">🔗 资源</TabsTrigger>
-              <TabsTrigger value="weekly-feedbacks" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-cyan-600 dark:text-cyan-400 transition-all" asChild>
-                <a href="/weekly-feedbacks">💬 反馈</a>
+              <TabsTrigger value="weekly-feedbacks" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-cyan-600 dark:text-cyan-400 transition-all">
+                💬 反馈
               </TabsTrigger>
               <TabsTrigger value="settings" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium transition-all">⚙️ 设置</TabsTrigger>
             </TabsList>
@@ -2735,13 +2697,13 @@ function HomePageContent() {
                   <span>资源共享</span>
                 </span>
               </TabsTrigger>
-              <TabsTrigger value="weekly-feedbacks" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all" asChild>
-                <a href="/weekly-feedbacks" className="flex items-center gap-2">
+              <TabsTrigger value="weekly-feedbacks" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
+                <span className="flex items-center gap-2">
                   <span className="h-5 w-5 rounded-md bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center">
                     <MessageCircle className="h-3 w-3 text-white" />
                   </span>
                   <span>客户反馈</span>
-                </a>
+                </span>
               </TabsTrigger>
               <TabsTrigger value="settings" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
                 <span className="flex items-center gap-2">
@@ -4971,6 +4933,11 @@ function HomePageContent() {
           {/* 资源共享平台 */}
           <TabsContent value="shared-resource" className="space-y-6">
             <SharedResourcePlatform />
+          </TabsContent>
+
+          {/* 客户反馈 */}
+          <TabsContent value="weekly-feedbacks" className="space-y-6">
+            <CustomerFeedback />
           </TabsContent>
 
           {/* 系统设置 */}

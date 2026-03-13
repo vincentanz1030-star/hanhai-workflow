@@ -1,5 +1,5 @@
 /**
- * 系统设置 - 集成系统管理、用户管理、修改密码
+ * 系统设置 - 集成系统管理、用户管理、修改密码、操作日志、数据备份、权限管理
  */
 
 'use client';
@@ -17,10 +17,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
 import { 
   Settings, Users, KeyRound, Shield, UserCheck, UserX, RefreshCw, 
   Edit, History, Loader2, Trash2, Check, X, Eye, EyeOff, CheckCircle,
-  AlertTriangle, Info, Plus, ChevronLeft
+  AlertTriangle, Info, Plus, ChevronLeft, Database, FileText,
+  Download, Upload, Search, Filter, Clock, Activity, Lock,
+  Key, UserCog, Server, HardDrive
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -55,6 +59,16 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
   suspended: { label: '已暂停', color: 'text-orange-700', bgColor: 'bg-orange-100' },
 };
 
+const ACTION_CONFIG: Record<string, { label: string; color: string }> = {
+  create: { label: '创建', color: 'text-green-600' },
+  update: { label: '更新', color: 'text-blue-600' },
+  delete: { label: '删除', color: 'text-red-600' },
+  login: { label: '登录', color: 'text-purple-600' },
+  logout: { label: '登出', color: 'text-gray-600' },
+  approve: { label: '审批', color: 'text-emerald-600' },
+  reject: { label: '拒绝', color: 'text-orange-600' },
+};
+
 export function SystemSettings() {
   const router = useRouter();
   const { user } = useAuth();
@@ -69,7 +83,6 @@ export function SystemSettings() {
   const [filterBrand, setFilterBrand] = useState('all');
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [showAuditDialog, setShowAuditDialog] = useState(false);
-  const [showRoleDialog, setShowRoleDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [auditReason, setAuditReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -87,18 +100,45 @@ export function SystemSettings() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // 操作日志状态
+  const [logs, setLogs] = useState<any[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsTotal, setLogsTotal] = useState(0);
+  const [logsPage, setLogsPage] = useState(0);
+  const [logsFilter, setLogsFilter] = useState({ action: '', resourceType: '' });
+
+  // 数据备份状态
+  const [backups, setBackups] = useState<any[]>([]);
+  const [backupsLoading, setBackupsLoading] = useState(false);
+  const [showBackupDialog, setShowBackupDialog] = useState(false);
+  const [backupName, setBackupName] = useState('');
+  const [backupDesc, setBackupDesc] = useState('');
+  const [backupCreating, setBackupCreating] = useState(false);
+
+  // 权限管理状态
+  const [permissions, setPermissions] = useState<any[]>([]);
+  const [permissionsGrouped, setPermissionsGrouped] = useState<Record<string, any[]>>({});
+  const [permissionsLoading, setPermissionsLoading] = useState(false);
+  const [permissionModules, setPermissionModules] = useState<any[]>([]);
+  const [permissionActions, setPermissionActions] = useState<any[]>([]);
+
   // 系统信息状态
   const [systemInfo, setSystemInfo] = useState({
     version: '1.0.0',
     lastUpdate: new Date().toLocaleDateString('zh-CN'),
     totalUsers: 0,
     activeUsers: 0,
+    totalBackups: 0,
+    totalLogs: 0,
   });
 
   // 加载用户列表
   useEffect(() => {
     if (isAdmin) {
       fetchUsers();
+      fetchLogs();
+      fetchBackups();
+      fetchPermissions();
     }
   }, [filterStatus, filterBrand, isAdmin]);
 
@@ -124,6 +164,67 @@ export function SystemSettings() {
       console.error('获取用户列表错误:', error);
     } finally {
       setUsersLoading(false);
+    }
+  };
+
+  // 加载操作日志
+  const fetchLogs = async () => {
+    try {
+      setLogsLoading(true);
+      const params = new URLSearchParams();
+      params.append('limit', '50');
+      params.append('offset', (logsPage * 50).toString());
+      if (logsFilter.action) params.append('action', logsFilter.action);
+      if (logsFilter.resourceType) params.append('resourceType', logsFilter.resourceType);
+
+      const response = await fetch(`/api/audit-logs?${params.toString()}`);
+      const data = await response.json();
+      setLogs(data.logs || []);
+      setLogsTotal(data.total || 0);
+      setSystemInfo(prev => ({ ...prev, totalLogs: data.total || 0 }));
+    } catch (error) {
+      console.error('获取操作日志错误:', error);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  // 加载备份列表
+  const fetchBackups = async () => {
+    try {
+      setBackupsLoading(true);
+      const response = await fetch('/api/backups');
+      const data = await response.json();
+      if (data.success) {
+        setBackups(data.backups || []);
+        setSystemInfo(prev => ({ ...prev, totalBackups: (data.backups || []).length }));
+      }
+    } catch (error) {
+      console.error('获取备份列表错误:', error);
+    } finally {
+      setBackupsLoading(false);
+    }
+  };
+
+  // 加载权限列表
+  const fetchPermissions = async () => {
+    try {
+      setPermissionsLoading(true);
+      const response = await fetch('/api/admin/permissions-v2');
+      const data = await response.json();
+      if (data.success) {
+        setPermissions(data.data || []);
+        setPermissionsGrouped(data.grouped || {});
+        // 获取模块和动作列表
+        const modules = [...new Set((data.data || []).map((p: any) => p.module).filter(Boolean))];
+        const actions = [...new Set((data.data || []).map((p: any) => p.action).filter(Boolean))];
+        setPermissionModules(modules);
+        setPermissionActions(actions);
+      }
+    } catch (error) {
+      console.error('获取权限列表错误:', error);
+    } finally {
+      setPermissionsLoading(false);
     }
   };
 
@@ -252,7 +353,71 @@ export function SystemSettings() {
     }
   };
 
+  // 创建备份
+  const handleCreateBackup = async () => {
+    if (!backupName) {
+      alert('请输入备份名称');
+      return;
+    }
+
+    try {
+      setBackupCreating(true);
+      const response = await fetch('/api/backups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: backupName, description: backupDesc }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setShowBackupDialog(false);
+        setBackupName('');
+        setBackupDesc('');
+        fetchBackups();
+        alert(data.message || '备份创建成功');
+      } else {
+        alert(data.error || '备份创建失败');
+      }
+    } catch (error) {
+      console.error('创建备份错误:', error);
+      alert('创建备份失败');
+    } finally {
+      setBackupCreating(false);
+    }
+  };
+
+  // 删除备份
+  const handleDeleteBackup = async (id: string) => {
+    if (!confirm('确定要删除此备份吗？')) return;
+
+    try {
+      const response = await fetch(`/api/backups?id=${id}`, { method: 'DELETE' });
+      const data = await response.json();
+      if (data.success) {
+        fetchBackups();
+      } else {
+        alert(data.error || '删除失败');
+      }
+    } catch (error) {
+      console.error('删除备份错误:', error);
+      alert('删除失败');
+    }
+  };
+
   const pendingCount = users.filter((u) => u.status === 'pending').length;
+
+  // 格式化文件大小
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  // 格式化日期
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleString('zh-CN');
+  };
 
   return (
     <div className="space-y-6">
@@ -271,29 +436,43 @@ export function SystemSettings() {
 
       {/* 设置选项卡 */}
       <Tabs defaultValue="password" className="space-y-4">
-        <TabsList className="bg-muted/30 p-1 rounded-xl">
-          <TabsTrigger value="password" className="rounded-lg text-sm">
-            <KeyRound className="h-4 w-4 mr-2" />
-            修改密码
-          </TabsTrigger>
-          {isAdmin && (
-            <>
-              <TabsTrigger value="users" className="rounded-lg text-sm">
-                <Users className="h-4 w-4 mr-2" />
-                用户管理
-                {pendingCount > 0 && (
-                  <Badge variant="destructive" className="ml-2 px-1.5 py-0 text-xs">
-                    {pendingCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="system" className="rounded-lg text-sm">
-                <Shield className="h-4 w-4 mr-2" />
-                系统信息
-              </TabsTrigger>
-            </>
-          )}
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="bg-muted/30 p-1 rounded-xl inline-flex w-auto min-w-full">
+            <TabsTrigger value="password" className="rounded-lg text-sm whitespace-nowrap">
+              <KeyRound className="h-4 w-4 mr-2" />
+              修改密码
+            </TabsTrigger>
+            {isAdmin && (
+              <>
+                <TabsTrigger value="users" className="rounded-lg text-sm whitespace-nowrap">
+                  <Users className="h-4 w-4 mr-2" />
+                  用户管理
+                  {pendingCount > 0 && (
+                    <Badge variant="destructive" className="ml-2 px-1.5 py-0 text-xs">
+                      {pendingCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="logs" className="rounded-lg text-sm whitespace-nowrap">
+                  <History className="h-4 w-4 mr-2" />
+                  操作日志
+                </TabsTrigger>
+                <TabsTrigger value="backups" className="rounded-lg text-sm whitespace-nowrap">
+                  <Database className="h-4 w-4 mr-2" />
+                  数据备份
+                </TabsTrigger>
+                <TabsTrigger value="permissions" className="rounded-lg text-sm whitespace-nowrap">
+                  <Lock className="h-4 w-4 mr-2" />
+                  权限管理
+                </TabsTrigger>
+                <TabsTrigger value="system" className="rounded-lg text-sm whitespace-nowrap">
+                  <Server className="h-4 w-4 mr-2" />
+                  系统信息
+                </TabsTrigger>
+              </>
+            )}
+          </TabsList>
+        </div>
 
         {/* 修改密码 */}
         <TabsContent value="password" className="space-y-4">
@@ -421,7 +600,7 @@ export function SystemSettings() {
           <TabsContent value="users" className="space-y-4">
             <Card className="border-0 shadow-sm">
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-4">
                   <div>
                     <CardTitle className="text-base">用户管理</CardTitle>
                     <CardDescription>管理系统用户，审核新用户注册</CardDescription>
@@ -516,20 +695,18 @@ export function SystemSettings() {
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
                                 {u.status === 'pending' && (
-                                  <>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-100"
-                                      onClick={() => {
-                                        setSelectedUser(u);
-                                        setShowAuditDialog(true);
-                                      }}
-                                      title="审核"
-                                    >
-                                      <UserCheck className="h-4 w-4" />
-                                    </Button>
-                                  </>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-100"
+                                    onClick={() => {
+                                      setSelectedUser(u);
+                                      setShowAuditDialog(true);
+                                    }}
+                                    title="审核"
+                                  >
+                                    <UserCheck className="h-4 w-4" />
+                                  </Button>
                                 )}
                                 <Button
                                   size="sm"
@@ -569,10 +746,239 @@ export function SystemSettings() {
           </TabsContent>
         )}
 
+        {/* 操作日志 */}
+        {isAdmin && (
+          <TabsContent value="logs" className="space-y-4">
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div>
+                    <CardTitle className="text-base">操作日志</CardTitle>
+                    <CardDescription>查看系统操作记录</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Select value={logsFilter.action} onValueChange={(v) => { setLogsFilter(f => ({ ...f, action: v })); setLogsPage(0); }}>
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="操作类型" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">全部操作</SelectItem>
+                        <SelectItem value="create">创建</SelectItem>
+                        <SelectItem value="update">更新</SelectItem>
+                        <SelectItem value="delete">删除</SelectItem>
+                        <SelectItem value="login">登录</SelectItem>
+                        <SelectItem value="approve">审批</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button variant="outline" size="icon" onClick={fetchLogs} disabled={logsLoading}>
+                      <RefreshCw className={`h-4 w-4 ${logsLoading ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {logsLoading && logs.length === 0 ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : logs.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>暂无操作日志</p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead>用户</TableHead>
+                          <TableHead>操作</TableHead>
+                          <TableHead>资源</TableHead>
+                          <TableHead>详情</TableHead>
+                          <TableHead>IP地址</TableHead>
+                          <TableHead>时间</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {logs.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{log.user_name || '系统'}</p>
+                                <p className="text-xs text-muted-foreground">{log.user_role || '-'}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={ACTION_CONFIG[log.action]?.color || ''}>
+                                {ACTION_CONFIG[log.action]?.label || log.action}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="text-sm">{log.resource_type || '-'}</p>
+                                {log.resource_id && (
+                                  <p className="text-xs text-muted-foreground truncate max-w-[100px]">{log.resource_id}</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {log.details && (
+                                <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                  {JSON.stringify(log.details).substring(0, 50)}...
+                                </p>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs font-mono">{log.ip_address || '-'}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{formatDate(log.created_at)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {logsTotal > 50 && (
+                      <div className="p-4 border-t text-center text-sm text-muted-foreground">
+                        显示前 50 条，共 {logsTotal} 条记录
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {/* 数据备份 */}
+        {isAdmin && (
+          <TabsContent value="backups" className="space-y-4">
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base">数据备份</CardTitle>
+                    <CardDescription>创建和管理数据备份</CardDescription>
+                  </div>
+                  <Button onClick={() => setShowBackupDialog(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    创建备份
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {backupsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : backups.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>暂无备份记录</p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead>备份名称</TableHead>
+                          <TableHead>大小</TableHead>
+                          <TableHead>记录数</TableHead>
+                          <TableHead>创建者</TableHead>
+                          <TableHead>创建时间</TableHead>
+                          <TableHead className="text-right">操作</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {backups.map((backup) => (
+                          <TableRow key={backup.id}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{backup.name}</p>
+                                {backup.description && (
+                                  <p className="text-xs text-muted-foreground">{backup.description}</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm">{formatFileSize(backup.file_size)}</TableCell>
+                            <TableCell className="text-sm">{backup.record_count} 条</TableCell>
+                            <TableCell className="text-sm">{backup.created_by || '-'}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{formatDate(backup.created_at)}</TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 text-destructive"
+                                onClick={() => handleDeleteBackup(backup.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {/* 权限管理 */}
+        {isAdmin && (
+          <TabsContent value="permissions" className="space-y-4">
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-base">权限管理</CardTitle>
+                <CardDescription>查看和管理系统权限配置</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {permissionsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : Object.keys(permissionsGrouped).length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Lock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>暂无权限配置</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {Object.entries(permissionsGrouped).map(([moduleCode, perms]) => (
+                      <div key={moduleCode} className="border rounded-lg overflow-hidden">
+                        <div className="bg-muted/50 px-4 py-2 border-b">
+                          <h4 className="font-medium text-sm">
+                            {perms[0]?.module?.name || moduleCode}
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              ({perms.length} 个权限)
+                            </span>
+                          </h4>
+                        </div>
+                        <div className="p-4">
+                          <div className="flex flex-wrap gap-2">
+                            {perms.map((perm: any) => (
+                              <div key={perm.id} className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded-lg">
+                                <span className="text-sm">{perm.name}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {perm.action?.name || perm.code}
+                                </Badge>
+                                {perm.is_system && (
+                                  <Badge variant="secondary" className="text-xs">系统</Badge>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
         {/* 系统信息 */}
         {isAdmin && (
           <TabsContent value="system" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
@@ -610,6 +1016,20 @@ export function SystemSettings() {
                     <div>
                       <p className="text-sm text-muted-foreground">活跃用户</p>
                       <p className="text-xl font-bold">{systemInfo.activeUsers}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                      <Database className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">备份数量</p>
+                      <p className="text-xl font-bold">{systemInfo.totalBackups}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -706,7 +1126,7 @@ export function SystemSettings() {
                     <div className="flex items-center justify-between mb-2">
                       <Badge>{log.action}</Badge>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(log.created_at).toLocaleString('zh-CN')}
+                        {formatDate(log.created_at)}
                       </span>
                     </div>
                     {log.reason && (
@@ -736,6 +1156,52 @@ export function SystemSettings() {
             <Button variant="destructive" onClick={handleDeleteUser} disabled={actionLoading}>
               {actionLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
               删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 创建备份对话框 */}
+      <Dialog open={showBackupDialog} onOpenChange={setShowBackupDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>创建数据备份</DialogTitle>
+            <DialogDescription>备份当前系统的所有数据</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>备份名称 *</Label>
+              <Input
+                value={backupName}
+                onChange={(e) => setBackupName(e.target.value)}
+                placeholder="例如：日常备份_20240101"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>备份描述</Label>
+              <Textarea
+                value={backupDesc}
+                onChange={(e) => setBackupDesc(e.target.value)}
+                placeholder="可选：描述备份的原因或内容"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBackupDialog(false)}>
+              取消
+            </Button>
+            <Button onClick={handleCreateBackup} disabled={backupCreating}>
+              {backupCreating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  创建中...
+                </>
+              ) : (
+                <>
+                  <Database className="h-4 w-4 mr-2" />
+                  创建备份
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

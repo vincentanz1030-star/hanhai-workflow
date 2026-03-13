@@ -10,7 +10,6 @@ import TrendChart from '@/components/analytics/TrendChart';
 import BrandDistributionChart from '@/components/analytics/BrandDistributionChart';
 import PositionEfficiencyChart from '@/components/analytics/PositionEfficiencyChart';
 import TaskStatusChart from '@/components/analytics/TaskStatusChart';
-import AnnouncementBar from '@/components/announcements/AnnouncementBar';
 
 interface AnalyticsData {
   stats: {
@@ -111,9 +110,6 @@ export default function AnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* 公告栏 */}
-      <AnnouncementBar isAdmin={userRole.isAdmin} userBrand={userRole.brand} />
-      
       {/* 头部 */}
       <div className="border-b">
         <div className="container mx-auto px-4 py-6">

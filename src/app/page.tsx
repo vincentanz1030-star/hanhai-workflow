@@ -28,6 +28,7 @@ import ProductScheduleCalendar from '@/components/calendar/ProductScheduleCalend
 import { ProductList } from '@/components/ProductList';
 import { SalesStats } from '@/components/SalesStats';
 import { SalesCenter } from '@/components/SalesCenter';
+import { SalesCenterBI } from '@/components/SalesCenterBI';
 import { ProductFeedback } from '@/components/ProductFeedback';
 import { SupplierList } from '@/components/SupplierList';
 import { PurchaseOrderList } from '@/components/PurchaseOrderList';
@@ -44,6 +45,7 @@ import { ImageUploader, ImageUploadResult } from '@/components/ui/image-uploader
 import { ImagePreview } from '@/components/ui/image-preview';
 import { SharedResourcePlatform } from '@/components/SharedResourcePlatform';
 import AnnouncementBar from '@/components/announcements/AnnouncementBar';
+import { SystemSettings } from '@/components/SystemSettings';
 
 // 类型定义
 interface Project {
@@ -2654,9 +2656,6 @@ function HomePageContent() {
               <TabsTrigger value="weekly-feedbacks" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium text-cyan-600 dark:text-cyan-400 transition-all" asChild>
                 <a href="/weekly-feedbacks">💬 反馈</a>
               </TabsTrigger>
-              <TabsTrigger value="analytics" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium transition-all" asChild>
-                <a href="/analytics">📈 分析</a>
-              </TabsTrigger>
               <TabsTrigger value="settings" className="text-sm py-2 px-4 whitespace-nowrap rounded-xl font-medium transition-all">⚙️ 设置</TabsTrigger>
             </TabsList>
           </div>
@@ -2742,14 +2741,6 @@ function HomePageContent() {
                     <MessageCircle className="h-3 w-3 text-white" />
                   </span>
                   <span>客户反馈</span>
-                </a>
-              </TabsTrigger>
-              <TabsTrigger value="analytics" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all" asChild>
-                <a href="/analytics" className="flex items-center gap-2">
-                  <span className="h-5 w-5 rounded-md bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
-                    <TrendingUp className="h-3 w-3 text-white" />
-                  </span>
-                  <span>数据分析</span>
                 </a>
               </TabsTrigger>
               <TabsTrigger value="settings" className="text-sm py-2.5 px-4 rounded-xl font-medium transition-all">
@@ -4695,7 +4686,7 @@ function HomePageContent() {
 
           {/* 销售中心 */}
           <TabsContent value="sales-center" className="space-y-6">
-            <SalesCenter />
+            <SalesCenterBI />
           </TabsContent>
 
           {/* 营销中台 */}
@@ -4984,25 +4975,7 @@ function HomePageContent() {
 
           {/* 系统设置 */}
           <TabsContent value="settings" className="space-y-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold">系统设置</h2>
-                <p className="text-muted-foreground">系统配置和管理</p>
-              </div>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>系统设置</CardTitle>
-                <CardDescription>配置系统参数和偏好</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12 text-muted-foreground">
-                  <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>系统设置功能正在开发中...</p>
-                </div>
-              </CardContent>
-            </Card>
+            <SystemSettings />
           </TabsContent>
         </Tabs>
 

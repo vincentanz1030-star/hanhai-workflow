@@ -2751,82 +2751,66 @@ function HomePageContent() {
           )}
 
           {/* 数据看板 */}
-          <TabsContent value="dashboard" className="space-y-6">
-            {/* 公告栏 */}
-            <AnnouncementBar 
-              isAdmin={user?.roles?.some((r) => r.role === 'admin' || r.role === 'super_admin') || false} 
-              userBrand={user?.brand || 'all'} 
-            />
-
-            {/* 统计卡片 - 现代化紧凑设计 */}
-            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-5">
-              <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 shadow-sm hover:shadow-md transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3 px-3 sm:px-4">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">总项目数</CardTitle>
-                  <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <FolderOpen className="h-3.5 w-3.5 text-primary" />
+          <TabsContent value="dashboard" className="space-y-4">
+            {/* 统计卡片 - 紧凑横条设计 */}
+            <div className="grid gap-2 grid-cols-5">
+              <Card className="group relative overflow-hidden border-0 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800/50 shadow-sm hover:shadow-md transition-all duration-300">
+                <CardContent className="p-2.5 flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center shadow-md shrink-0">
+                    <FolderOpen className="h-4 w-4 text-white" />
                   </div>
-                </CardHeader>
-                <CardContent className="pb-3 px-3 sm:px-4">
-                  <div className="text-xl sm:text-2xl font-bold tracking-tight">{stats.total}</div>
-                  <p className="text-[10px] text-muted-foreground">当前在管</p>
+                  <div className="min-w-0">
+                    <div className="text-lg font-bold leading-tight">{stats.total}</div>
+                    <div className="text-[10px] text-muted-foreground leading-tight">总项目</div>
+                  </div>
                 </CardContent>
               </Card>
 
-              <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 shadow-sm hover:shadow-md transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3 px-3 sm:px-4">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">待开始</CardTitle>
-                  <div className="h-7 w-7 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                    <Clock className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+              <Card className="group relative overflow-hidden border-0 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800/50 shadow-sm hover:shadow-md transition-all duration-300">
+                <CardContent className="p-2.5 flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center shadow-md shrink-0">
+                    <Clock className="h-4 w-4 text-white" />
                   </div>
-                </CardHeader>
-                <CardContent className="pb-3 px-3 sm:px-4">
-                  <div className="text-xl sm:text-2xl font-bold tracking-tight">{stats.pending}</div>
-                  <p className="text-[10px] text-muted-foreground">等待启动</p>
+                  <div className="min-w-0">
+                    <div className="text-lg font-bold leading-tight">{stats.pending}</div>
+                    <div className="text-[10px] text-muted-foreground leading-tight">待开始</div>
+                  </div>
                 </CardContent>
               </Card>
 
-              <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/50 dark:to-blue-900/30 shadow-sm hover:shadow-md hover:shadow-blue-500/10 transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3 px-3 sm:px-4">
-                  <CardTitle className="text-xs font-medium text-blue-600 dark:text-blue-400">进行中</CardTitle>
-                  <div className="h-7 w-7 rounded-lg bg-blue-200 dark:bg-blue-800/50 flex items-center justify-center">
-                    <TrendingUp className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+              <Card className="group relative overflow-hidden border-0 bg-gradient-to-r from-blue-50 to-blue-100/70 dark:from-blue-950/60 dark:to-blue-900/40 shadow-sm hover:shadow-md hover:shadow-blue-500/10 transition-all duration-300">
+                <CardContent className="p-2.5 flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
+                    <TrendingUp className="h-4 w-4 text-white" />
                   </div>
-                </CardHeader>
-                <CardContent className="pb-3 px-3 sm:px-4">
-                  <div className="text-xl sm:text-2xl font-bold tracking-tight text-blue-600 dark:text-blue-400">{stats.inProgress}</div>
-                  <p className="text-[10px] text-blue-500/70 dark:text-blue-400/70">正在推进</p>
+                  <div className="min-w-0">
+                    <div className="text-lg font-bold leading-tight text-blue-600 dark:text-blue-400">{stats.inProgress}</div>
+                    <div className="text-[10px] text-blue-500/70 dark:text-blue-400/70 leading-tight">进行中</div>
+                  </div>
                 </CardContent>
               </Card>
 
-              <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/50 dark:to-emerald-900/30 shadow-sm hover:shadow-md hover:shadow-emerald-500/10 transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3 px-3 sm:px-4">
-                  <CardTitle className="text-xs font-medium text-emerald-600 dark:text-emerald-400">已完成</CardTitle>
-                  <div className="h-7 w-7 rounded-lg bg-emerald-200 dark:bg-emerald-800/50 flex items-center justify-center">
-                    <CheckCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              <Card className="group relative overflow-hidden border-0 bg-gradient-to-r from-emerald-50 to-emerald-100/70 dark:from-emerald-950/60 dark:to-emerald-900/40 shadow-sm hover:shadow-md hover:shadow-emerald-500/10 transition-all duration-300">
+                <CardContent className="p-2.5 flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
+                    <CheckCircle className="h-4 w-4 text-white" />
                   </div>
-                </CardHeader>
-                <CardContent className="pb-3 px-3 sm:px-4">
-                  <div className="text-xl sm:text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">{stats.completed}</div>
-                  <p className="text-[10px] text-emerald-500/70 dark:text-emerald-400/70">成功交付</p>
+                  <div className="min-w-0">
+                    <div className="text-lg font-bold leading-tight text-emerald-600 dark:text-emerald-400">{stats.completed}</div>
+                    <div className="text-[10px] text-emerald-500/70 dark:text-emerald-400/70 leading-tight">已完成</div>
+                  </div>
                 </CardContent>
               </Card>
 
-              <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-rose-50 to-rose-100/50 dark:from-rose-950/50 dark:to-rose-900/30 shadow-sm hover:shadow-md hover:shadow-rose-500/10 transition-all duration-300 col-span-2 sm:col-span-1">
-                <div className="absolute inset-0 bg-gradient-to-r from-rose-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3 px-3 sm:px-4">
-                  <CardTitle className="text-xs font-medium text-rose-600 dark:text-rose-400">已延期</CardTitle>
-                  <div className="h-7 w-7 rounded-lg bg-rose-200 dark:bg-rose-800/50 flex items-center justify-center">
-                    <AlertCircle className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+              <Card className="group relative overflow-hidden border-0 bg-gradient-to-r from-rose-50 to-rose-100/70 dark:from-rose-950/60 dark:to-rose-900/40 shadow-sm hover:shadow-md hover:shadow-rose-500/10 transition-all duration-300">
+                <CardContent className="p-2.5 flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-rose-500 to-rose-600 flex items-center justify-center shadow-md shadow-rose-500/20 shrink-0">
+                    <AlertCircle className="h-4 w-4 text-white" />
                   </div>
-                </CardHeader>
-                <CardContent className="pb-3 px-3 sm:px-4">
-                  <div className="text-xl sm:text-2xl font-bold tracking-tight text-rose-600 dark:text-rose-400">{stats.delayed}</div>
-                  <p className="text-[10px] text-rose-500/70 dark:text-rose-400/70">需要关注</p>
+                  <div className="min-w-0">
+                    <div className="text-lg font-bold leading-tight text-rose-600 dark:text-rose-400">{stats.delayed}</div>
+                    <div className="text-[10px] text-rose-500/70 dark:text-rose-400/70 leading-tight">已延期</div>
+                  </div>
                 </CardContent>
               </Card>
             </div>

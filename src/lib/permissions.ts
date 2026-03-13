@@ -133,21 +133,57 @@ export async function getUserPermissions(userId: string) {
 }
 
 /**
- * 获取用户的角色列表
+ * 获取用户的角色列表（兼容新旧两套角色表）
  */
 export async function getUserRoles(userId: string) {
   const supabase = getSupabaseClient();
+  const allRoles: { role: string; is_primary: boolean }[] = [];
 
-  const { data, error } = await supabase
-    .from('user_roles')
-    .select('role, is_primary')
-    .eq('user_id', userId);
+  // 1. 先从新版角色表获取（优先）
+  try {
+    const { data: v2Roles } = await supabase
+      .from('user_roles_v2')
+      .select('is_primary, roles_v2(code)')
+      .eq('user_id', userId);
 
-  if (error || !data) {
-    return [];
+    if (v2Roles && v2Roles.length > 0) {
+      for (const r of v2Roles) {
+        const roleData = r as { is_primary: boolean; roles_v2: { code: string } | null };
+        if (roleData.roles_v2?.code) {
+          allRoles.push({
+            role: roleData.roles_v2.code,
+            is_primary: roleData.is_primary || false,
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[getUserRoles] 查询 user_roles_v2 失败:', e);
   }
 
-  return data;
+  // 2. 再从旧版角色表获取（兼容）
+  try {
+    const { data: v1Roles } = await supabase
+      .from('user_roles')
+      .select('role, is_primary')
+      .eq('user_id', userId);
+
+    if (v1Roles && v1Roles.length > 0) {
+      for (const r of v1Roles) {
+        // 避免重复添加
+        if (!allRoles.find(ar => ar.role === r.role)) {
+          allRoles.push({
+            role: r.role,
+            is_primary: r.is_primary || false,
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[getUserRoles] 查询 user_roles 失败:', e);
+  }
+
+  return allRoles;
 }
 
 /**
@@ -155,6 +191,18 @@ export async function getUserRoles(userId: string) {
  */
 export async function getPrimaryRole(userId: string): Promise<string | null> {
   const roles = await getUserRoles(userId);
-  const primary = roles.find((r: UserRole) => r.is_primary);
-  return primary ? primary.role : (roles[0]?.role || null);
+  
+  // 优先返回主角色
+  const primary = roles.find((r) => r.is_primary);
+  if (primary) return primary.role;
+  
+  // 其次按角色优先级返回
+  const rolePriority = ['super_admin', 'admin', 'manager', 'member', 'user'];
+  for (const priorityRole of rolePriority) {
+    const found = roles.find((r) => r.role === priorityRole);
+    if (found) return found.role;
+  }
+  
+  // 返回第一个角色
+  return roles[0]?.role || 'user';
 }

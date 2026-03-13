@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Search, FileText, User as UserIcon, FolderOpen, Loader2, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -144,6 +144,9 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>全局搜索</DialogTitle>
+        </DialogHeader>
         <div className="flex flex-col">
           {/* 搜索框 */}
           <div className="flex items-center border-b p-4 gap-3">

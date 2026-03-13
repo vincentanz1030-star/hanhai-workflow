@@ -61,7 +61,7 @@ export default function UserManagementPage() {
 
   // 检查管理员权限
   useEffect(() => {
-    if (!user || !user.roles.some((r: any) => r.role === 'admin')) {
+    if (!user || !user.roles.some((r: any) => r.role === 'admin' || r.role === 'super_admin')) {
       router.push('/');
     }
   }, [user, router]);

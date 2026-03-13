@@ -21,17 +21,22 @@ export const getAllBrands = () => {
 
 // 岗位配置（任务岗位）
 export const POSITION_CONFIG = {
-  project_manager: { name: '项目经理', key: 'project_manager', order: 0 },
-  illustration: { name: '插画', key: 'illustration', order: 1 },
-  product_design: { name: '产品设计', key: 'product_design', order: 2 },
-  detail_design: { name: '详情设计', key: 'detail_design', order: 3 },
-  copywriting: { name: '文案撰写', key: 'copywriting', order: 4 },
-  procurement: { name: '采购管理', key: 'procurement', order: 5 },
-  packaging_design: { name: '包装设计', key: 'packaging_design', order: 6 },
-  finance: { name: '财务管理', key: 'finance', order: 7 },
-  customer_service: { name: '客服培训', key: 'customer_service', order: 8 },
-  warehouse: { name: '仓储管理', key: 'warehouse', order: 9 },
-  operations: { name: '运营管理', key: 'operations', order: 10 },
+  super_admin: { name: '超级管理员', key: 'super_admin', order: -1 },
+  admin: { name: '管理员', key: 'admin', order: 0 },
+  manager: { name: '经理', key: 'manager', order: 0.5 },
+  member: { name: '成员', key: 'member', order: 0.6 },
+  user: { name: '普通用户', key: 'user', order: 0.7 },
+  project_manager: { name: '项目经理', key: 'project_manager', order: 1 },
+  illustration: { name: '插画', key: 'illustration', order: 2 },
+  product_design: { name: '产品设计', key: 'product_design', order: 3 },
+  detail_design: { name: '详情设计', key: 'detail_design', order: 4 },
+  copywriting: { name: '文案撰写', key: 'copywriting', order: 5 },
+  procurement: { name: '采购管理', key: 'procurement', order: 6 },
+  packaging_design: { name: '包装设计', key: 'packaging_design', order: 7 },
+  finance: { name: '财务管理', key: 'finance', order: 8 },
+  customer_service: { name: '客服培训', key: 'customer_service', order: 9 },
+  warehouse: { name: '仓储管理', key: 'warehouse', order: 10 },
+  operations: { name: '运营管理', key: 'operations', order: 11 },
 } as const;
 
 export type PositionKey = keyof typeof POSITION_CONFIG;
@@ -48,7 +53,11 @@ export const getAllPositions = () => {
 
 // 角色配置
 export const ROLE_CONFIG = {
+  super_admin: { name: '超级管理员', key: 'super_admin' },
   admin: { name: '管理员', key: 'admin' },
+  manager: { name: '经理', key: 'manager' },
+  member: { name: '成员', key: 'member' },
+  user: { name: '普通用户', key: 'user' },
   project_manager: { name: '项目经理', key: 'project_manager' },
   operations: { name: '运营', key: 'operations' },
   product: { name: '产品', key: 'product' },

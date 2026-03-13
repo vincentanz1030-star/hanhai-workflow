@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查品牌权限
-    const isAdmin = authResult.roles.some((r: any) => r.role === 'admin');
+    const isAdmin = authResult.roles.some((r: any) => r.role === 'admin' || r.role === 'super_admin');
     const userBrand = authResult.brand;
     if (!isAdmin && userBrand && userBrand !== 'all' && task.brand !== userBrand) {
       return NextResponse.json(

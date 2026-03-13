@@ -109,7 +109,7 @@ export async function DELETE(
     }
 
     // 检查权限（只能删除自己的通知）
-    const isAdmin = authResult.roles.some((r: any) => r.role === 'admin');
+    const isAdmin = authResult.roles.some((r: any) => r.role === 'admin' || r.role === 'super_admin');
     if (notification.recipient_id !== authResult.userId && !isAdmin) {
       return NextResponse.json(
         { error: '您只能删除自己的通知' },

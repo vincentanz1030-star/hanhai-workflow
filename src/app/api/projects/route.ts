@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     // 品牌隔离逻辑：
     // 1. 检查用户是否是管理员
-    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin' || r.role === 'super_admin');
 
     // 2. 构建基础查询
     let query = client
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 品牌隔离检查：非管理员用户只能创建自己品牌的项目
-    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin' || r.role === 'super_admin');
     if (!isAdmin && authResult.brand !== 'all' && brand !== authResult.brand) {
       return NextResponse.json(
         { error: '您只能创建自己品牌的项目' },
@@ -206,7 +206,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 检查删除权限
-    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin' || r.role === 'super_admin');
     if (!isAdmin && authResult.brand !== 'all' && project.brand !== authResult.brand) {
       return NextResponse.json({ error: '您只能删除自己品牌的项目' }, { status: 403 });
     }

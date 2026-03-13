@@ -83,7 +83,7 @@ export default function WorkspaceLayout({
               <Button variant="ghost" size="icon" onClick={logout} title="登出">
                 <LogOut className="h-5 w-5" />
               </Button>
-              {user.roles.some((r: any) => r.role === 'admin') && (
+              {user.roles.some((r: any) => r.role === 'admin' || r.role === 'super_admin') && (
                 <Link href="/admin">
                   <Button variant="ghost" size="icon" title="系统管理">
                     <Shield className="h-5 w-5" />

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const client = getSupabaseClient();
 
     // 品牌隔离逻辑
-    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin' || r.role === 'super_admin');
     const userBrand = authResult.brand;
 
     let query = client
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 品牌隔离检查
-    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin' || r.role === 'super_admin');
     const userBrand = authResult.brand;
 
     // 非管理员用户只能创建自己品牌的销售目标
@@ -221,7 +221,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // 检查用户是否有权限修改此目标的品牌
-    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin' || r.role === 'super_admin');
     const userBrand = authResult.brand;
 
     // 获取目标信息
@@ -351,7 +351,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 检查用户是否有权限删除此目标
-    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin' || r.role === 'super_admin');
     const userBrand = authResult.brand;
 
     // 获取目标信息

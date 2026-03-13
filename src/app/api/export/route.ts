@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     let filename = '';
 
     // 品牌过滤
-    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin' || r.role === 'super_admin');
     const userBrand = authResult.brand;
     let queryBrand = brand;
     if (!isAdmin && userBrand && userBrand !== 'all') {

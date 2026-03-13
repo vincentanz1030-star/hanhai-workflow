@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查权限（只有管理员或自己可以创建通知）
-    const isAdmin = authResult.roles.some((r: any) => r.role === 'admin');
+    const isAdmin = authResult.roles.some((r: any) => r.role === 'admin' || r.role === 'super_admin');
     const isSelf = recipientId === authResult.userId;
 
     if (!isAdmin && !isSelf) {

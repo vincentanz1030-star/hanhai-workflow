@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   }
 
   // 只有管理员可以查看审计日志
-  const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+  const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin' || r.role === 'super_admin');
   if (!isAdmin) {
     return NextResponse.json({ error: '无权限查看审计日志' }, { status: 403 });
   }

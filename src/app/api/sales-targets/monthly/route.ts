@@ -38,7 +38,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // 品牌隔离检查
-    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin');
+    const isAdmin = authResult.roles && authResult.roles.some((r: any) => r.role === 'admin' || r.role === 'super_admin');
     const userBrand = authResult.brand;
 
     if (!isAdmin && monthlyTarget.brand !== userBrand) {

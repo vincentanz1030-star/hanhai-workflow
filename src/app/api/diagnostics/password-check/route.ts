@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   }
 
   // 检查是否是管理员
-  const isAdmin = authResult.roles?.some((r: { role: string }) => r.role === 'admin');
+  const isAdmin = authResult.roles?.some((r: { role: string }) => r.role === 'admin' || r.role === 'super_admin');
   if (!isAdmin) {
     return NextResponse.json({ error: '无权限执行此操作，仅限管理员' }, { status: 403 });
   }

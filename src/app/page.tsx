@@ -2187,8 +2187,8 @@ function HomePageContent() {
     // 1. 管理员（admin角色）可以查看所有品牌的项目
     // 2. 品牌用户只能查看对应品牌的项目
 
-    // 检查用户是否是管理员
-    const isAdmin = user?.roles.some(r => r.role === 'admin');
+    // 检查用户是否是管理员（包含 super_admin）
+    const isAdmin = user?.roles.some(r => r.role === 'admin' || r.role === 'super_admin');
 
     if (isAdmin) {
       return projects;

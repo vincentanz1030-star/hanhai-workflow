@@ -17,7 +17,7 @@ export async function PUT(
   const body = await request.json();
   const supabase = getSupabaseClient();
   const currentUserId = authResult.userId;
-  const isAdmin = authResult.roles?.some((r) => r.role === 'admin');
+  const isAdmin = authResult.roles?.some((r) => r.role === 'admin' || r.role === 'super_admin');
 
   try {
     // 检查是否是创建者或管理员
@@ -81,7 +81,7 @@ export async function DELETE(
   const { id } = await params;
   const supabase = getSupabaseClient();
   const currentUserId = authResult.userId;
-  const isAdmin = authResult.roles?.some((r) => r.role === 'admin');
+  const isAdmin = authResult.roles?.some((r) => r.role === 'admin' || r.role === 'super_admin');
 
   try {
     // 检查是否是创建者或管理员

@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabaseClient();
 
     const { data, error } = await supabase
-      .from('user_roles')
+      .from('user_roles_v2')
       .select('role')
       .order('role', { ascending: true });
 

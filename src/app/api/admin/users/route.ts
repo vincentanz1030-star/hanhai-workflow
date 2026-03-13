@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       .from('users')
       .select(`
         *,
-        user_roles (
+        user_roles_v2 (
           role,
           is_primary
         )

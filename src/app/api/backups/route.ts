@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     // 要备份的表
     const tables = [
-      'users', 'user_roles', 'projects', 'tasks',
+      'users', 'user_roles_v2', 'projects', 'tasks',
       'weekly_work_plans', 'collaboration_tasks', 'sales_targets',
       'monthly_sales_targets', 'product_categories', 'notifications',
       'audit_logs', 'system_configs', 'data_backups',

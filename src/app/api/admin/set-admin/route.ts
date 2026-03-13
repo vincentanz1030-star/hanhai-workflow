@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     // 设置为管理员
     const { error: insertError } = await client
-      .from('user_roles')
+      .from('user_roles_v2')
       .insert({
         user_id: userId,
         role: 'admin',

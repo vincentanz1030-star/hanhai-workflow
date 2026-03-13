@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
         email,
         brand,
         created_at,
-        user_roles (
+        user_roles_v2 (
           role,
           is_primary
         ),
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 
     // 格式化用户数据
     const formattedUsers = (users || []).map((user: any) => {
-      const primaryRole = user.user_roles?.find((r: any) => r.is_primary) || user.user_roles?.[0];
+      const primaryRole = user.user_roles_v2?.find((r: any) => r.is_primary) || user.user_roles_v2?.[0];
       
       return {
         id: user.id,

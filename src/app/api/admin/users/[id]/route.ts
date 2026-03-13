@@ -207,7 +207,7 @@ export async function DELETE(
     await supabase.from('oauth_authorizations').delete().eq('user_id', id);
     await supabase.from('oauth_consents').delete().eq('user_id', id);
 
-    // 删除用户（由于有外键约束，user_roles和user_audit_logs会自动删除）
+    // 删除用户（由于有外键约束，user_roles_v2和user_audit_logs会自动删除）
     const { error } = await supabase
       .from('users')
       .delete()

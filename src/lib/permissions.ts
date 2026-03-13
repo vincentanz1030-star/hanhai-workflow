@@ -36,58 +36,31 @@ const ROLE_PRIORITY: Record<string, number> = {
 const ADMIN_ROLES = ['super_admin', 'admin'];
 
 /**
- * 获取用户的角色列表（兼容新旧两套角色表）
- * 这是所有权限检查的基础函数
+ * 获取用户的角色列表（从 user_roles_v2 表）
  */
 export async function getUserRoles(userId: string): Promise<UserRoleInfo[]> {
   const supabase = getSupabaseClient();
-  const allRoles: UserRoleInfo[] = [];
 
-  // 1. 先从新版角色表获取（优先）
-  try {
-    const { data: v2Roles } = await supabase
-      .from('user_roles_v2')
-      .select('is_primary, roles_v2(code)')
-      .eq('user_id', userId);
+  const { data: userRoles, error } = await supabase
+    .from('user_roles_v2')
+    .select('is_primary, roles_v2(code)')
+    .eq('user_id', userId);
 
-    if (v2Roles && v2Roles.length > 0) {
-      for (const r of v2Roles) {
-        const roleData = r as { is_primary: boolean; roles_v2: { code: string } | null };
-        if (roleData.roles_v2?.code) {
-          allRoles.push({
-            role: roleData.roles_v2.code,
-            is_primary: roleData.is_primary || false,
-          });
-        }
-      }
-    }
-  } catch (e) {
-    console.error('[getUserRoles] 查询 user_roles_v2 失败:', e);
+  if (error) {
+    console.error('[getUserRoles] 查询失败:', error);
+    return [];
   }
 
-  // 2. 再从旧版角色表获取（兼容）
-  try {
-    const { data: v1Roles } = await supabase
-      .from('user_roles')
-      .select('role, is_primary')
-      .eq('user_id', userId);
-
-    if (v1Roles && v1Roles.length > 0) {
-      for (const r of v1Roles) {
-        // 避免重复添加
-        if (!allRoles.find(ar => ar.role === r.role)) {
-          allRoles.push({
-            role: r.role,
-            is_primary: r.is_primary || false,
-          });
-        }
-      }
-    }
-  } catch (e) {
-    console.error('[getUserRoles] 查询 user_roles 失败:', e);
+  if (!userRoles || userRoles.length === 0) {
+    return [];
   }
 
-  return allRoles;
+  return userRoles
+    .filter((r: any) => r.roles_v2?.code)
+    .map((r: any) => ({
+      role: r.roles_v2.code,
+      is_primary: r.is_primary || false,
+    }));
 }
 
 /**
@@ -148,7 +121,17 @@ export async function checkPermission(
   resource: string,
   action: string
 ): Promise<boolean> {
-  // 使用统一的 getUserRoles 获取角色
+  // 超级管理员拥有所有权限
+  const superAdmin = await isSuperAdmin(userId);
+  if (superAdmin) return true;
+
+  // 管理员拥有大部分权限
+  const admin = await isAdmin(userId);
+  if (admin) {
+    // 管理员权限检查可以在这里细化
+    return true;
+  }
+
   const roles = await getUserRoles(userId);
   
   if (roles.length === 0) {
@@ -160,9 +143,11 @@ export async function checkPermission(
 
   // 检查这些角色是否有指定权限
   const { data: permissions, error: permsError } = await supabase
-    .from('role_permissions')
+    .from('role_permissions_v2')
     .select('permission_id')
-    .in('role', roleNames);
+    .in('role_id', 
+      `(SELECT id FROM roles_v2 WHERE code IN (${roleNames.map(r => `'${r}'`).join(',')}))`
+    );
 
   if (permsError || !permissions) {
     return false;
@@ -172,7 +157,7 @@ export async function checkPermission(
 
   // 查询权限详情
   const { data: permDetails, error: detailsError } = await supabase
-    .from('permissions')
+    .from('permissions_v2')
     .select('*')
     .in('id', permissionIds)
     .eq('resource', resource)
@@ -190,7 +175,6 @@ export async function checkPermission(
  * 条件：用户品牌必须为 'all'（管理员和超级管理员）
  */
 export async function canViewAllBrands(userId: string, userBrand?: string): Promise<boolean> {
-  // 只有品牌为 'all' 的用户才能查看所有品牌数据
   return userBrand === 'all';
 }
 
@@ -199,7 +183,6 @@ export async function canViewAllBrands(userId: string, userBrand?: string): Prom
  * 条件：用户品牌必须为 'all'
  */
 export async function canManageAllBrands(userBrand?: string): Promise<boolean> {
-  // 只有品牌为 'all' 的用户才能管理所有品牌的数据
   return userBrand === 'all';
 }
 
@@ -207,37 +190,51 @@ export async function canManageAllBrands(userBrand?: string): Promise<boolean> {
  * 获取用户的所有权限
  */
 export async function getUserPermissions(userId: string) {
-  // 使用统一的 getUserRoles 获取角色
   const roles = await getUserRoles(userId);
   
   if (roles.length === 0) {
     return [];
   }
 
+  // 超级管理员返回所有权限
+  const superAdmin = roles.some(r => r.role === 'super_admin');
+  if (superAdmin) {
+    return [{ resource: '*', action: '*', description: '所有权限' }];
+  }
+
   const roleNames = roles.map(r => r.role);
   const supabase = getSupabaseClient();
 
   // 获取这些角色的所有权限
+  const { data: roleIds } = await supabase
+    .from('roles_v2')
+    .select('id')
+    .in('code', roleNames);
+
+  if (!roleIds || roleIds.length === 0) {
+    return [];
+  }
+
   const { data: permissions, error: permsError } = await supabase
-    .from('role_permissions')
+    .from('role_permissions_v2')
     .select(`
       permission_id,
-      permissions (
+      permissions_v2 (
         resource,
         action,
         description
       )
     `)
-    .in('role', roleNames);
+    .in('role_id', roleIds.map((r: any) => r.id));
 
   if (permsError || !permissions) {
     return [];
   }
 
-  return permissions.map((p: RolePermission) => ({
-    resource: (p.permissions as Permission).resource,
-    action: (p.permissions as Permission).action,
-    description: (p.permissions as Permission).description,
+  return permissions.map((p: any) => ({
+    resource: p.permissions_v2?.resource,
+    action: p.permissions_v2?.action,
+    description: p.permissions_v2?.description,
   }));
 }
 

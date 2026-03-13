@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
 
     // 获取用户的岗位信息
     const { data: userRoles } = await client
-      .from('user_roles')
+      .from('user_roles_v2')
       .select('*');
 
     const typedUserRoles: UserRole[] = userRoles || [];

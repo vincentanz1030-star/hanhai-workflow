@@ -321,7 +321,7 @@ export default function UserManagementPage() {
                           {userItem.email}
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {userItem.user_roles?.map((role: any) => (
+                          {userItem.user_roles_v2?.map((role: any) => (
                             <Badge key={role.role} variant="secondary">
                               {ROLE_NAMES[role.role] || role.role}
                               {role.is_primary && ' (主)'}
@@ -589,8 +589,8 @@ function RoleManagementDialog({ user, onUpdate, loading }: any) {
   const [selectedRoles, setSelectedRoles] = useState<any[]>([]);
 
   useEffect(() => {
-    if (user?.user_roles) {
-      setSelectedRoles(user.user_roles);
+    if (user?.user_roles_v2) {
+      setSelectedRoles(user.user_roles_v2);
     }
   }, [user]);
 

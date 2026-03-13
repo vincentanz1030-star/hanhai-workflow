@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     
     // 获取用户岗位信息
     const { data: userRoles } = await client
-      .from('user_roles')
+      .from('user_roles_v2')
       .select('role')
       .eq('user_id', authResult.userId);
 

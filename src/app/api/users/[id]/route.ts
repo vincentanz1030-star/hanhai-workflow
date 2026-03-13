@@ -37,7 +37,7 @@ export async function GET(
       .from('users')
       .select(`
         *,
-        user_roles (
+        user_roles_v2 (
           role,
           is_primary
         )

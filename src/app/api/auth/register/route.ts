@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     // 分配角色
     const { error: roleError } = await supabase
-      .from('user_roles')
+      .from('user_roles_v2')
       .insert({
         user_id: newUser.id,
         role,

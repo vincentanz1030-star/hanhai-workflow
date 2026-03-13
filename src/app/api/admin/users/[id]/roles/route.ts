@@ -28,7 +28,7 @@ export async function PUT(
     const supabase = getSupabaseClient();
 
     // 删除用户现有角色
-    await supabase.from('user_roles').delete().eq('user_id', id);
+    await supabase.from('user_roles_v2').delete().eq('user_id', id);
 
     // 插入新角色
     if (roles && roles.length > 0) {
@@ -39,7 +39,7 @@ export async function PUT(
       }));
 
       const { error: insertError } = await supabase
-        .from('user_roles')
+        .from('user_roles_v2')
         .insert(rolesToInsert);
 
       if (insertError) {

@@ -387,9 +387,11 @@ export default function AnnouncementBar({ isAdmin = false, userBrand = 'all' }: 
 
               {/* 内容 */}
               {current.content && (
-                <p className="text-xs sm:text-sm text-muted-foreground mb-2 line-clamp-2">
-                  {current.content}
-                </p>
+                <div className="max-h-24 overflow-y-auto mb-2 pr-1 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+                  <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap">
+                    {current.content}
+                  </p>
+                </div>
               )}
 
               {/* 底部：时间 + 操作 */}

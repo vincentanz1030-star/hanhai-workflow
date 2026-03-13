@@ -221,25 +221,29 @@ export function NotificationCenter({
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="border-0 shadow-sm bg-gradient-to-br from-card to-muted/20 h-full flex flex-col">
+      <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              工作通知中心
-              {totalNotifications > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  {totalNotifications}
-                </Badge>
-              )}
-            </CardTitle>
-            <CardDescription>
-              项目协同、催促提醒、本周工作安排等通知
-            </CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
+              <Bell className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                工作通知
+                {totalNotifications > 0 && (
+                  <Badge variant="secondary" className="text-xs font-normal">
+                    {totalNotifications}
+                  </Badge>
+                )}
+              </CardTitle>
+              <CardDescription className="text-xs">
+                协同、提醒、周计划等
+              </CardDescription>
+            </div>
           </div>
           {highPriorityCount > 0 && (
-            <Badge variant="destructive" className="animate-pulse">
+            <Badge variant="destructive" className="animate-pulse text-xs">
               {highPriorityCount}紧急
             </Badge>
           )}

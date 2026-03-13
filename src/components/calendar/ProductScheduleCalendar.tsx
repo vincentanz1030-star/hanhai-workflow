@@ -207,31 +207,36 @@ export default function ProductScheduleCalendar({ compact = false }: ProductSche
 
   return (
     <>
-      <Card className={`${compact ? '' : 'mb-6'}`}>
+      <Card className={`border-0 shadow-sm bg-gradient-to-br from-card to-muted/20 h-full flex flex-col ${compact ? '' : ''}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-              {year}年{month}月 新品排期
-            </CardTitle>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                <CalendarIcon className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-base">新品排期</CardTitle>
+                <p className="text-xs text-muted-foreground">{year}年{month}月</p>
+              </div>
+            </div>
             <div className="flex items-center gap-1 sm:gap-2">
-              <Button variant="outline" size="icon" onClick={handlePreviousMonth} className="h-8 w-8 sm:h-9 sm:w-9">
-                <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+              <Button variant="ghost" size="icon" onClick={handlePreviousMonth} className="h-8 w-8 hover:bg-muted">
+                <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-xs sm:text-sm font-medium w-16 sm:w-24 text-center">
+              <span className="text-sm font-medium w-20 text-center">
                 {monthNames[month - 1]}
               </span>
-              <Button variant="outline" size="icon" onClick={handleNextMonth} className="h-8 w-8 sm:h-9 sm:w-9">
-                <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
+              <Button variant="ghost" size="icon" onClick={handleNextMonth} className="h-8 w-8 hover:bg-muted">
+                <ChevronRight className="h-4 w-4" />
               </Button>
               <Button
                 variant="default"
                 size="sm"
                 onClick={() => handleDateClick(1)}
-                className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm ml-1"
+                className="h-8 px-3 text-xs bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 border-0 ml-2"
               >
-                <Plus className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
-                <span className="hidden sm:inline">添加排期</span>
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                添加
               </Button>
             </div>
           </div>

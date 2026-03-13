@@ -2758,130 +2758,214 @@ function HomePageContent() {
               userBrand={user?.brand || 'all'} 
             />
 
-            {/* 统计卡片 - 现代化设计 */}
-            <div className="grid gap-4 sm:gap-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-              <Card className="group relative overflow-hidden border-border/30 bg-gradient-to-br from-background to-muted/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
-                <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">总项目数</CardTitle>
-                  <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                    <FolderOpen className="h-4 w-4 text-primary" />
+            {/* 统计卡片 - 现代化紧凑设计 */}
+            <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-5">
+              <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3 px-3 sm:px-4">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">总项目数</CardTitle>
+                  <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <FolderOpen className="h-3.5 w-3.5 text-primary" />
                   </div>
                 </CardHeader>
-                <CardContent className="relative">
-                  <div className="text-2xl sm:text-3xl font-bold tracking-tight">{stats.total}</div>
-                  <p className="text-xs text-muted-foreground mt-1">当前在管项目</p>
+                <CardContent className="pb-3 px-3 sm:px-4">
+                  <div className="text-xl sm:text-2xl font-bold tracking-tight">{stats.total}</div>
+                  <p className="text-[10px] text-muted-foreground">当前在管</p>
                 </CardContent>
               </Card>
 
-              <Card className="group relative overflow-hidden border-border/30 bg-gradient-to-br from-background to-muted/20 hover:shadow-lg hover:shadow-gray-500/5 transition-all duration-300">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gray-500/5 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
-                <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">待开始</CardTitle>
-                  <div className="h-9 w-9 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
-                    <Clock className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+              <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3 px-3 sm:px-4">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">待开始</CardTitle>
+                  <div className="h-7 w-7 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+                    <Clock className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
                   </div>
                 </CardHeader>
-                <CardContent className="relative">
-                  <div className="text-2xl sm:text-3xl font-bold tracking-tight">{stats.pending}</div>
-                  <p className="text-xs text-muted-foreground mt-1">等待启动</p>
+                <CardContent className="pb-3 px-3 sm:px-4">
+                  <div className="text-xl sm:text-2xl font-bold tracking-tight">{stats.pending}</div>
+                  <p className="text-[10px] text-muted-foreground">等待启动</p>
                 </CardContent>
               </Card>
 
-              <Card className="group relative overflow-hidden border-border/30 bg-gradient-to-br from-background to-blue-50/30 dark:to-blue-950/20 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
-                <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">进行中</CardTitle>
-                  <div className="h-9 w-9 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-800/50 transition-colors">
-                    <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/50 dark:to-blue-900/30 shadow-sm hover:shadow-md hover:shadow-blue-500/10 transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3 px-3 sm:px-4">
+                  <CardTitle className="text-xs font-medium text-blue-600 dark:text-blue-400">进行中</CardTitle>
+                  <div className="h-7 w-7 rounded-lg bg-blue-200 dark:bg-blue-800/50 flex items-center justify-center">
+                    <TrendingUp className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                   </div>
                 </CardHeader>
-                <CardContent className="relative">
-                  <div className="text-2xl sm:text-3xl font-bold tracking-tight text-blue-600 dark:text-blue-400">{stats.inProgress}</div>
-                  <p className="text-xs text-muted-foreground mt-1">正在推进</p>
+                <CardContent className="pb-3 px-3 sm:px-4">
+                  <div className="text-xl sm:text-2xl font-bold tracking-tight text-blue-600 dark:text-blue-400">{stats.inProgress}</div>
+                  <p className="text-[10px] text-blue-500/70 dark:text-blue-400/70">正在推进</p>
                 </CardContent>
               </Card>
 
-              <Card className="group relative overflow-hidden border-border/30 bg-gradient-to-br from-background to-green-50/30 dark:to-green-950/20 hover:shadow-lg hover:shadow-green-500/5 transition-all duration-300">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
-                <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">已完成</CardTitle>
-                  <div className="h-9 w-9 rounded-xl bg-green-100 dark:bg-green-900/50 flex items-center justify-center group-hover:bg-green-200 dark:group-hover:bg-green-800/50 transition-colors">
-                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/50 dark:to-emerald-900/30 shadow-sm hover:shadow-md hover:shadow-emerald-500/10 transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3 px-3 sm:px-4">
+                  <CardTitle className="text-xs font-medium text-emerald-600 dark:text-emerald-400">已完成</CardTitle>
+                  <div className="h-7 w-7 rounded-lg bg-emerald-200 dark:bg-emerald-800/50 flex items-center justify-center">
+                    <CheckCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                 </CardHeader>
-                <CardContent className="relative">
-                  <div className="text-2xl sm:text-3xl font-bold tracking-tight text-green-600 dark:text-green-400">{stats.completed}</div>
-                  <p className="text-xs text-muted-foreground mt-1">成功交付</p>
+                <CardContent className="pb-3 px-3 sm:px-4">
+                  <div className="text-xl sm:text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">{stats.completed}</div>
+                  <p className="text-[10px] text-emerald-500/70 dark:text-emerald-400/70">成功交付</p>
                 </CardContent>
               </Card>
 
-              <Card className="group relative overflow-hidden border-border/30 bg-gradient-to-br from-background to-red-50/30 dark:to-red-950/20 hover:shadow-lg hover:shadow-red-500/5 transition-all duration-300">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
-                <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">已延期</CardTitle>
-                  <div className="h-9 w-9 rounded-xl bg-red-100 dark:bg-red-900/50 flex items-center justify-center group-hover:bg-red-200 dark:group-hover:bg-red-800/50 transition-colors">
-                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-rose-50 to-rose-100/50 dark:from-rose-950/50 dark:to-rose-900/30 shadow-sm hover:shadow-md hover:shadow-rose-500/10 transition-all duration-300 col-span-2 sm:col-span-1">
+                <div className="absolute inset-0 bg-gradient-to-r from-rose-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3 px-3 sm:px-4">
+                  <CardTitle className="text-xs font-medium text-rose-600 dark:text-rose-400">已延期</CardTitle>
+                  <div className="h-7 w-7 rounded-lg bg-rose-200 dark:bg-rose-800/50 flex items-center justify-center">
+                    <AlertCircle className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
                   </div>
                 </CardHeader>
-                <CardContent className="relative">
-                  <div className="text-2xl sm:text-3xl font-bold tracking-tight text-red-600 dark:text-red-400">{stats.delayed}</div>
-                  <p className="text-xs text-muted-foreground mt-1">需要关注</p>
+                <CardContent className="pb-3 px-3 sm:px-4">
+                  <div className="text-xl sm:text-2xl font-bold tracking-tight text-rose-600 dark:text-rose-400">{stats.delayed}</div>
+                  <p className="text-[10px] text-rose-500/70 dark:text-rose-400/70">需要关注</p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* 通知中心 */}
-            <NotificationCenter
-              collaborations={notifications.collaborations}
-              reminders={notifications.reminders}
-              weeklyPlans={notifications.weeklyPlans}
-              projectNotifications={notifications.projectNotifications}
-            />
+            {/* 双列布局：通知中心 + 新品排期日历 */}
+            <div className="grid gap-4 lg:grid-cols-2">
+              {/* 通知中心 */}
+              <NotificationCenter
+                collaborations={notifications.collaborations}
+                reminders={notifications.reminders}
+                weeklyPlans={notifications.weeklyPlans}
+                projectNotifications={notifications.projectNotifications}
+              />
 
-            {/* 新品排期日历 */}
-            <ProductScheduleCalendar />
+              {/* 新品排期日历 */}
+              <ProductScheduleCalendar />
+            </div>
 
             {/* 销售目标 */}
-            <Card>
-              <CardHeader>
+            <Card className="border-0 shadow-sm bg-gradient-to-br from-card to-muted/20">
+              <CardHeader className="pb-3">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                  <div>
-                    <CardTitle className="text-lg sm:text-xl">销售目标</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">年度和月度销售目标跟踪</CardDescription>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                      <TrendingUp className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base sm:text-lg">销售目标</CardTitle>
+                      <CardDescription className="text-xs">年度和月度销售目标跟踪</CardDescription>
+                    </div>
                   </div>
-                  <Button onClick={() => setIsSalesTargetDialogOpen(true)} size="sm" className="w-full sm:w-auto">
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <Button onClick={() => setIsSalesTargetDialogOpen(true)} size="sm" className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 border-0">
+                    <Plus className="h-3.5 w-3.5 mr-1.5" />
                     新建目标
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 {salesTargets.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>暂无销售目标，点击上方按钮创建</p>
+                  <div className="text-center py-12 text-muted-foreground">
+                    <div className="h-16 w-16 mx-auto mb-4 rounded-2xl bg-muted/50 flex items-center justify-center">
+                      <TrendingUp className="h-8 w-8 opacity-40" />
+                    </div>
+                    <p className="text-sm font-medium">暂无销售目标</p>
+                    <p className="text-xs mt-1 text-muted-foreground">点击上方按钮创建年度目标</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {salesTargets
                       .filter(target => brandFilter === 'all' || target.brand === brandFilter)
                       .map((target) => {
                       const completionRate = target.targetAmount > 0 
                         ? ((target.actualAmount / target.targetAmount) * 100).toFixed(1)
                         : '0';
+                      const isOverTarget = parseFloat(completionRate) >= 100;
                       return (
-                        <div key={target.id} className="border rounded-lg p-3 sm:p-4">
-                          {/* 移动端布局 */}
-                          <div className="sm:hidden">
-                            {/* 标题行 */}
-                            <div className="flex items-center justify-between mb-2">
-                              <h3 className="font-semibold text-sm">{target.year}年 - {BRAND_NAMES[target.brand]}</h3>
+                        <div key={target.id} className="group relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-r from-muted/30 to-transparent p-4 hover:border-border transition-all hover:shadow-sm">
+                          {/* 进度条背景 */}
+                          <div 
+                            className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent transition-opacity"
+                            style={{ opacity: Math.min(parseFloat(completionRate) / 100, 1) * 0.5 }}
+                          ></div>
+                          
+                          <div className="relative">
+                            {/* 移动端布局 */}
+                            <div className="sm:hidden">
+                              {/* 标题行 */}
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-base font-bold">{target.year}年</span>
+                                  <Badge variant="secondary" className="text-[10px]">{BRAND_NAMES[target.brand]}</Badge>
+                                </div>
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs"
+                                    onClick={() => handleEditSalesTarget(target)}
+                                  >
+                                    编辑
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                                    onClick={() => handleDeleteSalesTarget(target.id)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </div>
+                              {/* 数据行 */}
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="flex-1 text-center p-2 rounded-lg bg-muted/50">
+                                  <div className="text-lg font-bold">{target.targetAmount}</div>
+                                  <div className="text-[10px] text-muted-foreground">目标(万)</div>
+                                </div>
+                                <div className="flex-1 text-center p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30">
+                                  <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{target.actualAmount}</div>
+                                  <div className="text-[10px] text-blue-500/70">实际(万)</div>
+                                </div>
+                                <div className={`flex-1 text-center p-2 rounded-lg ${isOverTarget ? 'bg-emerald-50 dark:bg-emerald-900/30' : 'bg-muted/50'}`}>
+                                  <div className={`text-lg font-bold ${isOverTarget ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>{completionRate}%</div>
+                                  <div className="text-[10px] text-muted-foreground">完成率</div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 桌面端布局 */}
+                            <div className="hidden sm:flex items-center gap-6">
+                              <div className="flex items-center gap-3">
+                                <span className="text-xl font-bold">{target.year}年</span>
+                                <Badge variant="secondary">{BRAND_NAMES[target.brand]}</Badge>
+                              </div>
+                              <div className="flex-1 flex items-center gap-6">
+                                <div className="text-center">
+                                  <div className="text-2xl font-bold">{target.targetAmount}</div>
+                                  <div className="text-xs text-muted-foreground">目标(万)</div>
+                                </div>
+                                <div className="flex-1 max-w-xs">
+                                  <Progress 
+                                    value={Math.min(parseFloat(completionRate), 100)} 
+                                    className={`h-2 ${isOverTarget ? '[&>div]:bg-emerald-500' : ''}`}
+                                  />
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{target.actualAmount}</div>
+                                  <div className="text-xs text-muted-foreground">实际(万)</div>
+                                </div>
+                              </div>
+                              <div className={`text-right ${isOverTarget ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
+                                <div className="text-3xl font-bold">{completionRate}%</div>
+                                <div className="text-xs text-muted-foreground">完成率</div>
+                              </div>
                               <div className="flex gap-1">
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-7 px-2 text-xs"
+                                  className="h-8 px-3 text-xs"
                                   onClick={() => handleEditSalesTarget(target)}
                                 >
                                   编辑
@@ -2889,48 +2973,7 @@ function HomePageContent() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-7 w-7 p-0 text-destructive"
-                                  onClick={() => handleDeleteSalesTarget(target.id)}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            </div>
-                            {/* 数据行 */}
-                            <div className="flex items-center gap-2 mb-2 flex-wrap">
-                              <Badge variant="outline" className="text-xs">目标: {target.targetAmount}万元</Badge>
-                              <Badge className="bg-blue-500 text-xs">已完成: {target.actualAmount}万元</Badge>
-                            </div>
-                            {/* 完成率 */}
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-lg font-bold text-blue-600">{completionRate}%</span>
-                              <span className="text-xs text-muted-foreground">完成率</span>
-                            </div>
-                          </div>
-
-                          {/* 桌面端布局 */}
-                          <div className="hidden sm:flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <h3 className="font-semibold">{target.year}年 - {BRAND_NAMES[target.brand]}</h3>
-                              <Badge variant="outline">目标: {target.targetAmount}万元</Badge>
-                              <Badge className="bg-blue-500">已完成: {target.actualAmount}万元</Badge>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <div className="text-right">
-                                <div className="text-2xl font-bold text-blue-600">{completionRate}%</div>
-                                <div className="text-xs text-muted-foreground">完成率</div>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleEditSalesTarget(target)}
-                                >
-                                  编辑
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                                   onClick={() => handleDeleteSalesTarget(target.id)}
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -2938,7 +2981,6 @@ function HomePageContent() {
                               </div>
                             </div>
                           </div>
-                          <Progress value={parseFloat(completionRate)} className="h-2 sm:h-3" />
                           
                           {/* 月度目标详情 */}
                           {target.monthlyTargets && target.monthlyTargets.length > 0 && (

@@ -161,48 +161,63 @@ export async function POST(request: NextRequest) {
     // 创建月度目标（如果有提供）
     const createdMonthlyTargets = [];
     if (monthlyTargets && monthlyTargets.length > 0) {
-      for (const mt of monthlyTargets) {
-        const { data: monthly } = await client
-          .from('monthly_sales_targets')
-          .insert({
-            annual_target_id: target.id,
-            month: mt.month,
-            brand,
-            year,
-            target_amount: mt.targetAmount,
-            actual_amount: mt.actualAmount,
-          })
-          .select()
-          .single();
+      // 批量插入月度目标
+      const monthlyData = monthlyTargets.map((mt: { month: number; targetAmount: number; actualAmount?: number }) => ({
+        annual_target_id: target.id,
+        month: mt.month,
+        brand,
+        year,
+        target_amount: mt.targetAmount,
+        actual_amount: mt.actualAmount || 0,
+      }));
 
-        if (monthly) {
-          createdMonthlyTargets.push(monthly);
-        }
+      const { data: insertedMonthly } = await client
+        .from('monthly_sales_targets')
+        .insert(monthlyData)
+        .select();
+
+      if (insertedMonthly) {
+        createdMonthlyTargets.push(...insertedMonthly);
       }
     } else {
       // 自动创建12个月的月度目标（平均分配）
+      const monthlyData = [];
       for (let month = 1; month <= 12; month++) {
         const monthlyAmount = Math.round(targetAmount / 12);
-        const { data: monthly } = await client
-          .from('monthly_sales_targets')
-          .insert({
-            annual_target_id: target.id,
-            month,
-            brand,
-            year,
-            target_amount: monthlyAmount,
-            actual_amount: 0,
-          })
-          .select()
-          .single();
+        monthlyData.push({
+          annual_target_id: target.id,
+          month,
+          brand,
+          year,
+          target_amount: monthlyAmount,
+          actual_amount: 0,
+        });
+      }
 
-        if (monthly) {
-          createdMonthlyTargets.push(monthly);
-        }
+      const { data: insertedMonthly } = await client
+        .from('monthly_sales_targets')
+        .insert(monthlyData)
+        .select();
+
+      if (insertedMonthly) {
+        createdMonthlyTargets.push(...insertedMonthly);
       }
     }
 
-    return NextResponse.json({ target: toCamelCase(target), monthlyTargets: toCamelCase(createdMonthlyTargets) });
+    // 重新计算年度目标金额（由月度目标汇总）
+    const totalTargetAmount = createdMonthlyTargets.reduce((sum: number, m: { target_amount?: number }) => sum + (m.target_amount || 0), 0);
+    
+    // 更新年度目标的金额
+    const { data: updatedTarget } = await client
+      .from('annual_sales_targets')
+      .update({
+        target_amount: totalTargetAmount,
+      })
+      .eq('id', target.id)
+      .select()
+      .single();
+
+    return NextResponse.json({ target: toCamelCase(updatedTarget || target), monthlyTargets: toCamelCase(createdMonthlyTargets) });
   } catch (error) {
     console.error('服务器错误:', error);
     return NextResponse.json({ error: '服务器错误' }, { status: 500 });
@@ -258,14 +273,14 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // 更新年度目标
+    // 更新年度目标（不更新 target_amount，由月度目标计算得出）
     const { data: target, error: targetError } = await client
       .from('annual_sales_targets')
       .update({
         year,
         brand,
-        target_amount: targetAmount,
         description: description || null,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
@@ -276,47 +291,43 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: targetError.message }, { status: 500 });
     }
 
-    // 更新月度目标（如果有提供）
+    // 更新月度目标：先删除所有旧的，再插入新的（避免重复记录）
     if (monthlyTargets && monthlyTargets.length > 0) {
-      for (const mt of monthlyTargets) {
-        if (mt.id) {
-          // 更新已存在的月度目标
-          await client
-            .from('monthly_sales_targets')
-            .update({
-              target_amount: mt.targetAmount,
-              actual_amount: mt.actualAmount,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', mt.id);
-        } else {
-          // 创建新的月度目标
-          await client
-            .from('monthly_sales_targets')
-            .insert({
-              annual_target_id: id,
-              month: mt.month,
-              brand,
-              year,
-              target_amount: mt.targetAmount,
-              actual_amount: mt.actualAmount || 0,
-            });
-        }
-      }
+      // 删除该年度目标的所有月度目标
+      await client
+        .from('monthly_sales_targets')
+        .delete()
+        .eq('annual_target_id', id);
+
+      // 插入新的月度目标
+      const monthlyData = monthlyTargets.map((mt: { month: number; targetAmount: number; actualAmount?: number }) => ({
+        annual_target_id: id,
+        month: mt.month,
+        brand,
+        year,
+        target_amount: mt.targetAmount,
+        actual_amount: mt.actualAmount || 0,
+      }));
+
+      await client
+        .from('monthly_sales_targets')
+        .insert(monthlyData);
     }
 
-    // 重新计算年度实际金额
+    // 重新计算年度目标和实际金额（由月度目标汇总）
     const { data: allMonthly } = await client
       .from('monthly_sales_targets')
-      .select('actual_amount')
+      .select('target_amount, actual_amount')
       .eq('annual_target_id', id);
 
+    const totalTargetAmount = allMonthly?.reduce((sum: number, m: { target_amount?: number }) => sum + (m.target_amount || 0), 0) || 0;
     const totalActualAmount = allMonthly?.reduce((sum: number, m: { actual_amount?: number }) => sum + (m.actual_amount || 0), 0) || 0;
 
-    // 更新年度目标的实际金额
+    // 更新年度目标的金额（由月度目标汇总得出）
     await client
       .from('annual_sales_targets')
       .update({
+        target_amount: totalTargetAmount,
         actual_amount: totalActualAmount,
         updated_at: new Date().toISOString(),
       })

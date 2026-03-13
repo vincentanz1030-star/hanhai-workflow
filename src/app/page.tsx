@@ -2022,6 +2022,7 @@ function HomePageContent() {
       description: target.description || '',
       monthlyTargets: uniqueMonthlyTargets.length > 0
         ? uniqueMonthlyTargets.map(mt => ({
+            id: mt.id, // 保留 id 用于更新
             month: mt.month,
             targetAmount: mt.targetAmount,
             actualAmount: mt.actualAmount,
